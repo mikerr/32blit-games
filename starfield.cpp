@@ -11,6 +11,16 @@ typedef struct star {
 
 std::vector<star> stars;
 
+typedef struct shape {
+    std::vector<vec2> points;
+    vec2 pos;
+    vec2 dir;
+    vec3 color;
+    float size;
+} shape;
+
+shape alien1;
+
 void center_star( star &s) {
     vec2 center = vec2 (fb.bounds.w / 2, fb.bounds.h / 2);
     s.pos = center;
@@ -18,25 +28,50 @@ void center_star( star &s) {
 }
 
 void draw_cross(vec2 pos) {
-    int x = pos.x;
-    int y = pos.y;
-    fb.line(vec2 (x - 10, y - 10), vec2 (x + 10, y + 10));
-    fb.line(vec2 (x + 10, y - 10), vec2 (x - 10, y + 10));
+    fb.pen(rgba(255,255,255));
+    fb.line(pos + vec2 (-10, -10), pos + vec2 (10, 10) );
+    fb.line(pos + vec2 (10, -10), pos + vec2 (-10, 10) );
 }
 
 void draw_laser(vec2 pos) {
-    int x = pos.x;
-    int y = pos.y;
     fb.pen(rgba(rand() % 255,rand() % 255,rand() % 255));
-    fb.line(vec2 (0, fb.bounds.h), vec2 (x,y));
-    fb.line(vec2 (fb.bounds.w, fb.bounds.h), vec2 (x,y));
+    fb.line(vec2 (0, fb.bounds.h), pos);
+    fb.line(vec2 (fb.bounds.w, fb.bounds.h), pos);
 }
+void draw_shape(shape shape,vec2 pos,float size){
+    fb.pen(rgba((int)shape.color.x,(int)shape.color.y,(int)shape.color.z));
+    vec2 lastpos = shape.points[0];
+    for (auto &p: shape.points) {
+        vec2 point = p * size;
+        fb.line(lastpos + pos , point + pos);
+        lastpos = point;
+    }
+}
+void new_alien () {
+    alien1.color = vec3 (rand() % 255,rand() % 255,rand() % 255);
+    vec2 center = vec2(fb.bounds.w / 2, fb.bounds.h / 2);
+    alien1.pos = center;
+    alien1.dir = vec2(rand() % 6 - 3 ,rand() % 6 - 3);
 
+    alien1.size = 0.1;
+}
+void move_alien() {
+    alien1.pos = alien1.pos + alien1.dir;
+    alien1.size = alien1.size + 0.02;
+    if ( alien1.size > 2) new_alien();
+    if ((alien1.pos.x < 0)  || (alien1.pos.x > fb.bounds.w) || (alien1.pos.y < 0 ) || (alien1.pos.y > fb.bounds.h))
+        new_alien();
+}
 int low_res, multicolor,hyperspace,fire,speed;
 
 void init() {
     set_screen_mode(screen_mode::hires);
 
+    alien1.points.push_back(vec2(0,0));
+    alien1.points.push_back(vec2(10,10));
+    alien1.points.push_back(vec2(20,0));
+    alien1.points.push_back(vec2(0,0));
+    new_alien();
     for (int i=0; i < 200; i++ ) {
         star s;
         center_star(s);
@@ -47,7 +82,7 @@ void init() {
 }
 
 void render(uint32_t time) {
-vec2 center,move,cross;
+vec2 center,move,joypos;
 
     if (!hyperspace) {
         fb.pen(rgba(0, 0, 0));
@@ -68,22 +103,28 @@ vec2 center,move,cross;
 
         fb.pixel(s.pos);
         }
-        
-    move = blit::joystick;
-    if ( move.x || move.y ) {
-        center = vec2 (fb.bounds.w / 2, fb.bounds.h / 2);
-        move.x =  move.x * center.x ;
-        move.y =  move.y * center.y ;
-        cross = center + move;
-        draw_cross(cross);
-        }
 
+    move_alien();
+    if (!hyperspace ) draw_shape (alien1, alien1.pos,alien1.size);
+
+    center = vec2(fb.bounds.w / 2, fb.bounds.h / 2);
+    move = blit::joystick;
+
+    joypos.x =  move.x * center.x ;
+    joypos.y =  move.y * center.y ;
+    joypos = joypos + center;
+
+    if ( move.x || move.y ) { draw_cross(joypos); }
+    
     vibration = 0.0f;
     if (fire) {
-        vibration = 0.1f;
-        draw_cross(cross);
-        draw_laser(cross);
-        }
+                draw_cross(joypos);
+                draw_laser(joypos);
+                if (abs(alien1.pos.x - joypos.x) < 10  && abs(alien1.pos.y - joypos.y) < 10 ) {
+                        vibration = 0.1f;
+                        new_alien();
+                        }
+                }
 }
 
 void update(uint32_t time) {
@@ -100,3 +141,4 @@ void update(uint32_t time) {
                         }
                 }
 }
+
