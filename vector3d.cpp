@@ -9,11 +9,24 @@ typedef struct shape {
 } shape;
 
 shape cube;
+shape square;
+shape pyramid;
 
 int low_res;
-float zoom,spin;
+float zoom, zd;
 vec2 joypos,pos,dir,center;
-vec3 rot;
+vec3 rot,spin;
+
+typedef struct object {
+        shape model;
+        vec3 position;
+        vec3 rotation;
+        vec3 spin;
+        vec3 velocity;
+} object;
+
+object ship;
+std::vector<object> objects;
 
 vec2 rotate_point(vec2 point,float angle){
     mat3 t = mat3::identity();
@@ -35,7 +48,7 @@ vec3 rotate3d (vec3 point3d,vec3 rot) {
     // rotate 3d point about Y
     point = vec2(point3d.z,point3d.x);
     point = rotate_point (point,rot.y);
-
+    
     point3d.z = point.x;
     point3d.x = point.y;
 
@@ -48,6 +61,7 @@ vec3 rotate3d (vec3 point3d,vec3 rot) {
 
     return (point3d);
 }
+
 vec2 to2d (vec3 point3d) {
     vec2 point;
 
@@ -59,7 +73,7 @@ vec2 to2d (vec3 point3d) {
     return (point);
     }
 
-void draw_shape(shape shape,vec2 pos,float size){
+void draw_object(shape shape,vec2 pos,float size){
     vec3 p0 = shape.points[0];
     p0 = rotate3d(p0,rot);
 
@@ -68,12 +82,17 @@ void draw_shape(shape shape,vec2 pos,float size){
     for (auto &p: shape.points) {
         p = rotate3d(p,rot);
         vec2 point = to2d(p) * size;
-        fb.line(lastpos + pos , point + pos);
+        fb.line(lastpos + pos, point + pos);
         lastpos = point;
     }
 }
 
-
+vec3 rand3 () {
+     float x = (5 - rand() % 10) / 100.0f;
+     float y = (5 - rand() % 10) / 100.0f;
+     float z = (5 - rand() % 10) / 100.0f;
+     return vec3(x,y,z);
+}
 void init() {
     set_screen_mode(screen_mode::hires);
     center = vec2(fb.bounds.w / 2, fb.bounds.h / 2);
@@ -92,13 +111,35 @@ void init() {
     cube.points.push_back(vec3(10,10,10));
     cube.points.push_back(vec3(10,10,-10));
     cube.points.push_back(vec3(10,-10,-10));
-    
-    low_res = 0;
-    spin = 0.02;
-    zoom = 3;
+    cube.points.push_back(vec3(10,-10,10));
+    cube.points.push_back(vec3(-10,-10,10));
 
-    pos = center;
-    dir = vec2 (1,2);
+    square.points.push_back(vec3(-10,-10,-10));
+    square.points.push_back(vec3(-10,-10,10));
+    square.points.push_back(vec3(-10,10,10));
+    square.points.push_back(vec3(-10,10,-10));
+    square.points.push_back(vec3(-10,-10,-10));
+
+    pyramid.points.push_back(vec3(-10,-10,-10)); // base
+    pyramid.points.push_back(vec3(-10,-10,10));
+    pyramid.points.push_back(vec3(-10,10,10));
+    pyramid.points.push_back(vec3(-10,10,-10));
+    pyramid.points.push_back(vec3(-10,-10,-10));
+    pyramid.points.push_back(vec3(10,0,0)); // point
+    pyramid.points.push_back(vec3(-10,10,10));
+    pyramid.points.push_back(vec3(-10,10,-10));
+    pyramid.points.push_back(vec3(10,0,0));
+    pyramid.points.push_back(vec3(-10,-10,10));
+
+    for (int x=0; x<100; x++) {
+        ship.model = cube;
+        ship.spin = rand3();
+        objects.push_back(ship);
+        }
+
+    low_res = 0;
+    zoom = 1;
+    zd = 0.01;
 }
 
 void render(uint32_t time) {
@@ -108,29 +149,44 @@ void render(uint32_t time) {
 
     fb.pen(rgba(255,255,255));
 
-    vec2 edge = center * 2;
-    int cubesize = zoom * 10;
-    if ((pos.x < cubesize ) || (pos.x > edge.x - cubesize )) { dir.x = -dir.x; spin = spin; }
-    if ((pos.y < cubesize ) || (pos.y > edge.y - cubesize )) { dir.y = -dir.y; spin = spin; }
+    pos = vec2(0,0);
 
-    pos = pos + dir;
-    draw_shape (cube, pos, zoom);
+    int x = 1;
+    for (auto &obj: objects) {
+        obj.position += obj.velocity;
+        obj.rotation += obj.spin;
 
-    rot += vec3(spin,spin,0);
+        rot = obj.rotation;
+        draw_object(obj.model,pos,zoom);
+        pos.x += 30 * zoom;
+        x++;
+        if (x % 11 == 0) {
+                pos.x = 0;
+                pos.y += 30 * zoom;
+                }
+        if (pos.y > fb.bounds.h + 30) break;
+        }
 }
-
 void update(uint32_t time) {
 
     vec2 move = blit::joystick;
-    if (move.y > 0) zoom += 0.1;
-    if (move.y < 0) zoom -= 0.1;
-    pos.x += move.x;
+    zoom -= move.y /10.0;
 
-    if (pressed(button::DPAD_LEFT))  { spin -= 0.001;}
-    if (pressed(button::DPAD_RIGHT)) { spin += 0.001;}
+    zoom += zd;
+    if (( zoom > 6 ) || ( zoom < 1 )) zd = -zd;
 
-    if (pressed(button::X))  {
-        low_res = 1 - low_res;
+    if (pressed(button::DPAD_LEFT))  spin.y -= 0.001;
+    if (pressed(button::DPAD_RIGHT)) spin.y += 0.001;
+    if (pressed(button::DPAD_UP))    zoom += 0.01;
+    if (pressed(button::DPAD_DOWN))  zoom -= 0.01;
+
+    if (pressed(button::Y)) pos.x--;
+    if (pressed(button::A)) pos.x++;
+    if (pressed(button::X)) pos.y--;
+    if (pressed(button::B)) pos.y++;
+
+    if (pressed(button::MENU))  {
+        low_res = !low_res;
         if (low_res) {
                 set_screen_mode(screen_mode::hires);
                 center = vec2(fb.bounds.w / 2, fb.bounds.h / 2);
