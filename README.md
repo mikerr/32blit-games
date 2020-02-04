@@ -8,3 +8,5 @@ Starfield - simple 3d starfield with laser
 Keyboard - keypad number entry via joystick
 
 Vector3d - simple 3d wireframe graphics
+
+isometric - simple isometric game ( knight lore !)
