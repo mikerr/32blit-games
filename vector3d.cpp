@@ -5,7 +5,7 @@
 using namespace blit;
 
 typedef struct shape {
-    std::vector<vec3> points ;
+    std::vector<Vec3> points ;
 } shape;
 
 shape cube;
@@ -14,46 +14,45 @@ shape pyramid;
 
 int low_res;
 float zoom, zd;
-vec2 joypos,pos,dir,center;
-vec3 rot,spin;
+Vec2 joypos,pos,dir,center;
+Vec3 rot,spin;
 
 typedef struct object {
         shape model;
-        vec3 position;
-        vec3 rotation;
-        vec3 spin;
-        vec3 velocity;
+        Vec3 position;
+        Vec3 rotation;
+        Vec3 spin;
+        Vec3 velocity;
 } object;
 
 object ship;
 std::vector<object> objects;
 
-vec2 rotate_point(vec2 point,float angle){
-    mat3 t = mat3::identity();
-    t *= mat3::rotation(angle) ;
+Vec2 rotate_point(Vec2 point,float angle){
+    Mat3 t = Mat3::identity();
+    t *= Mat3::rotation(angle) ;
     point *= t;
     return (point);
 }
-
-vec3 rotate3d (vec3 point3d,vec3 rot) {
-    vec2 point;
+Vec3 rotate3d (Vec3 point3d,Vec3 rot) {
+    Vec2 point;
 
     // rotate 3d point about X
-    point = vec2(point3d.y,point3d.z);
+    point = Vec2(point3d.y,point3d.z);
     point = rotate_point (point,rot.x);
 
     point3d.y = point.x;
     point3d.z = point.y;
 
     // rotate 3d point about Y
-    point = vec2(point3d.z,point3d.x);
+    point = Vec2(point3d.z,point3d.x);
     point = rotate_point (point,rot.y);
-    
+
     point3d.z = point.x;
     point3d.x = point.y;
 
     // rotate 3d point about Z
-    point = vec2(point3d.x,point3d.y);
+    point = Vec2(point3d.x,point3d.y);
     point = rotate_point (point,rot.z);
 
     point3d.x = point.x;
@@ -62,8 +61,8 @@ vec3 rotate3d (vec3 point3d,vec3 rot) {
     return (point3d);
 }
 
-vec2 to2d (vec3 point3d) {
-    vec2 point;
+Vec2 to2d (Vec3 point3d) {
+    Vec2 point;
 
     // project to screen
     int z = point3d.z - 100;
@@ -72,64 +71,63 @@ vec2 to2d (vec3 point3d) {
 
     return (point);
     }
-
-void draw_object(shape shape,vec2 pos,float size){
-    vec3 p0 = shape.points[0];
+void draw_object(shape shape,Vec2 pos,float size){
+    Vec3 p0 = shape.points[0];
     p0 = rotate3d(p0,rot);
 
-    vec2 lastpos = to2d(p0) * size;
+    Vec2 lastpos = to2d(p0) * size;
 
     for (auto &p: shape.points) {
         p = rotate3d(p,rot);
-        vec2 point = to2d(p) * size;
-        fb.line(lastpos + pos, point + pos);
+        Vec2 point = to2d(p) * size;
+        screen.line(lastpos + pos, point + pos);
         lastpos = point;
     }
 }
 
-vec3 rand3 () {
+Vec3 rand3 () {
      float x = (5 - rand() % 10) / 100.0f;
      float y = (5 - rand() % 10) / 100.0f;
      float z = (5 - rand() % 10) / 100.0f;
-     return vec3(x,y,z);
+     return Vec3(x,y,z);
 }
 void init() {
-    set_screen_mode(screen_mode::hires);
-    center = vec2(fb.bounds.w / 2, fb.bounds.h / 2);
+    set_screen_mode(ScreenMode::hires);
+    center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
 
-    cube.points.push_back(vec3(-10,-10,-10));
-    cube.points.push_back(vec3(-10,-10,10));
-    cube.points.push_back(vec3(-10,10,10));
-    cube.points.push_back(vec3(10,10,10));
-    cube.points.push_back(vec3(10,-10,10));
-    cube.points.push_back(vec3(10,-10,-10));
-    cube.points.push_back(vec3(-10,-10,-10));
-    cube.points.push_back(vec3(-10,10,-10));
-    cube.points.push_back(vec3(-10,10,10));
-    cube.points.push_back(vec3(-10,10,-10));
-    cube.points.push_back(vec3(10,10,-10));
-    cube.points.push_back(vec3(10,10,10));
-    cube.points.push_back(vec3(10,10,-10));
-    cube.points.push_back(vec3(10,-10,-10));
-    cube.points.push_back(vec3(10,-10,10));
-    cube.points.push_back(vec3(-10,-10,10));
+    cube.points.push_back(Vec3(-10,-10,-10));
+    cube.points.push_back(Vec3(-10,-10,10));
+    cube.points.push_back(Vec3(-10,10,10));
+    cube.points.push_back(Vec3(10,10,10));
+    cube.points.push_back(Vec3(10,-10,10));
+    cube.points.push_back(Vec3(10,-10,-10));
+    cube.points.push_back(Vec3(-10,-10,-10));
+    cube.points.push_back(Vec3(-10,10,-10));
+    cube.points.push_back(Vec3(-10,10,10));
+    cube.points.push_back(Vec3(-10,10,-10));
+    cube.points.push_back(Vec3(10,10,-10));
+    cube.points.push_back(Vec3(10,10,10));
+    cube.points.push_back(Vec3(10,10,-10));
+    cube.points.push_back(Vec3(10,-10,-10));
+    cube.points.push_back(Vec3(10,-10,10));
+    cube.points.push_back(Vec3(-10,-10,10));
 
-    square.points.push_back(vec3(-10,-10,-10));
-    square.points.push_back(vec3(-10,-10,10));
-    square.points.push_back(vec3(-10,10,10));
-    square.points.push_back(vec3(-10,10,-10));
-    square.points.push_back(vec3(-10,-10,-10));
+    square.points.push_back(Vec3(-10,-10,-10));
+    square.points.push_back(Vec3(-10,-10,10));
+    square.points.push_back(Vec3(-10,10,10));
+    square.points.push_back(Vec3(-10,10,-10));
+    square.points.push_back(Vec3(-10,-10,-10));
 
-    pyramid.points.push_back(vec3(-10,-10,-10)); // base
-    pyramid.points.push_back(vec3(-10,-10,10));
-    pyramid.points.push_back(vec3(-10,10,10));
-    pyramid.points.push_back(vec3(-10,10,-10));
-    pyramid.points.push_back(vec3(-10,-10,-10));
-    pyramid.points.push_back(vec3(10,0,0)); // point
-    pyramid.points.push_back(vec3(-10,10,10));
-    pyramid.points.push_back(vec3(-10,10,-10));
-    pyramid.points.push_back(vec3(10,0,0));
-    pyramid.points.push_back(vec3(-10,-10,10));
+    pyramid.points.push_back(Vec3(-10,-10,-10)); // base
+    pyramid.points.push_back(Vec3(-10,-10,10));
+    pyramid.points.push_back(Vec3(-10,10,10));
+    pyramid.points.push_back(Vec3(-10,10,-10));
+    pyramid.points.push_back(Vec3(-10,-10,-10));
+    pyramid.points.push_back(Vec3(10,0,0)); // point
+    pyramid.points.push_back(Vec3(-10,10,10));
+    pyramid.points.push_back(Vec3(-10,10,-10));
+    pyramid.points.push_back(Vec3(10,0,0));
+    pyramid.points.push_back(Vec3(-10,-10,10));
 
     for (int x=0; x<100; x++) {
         ship.model = cube;
@@ -144,12 +142,12 @@ void init() {
 
 void render(uint32_t time) {
 
-    fb.pen(rgba(0, 0, 0));
-    fb.clear();
+    screen.pen(RGBA(0, 0, 0));
+    screen.clear();
 
-    fb.pen(rgba(255,255,255));
+    screen.pen(RGBA(255,255,255));
 
-    pos = vec2(0,0);
+    pos = Vec2(0,0);
 
     int x = 1;
     for (auto &obj: objects) {
@@ -164,37 +162,41 @@ void render(uint32_t time) {
                 pos.x = 0;
                 pos.y += 30 * zoom;
                 }
-        if (pos.y > fb.bounds.h + 30) break;
+        if (pos.y > screen.bounds.h + 30) break;
         }
 }
+
 void update(uint32_t time) {
 
-    vec2 move = blit::joystick;
+    Vec2 move = blit::joystick;
     zoom -= move.y /10.0;
 
     zoom += zd;
     if (( zoom > 6 ) || ( zoom < 1 )) zd = -zd;
 
-    if (pressed(button::DPAD_LEFT))  spin.y -= 0.001;
-    if (pressed(button::DPAD_RIGHT)) spin.y += 0.001;
-    if (pressed(button::DPAD_UP))    zoom += 0.01;
-    if (pressed(button::DPAD_DOWN))  zoom -= 0.01;
+    if (pressed(Button::DPAD_LEFT))  spin.y -= 0.001;
+    if (pressed(Button::DPAD_RIGHT)) spin.y += 0.001;
+    if (pressed(Button::DPAD_UP))    zoom += 0.01;
+    if (pressed(Button::DPAD_DOWN))  zoom -= 0.01;
 
-    if (pressed(button::Y)) pos.x--;
-    if (pressed(button::A)) pos.x++;
-    if (pressed(button::X)) pos.y--;
-    if (pressed(button::B)) pos.y++;
+    if (pressed(Button::Y)) pos.x--;
+    if (pressed(Button::A)) pos.x++;
+    if (pressed(Button::X)) pos.y--;
+    if (pressed(Button::B)) pos.y++;
 
-    if (pressed(button::MENU))  {
+    if (pressed(Button::MENU))  {
         low_res = !low_res;
         if (low_res) {
-                set_screen_mode(screen_mode::hires);
-                center = vec2(fb.bounds.w / 2, fb.bounds.h / 2);
+                set_screen_mode(ScreenMode::hires);
+                center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
                 } else {
-                set_screen_mode(screen_mode::lores);
-                center = vec2(fb.bounds.w / 2, fb.bounds.h / 2);
+                set_screen_mode(ScreenMode::lores);
+                center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
                 }
         pos = center;
         }
 }
+
+
+
 
