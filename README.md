@@ -1,5 +1,5 @@
 # 32blit-games
-Code and games for the 32blit console
+Code and games for the 32blit console  !(https://github.com/pimoroni/32blit-beta)
 
 Starfield - simple 3d starfield with laser 
 
