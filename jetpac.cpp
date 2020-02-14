@@ -18,6 +18,8 @@ Vec2 player,alienpos,fuelpos;
 Vec2 speed,o,zoom;
 SpriteSheet *level;
 
+Vec3 platforms[] = { Vec3 (30,93,100), Vec3 (139,122,190), Vec3 (221,64,295)}; 
+
 void init() {
   set_screen_mode(ScreenMode::hires);
   level = SpriteSheet::load(level1);
@@ -42,8 +44,10 @@ int collide (Vec2 a, Vec2 b) {
    if (abs(a.x - b.x) < 15  && abs(a.y - b.y) < 15 ) return 1;
    return 0;
 }
-void platform (int xleft,int ypos,int xright){
-  if ((player.x > xleft) && (player.x < xright)) {
+void hitplatform (Vec3 platform){
+
+  if ((player.x > platform.x) && (player.x < platform.z)) {
+    int ypos = platform.y;
 
     // check if hitting underside, bounce down
     if ((speed.y < 0) && (abs(player.y - ypos)) < 3) { 
@@ -56,12 +60,8 @@ void platform (int xleft,int ypos,int xright){
   }
 }
 int checkplatforms(Vec2 pos){
-  Vec3 plat = Vec3 (30,93,100); 
-  if ((pos.x > plat.x) && (pos.x < plat.z) && (plat.y - pos.y) < 20) return 1;
-  plat = Vec3 (139,122,190); 
-  if ((pos.x > plat.x) && (pos.x < plat.z) && (plat.y - pos.y) < 20) return 1;
-  plat = Vec3 (221,64,295); 
-  if ((pos.x > plat.x) && (pos.x < plat.z) && (plat.y - pos.y) < 20) return 1;
+  for (Vec3 plat : platforms) 
+  	if ((pos.x > plat.x) && (pos.x < plat.z) && (plat.y - pos.y) < 20) return 1;
   return 0;
 }
 void render(uint32_t time) {
@@ -81,9 +81,8 @@ void render(uint32_t time) {
   if (player.y < 15) { speed.y = 3; player.y = 18; }
   if (player.y > screenbottom) { speed.y = 0; }
 
-  platform(30,93,100);
-  platform(139,122,190);
-  platform(221,64,295);
+  for (Vec3 plat : platforms) 
+	hitplatform(plat);
 
   if (speed.y == 0){
   	int animframe = 2 * (int(player.x *3) % 4);
@@ -97,8 +96,8 @@ void render(uint32_t time) {
   if (dir == RIGHT) screen.sprite(costume,player,o,zoom,MIRROR);
   if (fire == 1) { laser(); } 
  
-  screen.sprites->palette[1] = Pen(255,255,255);
   Rect rocket[] = { Rect(5,6,2,3), Rect(5,9,2,3), Rect(5,11,2,2) };
+  screen.sprites->palette[1] = Pen(255,255,255);
   if (fuelled > 2) screen.sprites->palette[1] = Pen(255,0,255);
   screen.sprite(rocket[0],Vec2(205,screenbottom-26));
   if (fuelled > 1) screen.sprites->palette[1] = Pen(255,0,255);
@@ -122,7 +121,7 @@ void render(uint32_t time) {
 
   alienpos += Vec2 (-1,0.2);
   if (alienpos.x < 0 || alienpos.y > screenbottom) alienpos = Vec2(300,rand() % 200);
-  costume = meteor[alienpos.x % 2];
+  costume = meteor[int(alienpos.x) % 2];
   screen.sprites->palette[1] = Pen(rand() % 255,255,255);
   screen.sprite(costume,alienpos,o,zoom,MIRROR);
   if (collide (alienpos, player)) 
