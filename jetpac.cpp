@@ -122,7 +122,7 @@ void render(uint32_t time) {
 
   alienpos += Vec2 (-1,0.2);
   if (alienpos.x < 0 || alienpos.y > screenbottom) alienpos = Vec2(300,rand() % 200);
-  costume = meteor[alienpos.x % 2];
+  costume = meteor[int(alienpos.x) % 2];
   screen.sprites->palette[1] = Pen(rand() % 255,255,255);
   screen.sprite(costume,alienpos,o,zoom,MIRROR);
   if (collide (alienpos, player)) 
