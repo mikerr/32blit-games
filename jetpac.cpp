@@ -5,21 +5,20 @@ using namespace blit;
 
 #define LEFT 0
 #define RIGHT 1
-#define UP 2
-#define DOWN 3
-
-#define MIRROR 1
 
 int screenbottom,dir,fire;
 int fuelled,fuelgrabbed;
 
 float gravity;
-Point player,alienpos,fuelpos;
-Vec2 speed,o,zoom;
+Point player,fuelpos;
+Vec2 speed;
 SpriteSheet *level;
 
+#define NUMALIENS 3
+Vec2 alienpos[NUMALIENS],aliendir[NUMALIENS];
+
 Rect explode[] = { Rect(8,0,4,3), Rect(8,3,4,2), Rect(8,5,4,2) };
-Rect meteor[] = { Rect(0,6,2,2), Rect(2,6,2,2) };
+Rect meteor [] = { Rect(0,6,2,2), Rect(2,6,2,2) };
 Rect rocketparts[] = { Rect(5,11,2,2), Rect(5,9,2,3), Rect(5,6,2,3) };
 Rect jetmanwalk [] = { Rect(0,0,2,3), Rect(2,0,2,3), Rect(4,0,2,3), Rect(6,0,2,3) };
 Rect jetmanfly []  = { Rect(0,3,2,3), Rect(2,3,2,3) };
@@ -30,16 +29,6 @@ Vec3 platforms[] = { Vec3 (30,93,100), Vec3 (139,122,190), Vec3 (221,64,295)};
 Pen white = Pen(255,255,255);
 Pen magenta = Pen(255,0,255);
 
-void init() {
-  set_screen_mode(ScreenMode::hires);
-  level = SpriteSheet::load(level1);
-  screen.sprites = SpriteSheet::load(jetpac);
-  zoom = Vec2(1,1);
-  gravity = 1.5;
-  screenbottom = screen.bounds.h - 35;
-  player = Point(150,screenbottom);
-  fuelpos = Point(rand() % 25,10);
-}
 
 void laser () {
 Point offset;
@@ -47,38 +36,63 @@ Point offset;
   for (int x=10; x < 100; x++) {
         if ( dir == LEFT)  offset = Vec2(5-x, 10); 
         if ( dir == RIGHT) offset = Vec2(10+x,10); 
-        if ( (rand() % 2) < 1 ) screen.pixel(player + offset);
+        if ( (rand() % 3) < 1 ) screen.pixel(player + offset);
         }
 }
+
 int collide (Point a, Point b) {
    if (abs(a.x - b.x) < 15  && abs(a.y - b.y) < 15 ) return 1;
    return 0;
 }
-void playerhitplatform (Vec3 platform){
 
+void playerhitplatform (Vec3 platform){
   if ((player.x > platform.x) && (player.x < platform.z)) {
     int ypos = platform.y;
 
-    // check if hitting underside, bounce down
+    // if hitting underside, bounce down
     if ((speed.y < 0) && (abs(player.y - ypos)) < 3) { 
 	player.y = ypos + 3; speed.y = 6;}
 
-    // check if on top, land
+    // if on top, land
     ypos -= 25;
     if ((speed.y > 0) && (abs(player.y - ypos)) < 5) { 
 	player.y = ypos - 1; speed.y = 0;}
   }
 }
-int hitplatforms(Point pos){
+
+int hitplatform(Point pos){
   for (Vec3 plat : platforms) 
-  	if ((pos.x > plat.x) && (pos.x < plat.z) && (plat.y - pos.y) < 20) return 1;
+  	if ((pos.x > plat.x) && (pos.x < plat.z) && abs(plat.y - pos.y) < 20) return 1;
   return 0;
 }
-void colorsprites(Pen color) {
-  screen.sprites->palette[1] = color;
+
+void newalien (int n) {
+  alienpos[n] = Vec2(300, rand() % 200);
+  aliendir[n] = Vec2(-1, 0.1 + ((rand() % 20) / 20.0f ));
+
+  if ( rand() % 2 ) {
+  alienpos[n].x = 0;
+  aliendir[n].x = 1;
+  }
 }
+
+void colorsprites(Pen color) { screen.sprites->palette[1] = color; }
+
+void init() {
+  set_screen_mode(ScreenMode::hires);
+  level = SpriteSheet::load(level1);
+  screen.sprites = SpriteSheet::load(jetpac);
+  gravity = 1.5;
+  screenbottom = screen.bounds.h - 35;
+  player = Point(150,screenbottom);
+  fuelpos = Point(rand() % 25,10);
+  for (int n=0;n<NUMALIENS;n++) {
+	newalien(n);
+  }
+}
+
 void render(uint32_t time) {
-  static int takeoff = -10;
+  static int playerdied, takeoff = -10;
   Rect costume;
 
   // background
@@ -98,16 +112,14 @@ void render(uint32_t time) {
 	playerhitplatform(plat);
 
   if (speed.y == 0){
-  	int animframe = player.x % 3;
-	costume = jetmanwalk[animframe];
+	costume = jetmanwalk [player.x % 3];
 	} else { 
-  	int animframe = rand() % 2;
-	costume = jetmanfly[animframe];
+	costume = jetmanfly [rand() % 2];
         }
 
   colorsprites(white);
   if (dir == LEFT)  screen.sprite(costume,player);
-  if (dir == RIGHT) screen.sprite(costume,player,o,zoom,MIRROR);
+  if (dir == RIGHT) screen.sprite(costume,player,SpriteTransform::HORIZONTAL);
   if (fire == 1) { laser(); } 
  
   // Rocket
@@ -123,8 +135,8 @@ void render(uint32_t time) {
 
   // Fuel pod
   colorsprites(magenta);
-  screen.sprite(fuel,fuelpos,o,zoom);
-  if (fuelpos.y < screenbottom + 8 && !hitplatforms(fuelpos)) fuelpos.y++;
+  screen.sprite(fuel,fuelpos);
+  if (fuelpos.y < screenbottom + 8 && !hitplatform(fuelpos)) fuelpos.y++;
   if (fuelpos.x > 200 && fuelpos.x < 210) {
 	fuelgrabbed = 0; 
   	if (fuelpos.y > screenbottom) {
@@ -133,20 +145,37 @@ void render(uint32_t time) {
 		}
 	}
   if (collide(fuelpos,player)) fuelgrabbed = 1; 
-  if (fuelgrabbed) fuelpos = player + Point(0,15);  
+  if (fuelgrabbed) fuelpos = player + Point(0,20);  
 
   // Aliens
-  alienpos += Vec2 (-1,0.2);
-  if (alienpos.x < 0 || alienpos.y > screenbottom) alienpos = Point(300,rand() % 200);
-  costume = meteor[int(alienpos.x) % 2];
-  colorsprites(Pen(rand() % 255,255,255));
-  screen.sprite(costume,alienpos,o,zoom,MIRROR);
-  if (collide (alienpos, player)) 
-	{
-	screen.sprite(explode[0],alienpos);
-  	player = Point(150,screenbottom);
-  	alienpos = Point(300,rand() % 200);
+
+  for (int n=0; n < NUMALIENS; n++) {
+  	alienpos[n] += aliendir[n];
+  	//alienpos[n].x += aliendir[n].x;
+  	//alienpos[n].y += aliendir[n].y;
+  	if (alienpos[n].x < 0 || alienpos[n].x > 350 || alienpos[n].y > screenbottom) {
+		newalien(n);}
+  	costume = meteor[rand() % 2];
+  	colorsprites(Pen(255, 255, 0));
+  	if (aliendir[n].x < 0) screen.sprite(costume,alienpos[n],SpriteTransform::HORIZONTAL);
+  	if (aliendir[n].x > 0) screen.sprite(costume,alienpos[n]);
+  	if (collide (alienpos[n], player)) {
+		screen.sprite(explode[0],alienpos[n]);
+		newalien(n);
+		playerdied = 1;
 	}
+  	if (hitplatform(alienpos[n])) {
+		screen.sprite(explode[0],alienpos[n]);
+		newalien(n);
+	}
+  }
+  if (playerdied) {
+  		player = Point(150,screenbottom);
+                if (fuelgrabbed) { 
+			fuelgrabbed = 0;
+                	fuelpos.y -= 20;}
+		playerdied = 0;
+   }
 }
 
 void update(uint32_t time) {
