@@ -190,6 +190,6 @@ void update(uint32_t time) {
 	speed.x++;
 	dir = RIGHT;
 	}
- if (pressed(Button::DPAD_UP) || move.y < 0) speed.y--;
- if (pressed(Button::B) || pressed(Button::DPAD_DOWN)) fire = 1;
+ if (pressed(Button::DPAD_UP) || pressed(Button::X) || move.y < 0) speed.y--;
+ if (pressed(Button::B) || pressed(Button::A)) fire = 1;
 }
