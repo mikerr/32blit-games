@@ -7,6 +7,9 @@ Starfield - simple 3d starfield with laser
 
 Keyboard - keypad number entry via joystick
 
-Vector3d - simple 3d wireframe graphics
+Vector3d , 3dCube - 3d wireframe graphics
 
-isometric - simple isometric game ( knight lore !)
+isometric - simple isometric 3d game - knight lore !
+
+JetPac - classic zx spectrum platformer
+
