@@ -125,7 +125,6 @@ void render(uint32_t time) {
 	} else { 
 	costume = jetmanfly [rand() % 2];
         }
-
   colorsprites(white);
   if (dir == LEFT)  screen.sprite(costume,player);
   if (dir == RIGHT) screen.sprite(costume,player,SpriteTransform::HORIZONTAL);
@@ -157,36 +156,24 @@ void render(uint32_t time) {
   if (fuelgrabbed) fuelpos = player + Point(0,20);  
 
   // Aliens
+  costume = meteor[rand() % 2];
+  colorsprites(Pen(255, 0, 0));
 
   for (int n=0; n < NUMALIENS; n++) {
-  	//alienpos[n] += aliendir[n];
-  	alienpos[n].x += aliendir[n].x;
-  	alienpos[n].y += aliendir[n].y;
-  	if (alienpos[n].x < 0 || alienpos[n].x > 350 || alienpos[n].y > screenbottom) {
-		newalien(n);}
-  	costume = meteor[rand() % 2];
-  	colorsprites(Pen(255, 0, 0));
-  	if (aliendir[n].x < 0) { 
-    	  screen.sprite(costume,alienpos[n],SpriteTransform::HORIZONTAL); 
-	  } else {
-  	  screen.sprite(costume,alienpos[n]);
-	  }
+  	alienpos[n] += aliendir[n];
+  	if (alienpos[n].x < 0 || alienpos[n].x > 350 )  { newalien(n);}
+  	if (alienpos[n].y > screenbottom )  { newalien(n);}
+
+  	if (hitplatform(alienpos[n])) { newalien(n);}
+  	if (fire && hitlaser(alienpos[n])) { newalien(n); }
   	if (collide (alienpos[n], player)) {
 		playerdied = 1;
-		screen.sprite(explode[0],alienpos[n]);
 		newalien(n);
-	}
-  	if (hitplatform(alienpos[n])) {
-		screen.sprite(explode[0],alienpos[n]);
-		newalien(n);
-	}
-  	if (fire  && hitlaser(alienpos[n])) {
-		screen.sprite(explode[0],alienpos[n]);
-		newalien(n);
-	}
+		}
+  	if (aliendir[n].x < 0) screen.sprite(costume,alienpos[n],SpriteTransform::HORIZONTAL); 
+  	if (aliendir[n].x > 0) screen.sprite(costume,alienpos[n]);
   }
   if (playerdied) {
-		screen.sprite(explode[0],player);
   		player = Point(150,screenbottom);
                 if (fuelgrabbed) { 
 			fuelgrabbed = 0;
