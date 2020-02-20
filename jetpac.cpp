@@ -14,7 +14,7 @@ Point player,fuelpos;
 Vec2 speed;
 SpriteSheet *level;
 
-#define NUMALIENS 3
+#define NUMALIENS 4
 Vec2 alienpos[NUMALIENS],aliendir[NUMALIENS];
 
 Rect explode[] = { Rect(8,0,4,3), Rect(8,3,4,2), Rect(8,5,4,2) };
@@ -66,13 +66,22 @@ int hitplatform(Point pos){
   return 0;
 }
 
+int hitlaser(Point pos){
+Vec3 laser;
+
+   if (dir == LEFT) laser = Vec3 (player.x - 100, player.y, player.x);
+   if (dir == RIGHT) laser = Vec3 (player.x, player.y, player.x + 100);
+   if ((pos.x > laser.x) && (pos.x < laser.z) && abs(laser.y - pos.y) < 2) return 1;
+   return 0;
+}
+
 void newalien (int n) {
   alienpos[n] = Vec2(300, rand() % 200);
   aliendir[n] = Vec2(-1, 0.1 + ((rand() % 20) / 20.0f ));
 
   if ( rand() % 2 ) {
   alienpos[n].x = 0;
-  aliendir[n].x = 1;
+  aliendir[n].x = 1 + (rand() % 10 / 10.0f);
   }
 }
 
@@ -150,26 +159,34 @@ void render(uint32_t time) {
   // Aliens
 
   for (int n=0; n < NUMALIENS; n++) {
-  	alienpos[n] += aliendir[n];
-  	//alienpos[n].x += aliendir[n].x;
-  	//alienpos[n].y += aliendir[n].y;
+  	//alienpos[n] += aliendir[n];
+  	alienpos[n].x += aliendir[n].x;
+  	alienpos[n].y += aliendir[n].y;
   	if (alienpos[n].x < 0 || alienpos[n].x > 350 || alienpos[n].y > screenbottom) {
 		newalien(n);}
   	costume = meteor[rand() % 2];
-  	colorsprites(Pen(255, 255, 0));
-  	if (aliendir[n].x < 0) screen.sprite(costume,alienpos[n],SpriteTransform::HORIZONTAL);
-  	if (aliendir[n].x > 0) screen.sprite(costume,alienpos[n]);
+  	colorsprites(Pen(255, 0, 0));
+  	if (aliendir[n].x < 0) { 
+    	  screen.sprite(costume,alienpos[n],SpriteTransform::HORIZONTAL); 
+	  } else {
+  	  screen.sprite(costume,alienpos[n]);
+	  }
   	if (collide (alienpos[n], player)) {
+		playerdied = 1;
 		screen.sprite(explode[0],alienpos[n]);
 		newalien(n);
-		playerdied = 1;
 	}
   	if (hitplatform(alienpos[n])) {
 		screen.sprite(explode[0],alienpos[n]);
 		newalien(n);
 	}
+  	if (fire  && hitlaser(alienpos[n])) {
+		screen.sprite(explode[0],alienpos[n]);
+		newalien(n);
+	}
   }
   if (playerdied) {
+		screen.sprite(explode[0],player);
   		player = Point(150,screenbottom);
                 if (fuelgrabbed) { 
 			fuelgrabbed = 0;
