@@ -1,5 +1,7 @@
 #include "32blit.hpp"
+#include "level.hpp"
 #include "jetpac.hpp"
+
 using namespace blit;
 
 #define LEFT 0
@@ -118,7 +120,7 @@ void init() {
   set_screen_mode(ScreenMode::hires);
   screenbottom = screen.bounds.h - 35;
 
-  backdrop = SpriteSheet::load(level1);
+  backdrop = SpriteSheet::load(level);
   screen.sprites = SpriteSheet::load(jetpac);
 
   //make black transparent
