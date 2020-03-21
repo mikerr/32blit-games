@@ -1,4 +1,5 @@
 #include "32blit.hpp"
+#include "room.hpp"
 #include "sabreman.hpp"
 
 using namespace blit;
@@ -30,7 +31,7 @@ void init() {
 void render(uint32_t time) {
 
   screen.sprites = SpriteSheet::load(room);
-  screen.sprites->palette[0] = RGBA(roomcolor.x,roomcolor.y,roomcolor.z);
+  screen.sprites->palette[1] = Pen(roomcolor.x,roomcolor.y,roomcolor.z);
   screen.stretch_blit(screen.sprites,Rect(0,0,264,192),Rect(0,0,screen.bounds.w,screen.bounds.h));
 
   screenpos.x = 150 + player.x * 8 - player.y * 9 ;
@@ -46,6 +47,7 @@ void render(uint32_t time) {
   if (dir == d_right)   { screen.sprite(sabremanfront,screenpos); }
   if (dir == d_down)    { screen.sprite(sabremanfront,screenpos,origin,1,SpriteTransform::HORIZONTAL); }
 }
+
 void update(uint32_t time) {
  if (pressed(Button::DPAD_LEFT)) {
         if (player.x > 0) player.x -= 0.1;

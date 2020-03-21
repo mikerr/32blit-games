@@ -1,4 +1,4 @@
 cmake_minimum_required(VERSION 3.1)
-project (jetpac)
+project (knightlore)
 include (~/32blit-beta/32blit.cmake)
-blit_executable (jetpac jetpac.cpp)
+blit_executable (knightlore knightlore.cpp)
