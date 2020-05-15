@@ -1,0 +1,4 @@
+cmake_minimum_required(VERSION 3.1)
+project (knightlore)
+include (~/32blit-beta/32blit.cmake)
+blit_executable (knightlore knightlore.cpp)
