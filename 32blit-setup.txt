@@ -1,0 +1,9 @@
+sudo apt install git gcc g++ gcc-arm-none-eabi cmake make python3 python3-pip libsdl2-dev libsdl2-image-dev python3-setuptools
+sudo pip3 install construct bitstring 32blit
+
+git clone https://github.com/pimoroni/32blit-beta
+
+cd 32blit-beta
+mkdir build
+cmake ..
+make 32Blit
