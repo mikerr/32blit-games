@@ -5,11 +5,11 @@ Starfield - simple 3d starfield with laser
 
 ![Imgur](https://i.imgur.com/yAed7h5.jpg?1)
 
-Keyboard - keypad number entry via joystick
+Keypad - keypad number entry via joystick
 
 Vector3d , 3dCube - 3d wireframe graphics
 
-isometric - simple isometric 3d game - knight lore !
+knightlore - isometric 3d game 
 
-JetPac - classic zx spectrum platformer
+jetpac - classic zx spectrum platformer
 
