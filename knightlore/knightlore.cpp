@@ -4,40 +4,47 @@
 
 using namespace blit;
 
+Vec3 roomcolor;
 Vec2 player,screenpos,origin;
 int dir;
 
-int d_left,d_up,d_down,d_right;
-Vec3 roomcolor;
+const int d_left = 0; 
+const int d_up = 1; 
+const int d_down = 2; 
+const int d_right = 3;
 
-int distance (Vec2 a, Vec2 b ) {
+SpriteSheet *backdrop;
+
+bool hit (Vec2 a, Vec2 b ) {
         Vec2 diff;
         diff.x = a.x - b.x;
         diff.y = a.y - b.y;
-        return ( sqrt ( diff.x * diff.x  + diff.y * diff.y));
+        float distance = sqrt ( diff.x * diff.x  + diff.y * diff.y);
+
+	return ( distance < 0.8f );
 }
 
 void newroom () {
-        roomcolor = Vec3(rand() % 255,rand() % 255,rand() % 255);
+        roomcolor = Vec3(100 + rand() % 100,rand() % 255,rand() % 255);
 }
 
 void init() {
   set_screen_mode(ScreenMode::hires);
-  d_left = 0; d_up = 1; d_down = 2; d_right = 3;
   origin = Vec2(0,0);
   newroom();
+  player = Vec2(8,8);
+  backdrop = SpriteSheet::load(room);
+  screen.sprites = SpriteSheet::load(sabreman);
 }
 
 void render(uint32_t time) {
 
-  screen.sprites = SpriteSheet::load(room);
-  screen.sprites->palette[1] = Pen(roomcolor.x,roomcolor.y,roomcolor.z);
-  screen.stretch_blit(screen.sprites,Rect(0,0,264,192),Rect(0,0,screen.bounds.w,screen.bounds.h));
+  backdrop->palette[1] = Pen(roomcolor.x,roomcolor.y,roomcolor.z);
+  screen.stretch_blit(backdrop,Rect(0,0,264,192),Rect(0,0,screen.bounds.w,screen.bounds.h));
 
-  screenpos.x = 150 + player.x * 8 - player.y * 9 ;
-  screenpos.y = 30 + player.x * 4.5 + player.y * 5.5;
+  screenpos.x = 150 + player.x * 9 - player.y * 9 ;
+  screenpos.y = 30 + player.x * 5 + player.y * 5;
 
-  screen.sprites = SpriteSheet::load(sabreman);
 
   Rect sabremanback = Rect(0,0,3,4);
   Rect sabremanfront = Rect(3,0,3,4);
@@ -49,37 +56,49 @@ void render(uint32_t time) {
 }
 
 void update(uint32_t time) {
- if (pressed(Button::DPAD_LEFT)) {
-        if (player.x > 0) player.x -= 0.1;
-        dir = d_left;
-        }
- if (pressed(Button::DPAD_UP)) {
-        if (player.y > 0) player.y -= 0.1;
-        dir = d_up;
-        }
- if (pressed(Button::DPAD_RIGHT)) {
-        if (player.x < 16) player.x += 0.1;
-        dir = d_right;
-        }
- if (pressed(Button::DPAD_DOWN)) {
-        if (player.y < 16) player.y += 0.1;
-        dir = d_down;
-        }
 
-// doors
- if (distance(player, Vec2(0,8)) < 1 && dir == d_left) {
+Vec2 move = joystick;
+
+// joystick diagonals 
+if (move.x < 0 && move.y < 0 ) dir = d_left;
+if (move.x < 0 && move.y > 0 ) dir = d_down;
+if (move.x > 0 && move.y < 0 ) dir = d_up;
+if (move.x > 0 && move.y > 0 ) dir = d_right;
+
+if (pressed(Button::DPAD_LEFT)) dir = d_left;
+if (pressed(Button::DPAD_RIGHT)) dir = d_right;
+if (pressed(Button::DPAD_UP)) dir = d_up;
+if (pressed(Button::DPAD_DOWN)) dir = d_down;
+
+switch (dir) {
+	case (d_left):
+        	if (player.x > 0) player.x -= 0.1;
+		break;
+	case (d_right):
+        	if (player.x < 16) player.x += 0.1;
+		break;
+	case (d_up):
+        	if (player.y > 0) player.y -= 0.1;
+		break;
+	case (d_down):
+        	if (player.y < 16) player.y += 0.1;
+		break;
+}
+
+// doors 
+ if (hit(player, Vec2(0,8)) && dir == d_left) {
         player = Vec2(16,8);
         newroom();
         }
- if (distance(player, Vec2(16,8)) < 1 && dir == d_right) {
+ if (hit(player, Vec2(16,8)) && dir == d_right) {
         player = Vec2(0,8);
         newroom();
         }
- if (distance(player, Vec2(8,0)) < 1 && dir == d_up) {
+ if (hit(player, Vec2(8,0)) && dir == d_up) {
         player = Vec2(8,16);
         newroom();
         }
- if (distance(player, Vec2(8,16)) < 1 && dir == d_down) {
+ if (hit(player, Vec2(8,16)) && dir == d_down) {
         player = Vec2(8,0);
         newroom();
         }
