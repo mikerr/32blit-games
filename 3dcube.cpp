@@ -1,6 +1,7 @@
-#include "vector3d.hpp"
-#include "graphics/color.hpp"
+#include "32blit.hpp"
+#include "types/vec3.hpp"
 #include "types/vec2.hpp"
+#include "graphics/color.hpp"
 
 using namespace blit;
 
@@ -68,7 +69,7 @@ void draw_shape(shape shape,Vec2 pos,float size){
     for (auto &p: shape.points) {
         p = rotate3d(p,rot);
         Vec2 point = to2d(p) * size;
-        fb.line(lastpos + pos , point + pos);
+        screen.line(lastpos + pos , point + pos);
         lastpos = point;
     }
 }
@@ -103,10 +104,10 @@ void init() {
 
 void render(uint32_t time) {
 
-    screen.pen(RGBA(0, 0, 0));
+    screen.pen = (Pen(0, 0, 0));
     screen.clear();
 
-    screen.pen(RGBA(255,255,255));
+    screen.pen = (Pen(255,255,255));
 
     Vec2 edge = center * 2;
     int cubesize = zoom * 10;

@@ -28,18 +28,18 @@ void center_star( star &s) {
 }
 
 void draw_cross(Vec2 pos) {
-    screen.pen(RGBA(255,255,255));
+    screen.pen = Pen(255,255,255);
     screen.line(pos + Vec2 (-10, -10), pos + Vec2 (10, 10) );
     screen.line(pos + Vec2 (10, -10), pos + Vec2 (-10, 10) );
 }
 
 void draw_laser(Vec2 pos) {
-    screen.pen(RGBA(rand() % 255,rand() % 255,rand() % 255));
+    screen.pen = Pen(rand() % 255,rand() % 255,rand() % 255);
     screen.line(Vec2 (0, screen.bounds.h), pos);
     screen.line(Vec2 (screen.bounds.w, screen.bounds.h), pos);
 }
 void draw_shape(shape shape,Vec2 pos,float size){
-    screen.pen(RGBA((int)shape.color.x,(int)shape.color.y,(int)shape.color.z));
+    screen.pen = Pen((int)shape.color.x,(int)shape.color.y,(int)shape.color.z);
     Vec2 lastpos = shape.points[0];
     for (auto &p: shape.points) {
         Vec2 point = p * size;
@@ -85,11 +85,11 @@ void render(uint32_t time) {
 Vec2 center,move,joypos;
 
     if (!hyperspace) {
-        screen.pen(RGBA(0, 0, 0));
+        screen.pen = Pen(0, 0, 0);
         screen.clear();
         }
 
-    screen.pen(RGBA(255,255,255));
+    screen.pen = Pen(255,255,255);
 
     for (auto &s : stars) {
 
