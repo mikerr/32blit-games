@@ -166,7 +166,6 @@ void gameloop() {
   if ( speed.y == 0 ) costume = jetmanwalk [(player.x * 4) % 3]; 
   else costume = jetmanfly [RND(2)]; 
 
-<<<<<<< HEAD
   if (takeoff == -10) {
       colorsprites(white);
       if (dir == LEFT)  screen.sprite(costume,player);
@@ -174,15 +173,6 @@ void gameloop() {
       if (fire == 1) laser(); 
   }
  
-=======
-   if (takeoff == -10) {
-      colorsprites(white);
-      if (dir == LEFT)  screen.sprite(costume,player);
-      if (dir == RIGHT) screen.sprite(costume,player,SpriteTransform::HORIZONTAL);
-      if (fire == 1) laser();
-  }
-
->>>>>>> 1ca5548acea1d9b065c41033dc3ba8a534917242
   // Rocket
   Point pos = Point(205,screenbottom - takeoff);
   // assembled rocketparts
@@ -195,27 +185,6 @@ void gameloop() {
         }
   // handle grabbing & dropping rocketparts
   for (int i=rocketsmade; i < 3 ; i++) {
-<<<<<<< HEAD
-	colorsprites(white);
-  	if ((i == rocketsmade) && collide(rocketpos[i],player)) rocketgrabbed[i] = 1; 
-  	if (rocketgrabbed[i]) {
-		rocketpos[i] = Point(player.x,player.y + 10);  
-  		if (dropzone(rocketpos[i].x)) {
-			rocketpos[i].y +=20;
-			rocketgrabbed[i] = 0;}
-		}
-  	if (!hitplatform(rocketpos[i] + Point(0,10)) ) {
-		rocketpos[i].y++;
-		// stack rocketpart on top of last one
-  		if (dropzone(rocketpos[i].x) && (rocketpos[i].y > rocketpos[i-1].y - 16)) { rocketsmade++; }
-		}
-  	screen.sprite(rocketparts[i],rocketpos[i]);
-	}
-  if (fuelled > 3) { takeoff++; delay=50; }
-  if (takeoff > screen.bounds.h) { 
-	  fuelled = 0; takeoff = -10; 
-  	  player = Point(150,150); }
-=======
         colorsprites(white);
         if ((i == rocketsmade) && collide(rocketpos[i],player)) rocketgrabbed[i] = 1;
         if (rocketgrabbed[i]) {
@@ -236,7 +205,6 @@ void gameloop() {
           fuelled = 0; takeoff = -10;
           player = Point(150,150); }
 
->>>>>>> 1ca5548acea1d9b065c41033dc3ba8a534917242
 
   // Gems
   colorsprites(colors[gem+3]);
