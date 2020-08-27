@@ -166,40 +166,45 @@ void gameloop() {
   if ( speed.y == 0 ) costume = jetmanwalk [(player.x * 4) % 3]; 
   else costume = jetmanfly [RND(2)]; 
 
-  colorsprites(white);
-  if (dir == LEFT)  screen.sprite(costume,player);
-  if (dir == RIGHT) screen.sprite(costume,player,SpriteTransform::HORIZONTAL);
-  if (fire == 1) laser(); 
- 
+   if (takeoff == -10) {
+      colorsprites(white);
+      if (dir == LEFT)  screen.sprite(costume,player);
+      if (dir == RIGHT) screen.sprite(costume,player,SpriteTransform::HORIZONTAL);
+      if (fire == 1) laser();
+  }
+
   // Rocket
   Point pos = Point(205,screenbottom - takeoff);
   // assembled rocketparts
   for (int i=0; i < rocketsmade ; i++) {
-	colorsprites(white);
-	if (fuelled > i) colorsprites(magenta);
-  	screen.sprite(rocketparts[i],pos);
-	rocketpos[i] = pos;
-	pos.y -= 24;
-	}
+        colorsprites(white);
+        if (fuelled > i) colorsprites(magenta);
+        screen.sprite(rocketparts[i],pos);
+        rocketpos[i] = pos;
+        pos.y -= 24;
+        }
   // handle grabbing & dropping rocketparts
   for (int i=rocketsmade; i < 3 ; i++) {
-	colorsprites(white);
-  	if ((i == rocketsmade) && collide(rocketpos[i],player)) rocketgrabbed[i] = 1; 
-  	if (rocketgrabbed[i]) {
-		rocketpos[i] = Point(player.x,player.y + 10);  
-  		if (dropzone(rocketpos[i].x)) {
-			rocketpos[i].y +=20;
-			rocketgrabbed[i] = 0;}
-		}
-  	if (!hitplatform(rocketpos[i] + Point(0,10)) ) {
-		rocketpos[i].y++;
-		// stack rocketpart on top of last one
-  		if (dropzone(rocketpos[i].x) && (rocketpos[i].y > rocketpos[i-1].y - 16)) { rocketsmade++; }
-		}
-  	screen.sprite(rocketparts[i],rocketpos[i]);
-	}
-  if (fuelled > 3) { takeoff++; }
-  if (takeoff > screen.bounds.h) { fuelled = 0; takeoff = -10; }
+        colorsprites(white);
+        if ((i == rocketsmade) && collide(rocketpos[i],player)) rocketgrabbed[i] = 1;
+        if (rocketgrabbed[i]) {
+                rocketpos[i] = Point(player.x,player.y + 10);
+                if (dropzone(rocketpos[i].x)) {
+                        rocketpos[i].y +=20;
+                        rocketgrabbed[i] = 0;}
+                }
+        if (!hitplatform(rocketpos[i] + Point(0,10)) ) {
+                rocketpos[i].y++;
+                // stack rocketpart on top of last one
+                if (dropzone(rocketpos[i].x) && (rocketpos[i].y > rocketpos[i-1].y - 16)) { rocketsmade++; }
+                }
+        screen.sprite(rocketparts[i],rocketpos[i]);
+        }
+  if (fuelled > 3) { takeoff++; delay=50; }
+  if (takeoff > screen.bounds.h) {
+          fuelled = 0; takeoff = -10;
+          player = Point(150,150); }
+
 
   // Gems
   colorsprites(colors[gem+3]);
