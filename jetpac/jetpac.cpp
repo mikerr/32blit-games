@@ -166,10 +166,12 @@ void gameloop() {
   if ( speed.y == 0 ) costume = jetmanwalk [(player.x * 4) % 3]; 
   else costume = jetmanfly [RND(2)]; 
 
-  colorsprites(white);
-  if (dir == LEFT)  screen.sprite(costume,player);
-  if (dir == RIGHT) screen.sprite(costume,player,SpriteTransform::HORIZONTAL);
-  if (fire == 1) laser(); 
+  if (takeoff == -10) {
+      colorsprites(white);
+      if (dir == LEFT)  screen.sprite(costume,player);
+      if (dir == RIGHT) screen.sprite(costume,player,SpriteTransform::HORIZONTAL);
+      if (fire == 1) laser(); 
+  }
  
   // Rocket
   Point pos = Point(205,screenbottom - takeoff);
@@ -198,8 +200,10 @@ void gameloop() {
 		}
   	screen.sprite(rocketparts[i],rocketpos[i]);
 	}
-  if (fuelled > 3) { takeoff++; }
-  if (takeoff > screen.bounds.h) { fuelled = 0; takeoff = -10; }
+  if (fuelled > 3) { takeoff++; delay=50; }
+  if (takeoff > screen.bounds.h) { 
+	  fuelled = 0; takeoff = -10; 
+  	  player = Point(150,150); }
 
   // Gems
   colorsprites(colors[gem+3]);
