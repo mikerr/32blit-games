@@ -1,6 +1,5 @@
 #include "32blit.hpp"
-#include "room.hpp"
-#include "sabreman.hpp"
+#include "assets.hpp"
 
 using namespace blit;
 
@@ -12,6 +11,8 @@ const int d_left = 0;
 const int d_up = 1; 
 const int d_down = 2; 
 const int d_right = 3;
+
+bool wolf = false;
 
 SpriteSheet *backdrop;
 
@@ -26,6 +27,7 @@ bool hit (Vec2 a, Vec2 b ) {
 
 void newroom () {
         roomcolor = Vec3(100 + rand() % 100,rand() % 255,rand() % 255);
+	wolf = !wolf;
 }
 
 void init() {
@@ -45,9 +47,14 @@ void render(uint32_t time) {
   screenpos.x = 150 + player.x * 9 - player.y * 9 ;
   screenpos.y = 30 + player.x * 5 + player.y * 5;
 
-
   Rect sabremanback = Rect(0,0,3,4);
-  Rect sabremanfront = Rect(3,0,3,4);
+  Rect sabremanfront = Rect(0,4,3,4);
+
+  if (time % 1000> 500) {}
+  if (wolf) {
+  	 sabremanback = Rect(0,8,3,4);
+  	 sabremanfront = Rect(4,12,3,4);
+	}
 
   if (dir == d_left)    { screen.sprite(sabremanback,screenpos); }
   if (dir == d_up)      { screen.sprite(sabremanback,screenpos,origin,1,SpriteTransform::HORIZONTAL); }
