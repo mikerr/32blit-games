@@ -15,4 +15,4 @@ knightlore - isometric 3d game
 
 jetpac - classic zx spectrum platformer
 
-![Imgur](https://imgur.com/rX7QNcm)
+![Imgur](https://i.imgur.com/rX7QNcmm.jpg)
