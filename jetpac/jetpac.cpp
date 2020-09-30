@@ -1,6 +1,5 @@
 #include "32blit.hpp"
-#include "level.hpp"
-#include "jetpac.hpp"
+#include "assets.hpp"
 
 using namespace blit;
 

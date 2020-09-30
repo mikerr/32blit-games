@@ -1,0 +1,5 @@
+assets.hpp:
+  jetpac.png:
+    name: jetpac
+  level.png:
+    name: level
