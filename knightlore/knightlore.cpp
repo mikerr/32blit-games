@@ -14,6 +14,8 @@ const int DOWN = 3;
 
 bool wolf = false;
 int anim = 0 ;
+int jump = 0;
+int height = 0;
 
 SpriteSheet *backdrop;
 
@@ -34,12 +36,12 @@ void newroom () {
 void init() {
   set_screen_mode(ScreenMode::hires);
   origin = Vec2(0,0);
-  newroom();
   player = Vec2(8,8);
   backdrop = SpriteSheet::load(room);
   screen.sprites = SpriteSheet::load(sabreman);
   //make black transparent
   screen.sprites->palette[0] = Pen(0,0,0,0); 
+  newroom();
 }
 
 void render(uint32_t time) {
@@ -49,9 +51,15 @@ void render(uint32_t time) {
 
   screenpos.x = 150 + player.x * 9 - player.y * 9 ;
   screenpos.y = 30 + player.x * 5 + player.y * 5;
+  screenpos.y -= height * 3;
 
-  if (time % 2 == 0) {
-	if (++anim > 5) anim = 0;
+  height += jump;
+  if (height > 10) jump = -1;
+  if (height == 0) jump = 0;
+
+  if (time % 3 == 0 ) {
+	anim++;
+	if (anim > 5) anim = 0;
 	}
 
   int frame = anim * 3;
@@ -83,6 +91,8 @@ if (pressed(Button::DPAD_LEFT)) dir = LEFT;
 if (pressed(Button::DPAD_RIGHT)) dir = RIGHT;
 if (pressed(Button::DPAD_UP)) dir = UP;
 if (pressed(Button::DPAD_DOWN)) dir = DOWN;
+
+if ((pressed(Button::A)) && jump == 0 ) jump = 1;
 
 switch (dir) {
 	case (LEFT):
@@ -116,4 +126,5 @@ switch (dir) {
         player = Vec2(8,0);
         newroom();
         }
+
 }
