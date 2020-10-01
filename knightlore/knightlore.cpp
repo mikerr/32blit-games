@@ -7,12 +7,13 @@ Vec3 roomcolor;
 Vec2 player,screenpos,origin;
 int dir;
 
-const int d_left = 0; 
-const int d_up = 1; 
-const int d_down = 2; 
-const int d_right = 3;
+const int LEFT = 0; 
+const int RIGHT = 1;
+const int UP = 2; 
+const int DOWN = 3; 
 
 bool wolf = false;
+int anim = 0 ;
 
 SpriteSheet *backdrop;
 
@@ -37,6 +38,8 @@ void init() {
   player = Vec2(8,8);
   backdrop = SpriteSheet::load(room);
   screen.sprites = SpriteSheet::load(sabreman);
+  //make black transparent
+  screen.sprites->palette[0] = Pen(0,0,0,0); 
 }
 
 void render(uint32_t time) {
@@ -47,65 +50,69 @@ void render(uint32_t time) {
   screenpos.x = 150 + player.x * 9 - player.y * 9 ;
   screenpos.y = 30 + player.x * 5 + player.y * 5;
 
-  Rect sabremanback = Rect(0,0,3,4);
-  Rect sabremanfront = Rect(0,4,3,4);
-
-  if (time % 1000> 500) {}
-  if (wolf) {
-  	 sabremanback = Rect(0,8,3,4);
-  	 sabremanfront = Rect(4,12,3,4);
+  if (time % 2 == 0) {
+	if (++anim > 5) anim = 0;
 	}
 
-  if (dir == d_left)    { screen.sprite(sabremanback,screenpos); }
-  if (dir == d_up)      { screen.sprite(sabremanback,screenpos,origin,1,SpriteTransform::HORIZONTAL); }
-  if (dir == d_right)   { screen.sprite(sabremanfront,screenpos); }
-  if (dir == d_down)    { screen.sprite(sabremanfront,screenpos,origin,1,SpriteTransform::HORIZONTAL); }
+  int frame = anim * 3;
+  Rect sabremanback = Rect(frame,0,3,4);
+  Rect sabremanfront = Rect(frame,4,3,4);
+
+  if (wolf) {
+  	 sabremanback = Rect(frame,8,3,4);
+  	 sabremanfront = Rect(frame,12,3,4);
+	}
+
+  if (dir == LEFT)    { screen.sprite(sabremanback,screenpos); }
+  if (dir == RIGHT)   { screen.sprite(sabremanfront,screenpos); }
+  if (dir == UP)      { screen.sprite(sabremanback,screenpos,origin,1,SpriteTransform::HORIZONTAL); }
+  if (dir == DOWN)    { screen.sprite(sabremanfront,screenpos,origin,1,SpriteTransform::HORIZONTAL); }
 }
 
 void update(uint32_t time) {
 
 Vec2 move = joystick;
 
-// joystick diagonals 
-if (move.x < 0 && move.y < 0 ) dir = d_left;
-if (move.x < 0 && move.y > 0 ) dir = d_down;
-if (move.x > 0 && move.y < 0 ) dir = d_up;
-if (move.x > 0 && move.y > 0 ) dir = d_right;
+// joystick diagonals to match isometric display
+if (move.x < 0 && move.y < 0 ) dir = LEFT;
+if (move.x > 0 && move.y > 0 ) dir = RIGHT;
+if (move.x > 0 && move.y < 0 ) dir = UP;
+if (move.x < 0 && move.y > 0 ) dir = DOWN;
 
-if (pressed(Button::DPAD_LEFT)) dir = d_left;
-if (pressed(Button::DPAD_RIGHT)) dir = d_right;
-if (pressed(Button::DPAD_UP)) dir = d_up;
-if (pressed(Button::DPAD_DOWN)) dir = d_down;
+if (pressed(Button::DPAD_LEFT)) dir = LEFT;
+if (pressed(Button::DPAD_RIGHT)) dir = RIGHT;
+if (pressed(Button::DPAD_UP)) dir = UP;
+if (pressed(Button::DPAD_DOWN)) dir = DOWN;
 
 switch (dir) {
-	case (d_left):
+	case (LEFT):
         	if (player.x > 0) player.x -= 0.1;
 		break;
-	case (d_right):
+	case (RIGHT):
         	if (player.x < 16) player.x += 0.1;
 		break;
-	case (d_up):
+	case (UP):
         	if (player.y > 0) player.y -= 0.1;
 		break;
-	case (d_down):
+	case (DOWN):
         	if (player.y < 16) player.y += 0.1;
 		break;
 }
 
 // doors 
- if (hit(player, Vec2(0,8)) && dir == d_left) {
+ if (hit(player, Vec2(0,8)) && dir == LEFT) {
         player = Vec2(16,8);
         newroom();
         }
- if (hit(player, Vec2(16,8)) && dir == d_right) {
+ if (hit(player, Vec2(16,8)) && dir == RIGHT) {
         player = Vec2(0,8);
         newroom();
         }
- if (hit(player, Vec2(8,0)) && dir == d_up) {
+ if (hit(player, Vec2(8,0)) && dir == UP) {
         player = Vec2(8,16);
         newroom();
         }
- if (hit(player, Vec2(8,16)) && dir == d_down) {
+ if (hit(player, Vec2(8,16)) && dir == DOWN) {
         player = Vec2(8,0);
         newroom();
         }
