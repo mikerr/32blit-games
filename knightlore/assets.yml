@@ -3,3 +3,5 @@ assets.hpp:
     name: sabreman
   room.gif:
     name: room
+  sprites.gif:
+    name: sprites

@@ -4,7 +4,8 @@
 using namespace blit;
 
 Vec3 roomcolor;
-Vec2 player,screenpos,origin;
+Vec3 player;
+Vec2 origin;
 int dir;
 
 const int LEFT = 0; 
@@ -13,11 +14,23 @@ const int UP = 2;
 const int DOWN = 3; 
 
 bool wolf = false;
+int day = 0;
 int anim = 0 ;
 int jump = 0;
 int height = 0;
 
-SpriteSheet *backdrop;
+SpriteSheet *backdrop,*sbsprites,*itemsprites;
+
+typedef struct drawobject {
+	SpriteSheet *spritesheet;
+	Vec3 position;
+	Rect costume;
+	int flip;
+} object;
+
+std::vector<object> drawlist;
+
+bool sort_y (object obj1, object obj2) { return (obj1.position.y < obj2.position.y); }
 
 bool hit (Vec2 a, Vec2 b ) {
         Vec2 diff;
@@ -30,17 +43,28 @@ bool hit (Vec2 a, Vec2 b ) {
 
 void newroom () {
         roomcolor = Vec3(100 + rand() % 100,rand() % 255,rand() % 255);
-	wolf = !wolf;
+}
+
+Vec2 isometric (Vec3 grid){
+  Vec2 screen;
+  screen.x = 150 + grid.x * 9 - grid.y * 9 ;
+  screen.y = 30 + grid.x * 5 + grid.y * 5;
+  screen.y -= 2 * grid.z;
+  return screen;
 }
 
 void init() {
   set_screen_mode(ScreenMode::hires);
   origin = Vec2(0,0);
-  player = Vec2(8,8);
+  player = Vec3(8,8,0);
   backdrop = SpriteSheet::load(room);
-  screen.sprites = SpriteSheet::load(sabreman);
+
+  sbsprites = SpriteSheet::load(sabreman);
   //make black transparent
-  screen.sprites->palette[0] = Pen(0,0,0,0); 
+  sbsprites->palette[0] = Pen(0,0,0,0); 
+
+  itemsprites = SpriteSheet::load(sprites);
+  itemsprites->palette[0] = Pen(0,0,0,0); 
   newroom();
 }
 
@@ -49,32 +73,71 @@ void render(uint32_t time) {
   backdrop->palette[1] = Pen(roomcolor.x,roomcolor.y,roomcolor.z);
   screen.stretch_blit(backdrop,Rect(0,0,264,192),Rect(0,0,screen.bounds.w,screen.bounds.h));
 
-  screenpos.x = 150 + player.x * 9 - player.y * 9 ;
-  screenpos.y = 30 + player.x * 5 + player.y * 5;
-  screenpos.y -= height * 3;
-
-  height += jump;
+  player.z += jump;
+  height = player.z;
   if (height > 10) jump = -1;
-  if (height == 0) jump = 0;
+  if (height <= 0) jump = 0;
 
   if (time % 3 == 0 ) {
-	anim++;
-	if (anim > 5) anim = 0;
+	anim += 3;
+	if (anim > 15) anim = 0;
 	}
 
-  int frame = anim * 3;
-  Rect sabremanback = Rect(frame,0,3,4);
-  Rect sabremanfront = Rect(frame,4,3,4);
+  Rect sabremanback = Rect(anim,0,3,4);
+  Rect sabremanfront = Rect(anim,4,3,4);
 
   if (wolf) {
-  	 sabremanback = Rect(frame,8,3,4);
-  	 sabremanfront = Rect(frame,12,3,4);
+  	 sabremanback = Rect(anim,8,3,4);
+  	 sabremanfront = Rect(anim,12,3,4);
 	}
 
-  if (dir == LEFT)    { screen.sprite(sabremanback,screenpos); }
-  if (dir == RIGHT)   { screen.sprite(sabremanfront,screenpos); }
-  if (dir == UP)      { screen.sprite(sabremanback,screenpos,origin,1,SpriteTransform::HORIZONTAL); }
-  if (dir == DOWN)    { screen.sprite(sabremanfront,screenpos,origin,1,SpriteTransform::HORIZONTAL); }
+  Rect sbcostume;
+  int flip;
+  if (dir == LEFT)    { sbcostume = sabremanback; flip = 0;}
+  if (dir == RIGHT)   { sbcostume = sabremanfront; flip = 0;}
+  if (dir == UP)      { sbcostume = sabremanback; flip = 1;}
+  if (dir == DOWN)    { sbcostume = sabremanfront; flip = 1;}
+
+  Rect block = Rect(36,4,4,4);
+
+  drawlist.clear();
+  drawobject obj;
+
+  obj.spritesheet = sbsprites;
+  obj.costume = sbcostume;
+  obj.position = player;
+  obj.flip = flip;
+  drawlist.push_back(obj);
+
+  obj.spritesheet = itemsprites;
+  obj.costume = block;
+  obj.position = Vec3(5,5,0);
+  obj.flip = 0;
+  drawlist.push_back(obj);
+
+  obj.position = Vec3(9,5,0);
+  drawlist.push_back(obj);
+
+  obj.position = Vec3(5,9,0);
+  drawlist.push_back(obj);
+
+  //sort and draw by y axis 
+  std::sort(drawlist.begin(),drawlist.end(),sort_y);
+  for (auto &item: drawlist) {
+  	screen.sprites = item.spritesheet;
+  	screen.sprite(item.costume,isometric(item.position),origin,1,item.flip); 
+	}
+
+  screen.sprites = itemsprites;
+  Rect sun = Rect(29,0,2,2);
+  if (wolf) { sun = Rect(31,0,2,2);}
+  screen.sprite(sun,Vec2(240 + day / 75,205)); 
+  if (day++ > 2400) {
+	wolf = !wolf;
+	day = 0;
+	}
+  Rect windowframe = Rect(36,0,6,4);
+  screen.sprite(windowframe,Vec2(240,200)); 
 }
 
 void update(uint32_t time) {
@@ -110,20 +173,21 @@ switch (dir) {
 }
 
 // doors 
- if (hit(player, Vec2(0,8)) && dir == LEFT) {
-        player = Vec2(16,8);
+ Vec2 playerxy =Vec2(player.x,player.y);
+ if (hit(playerxy, Vec2(0,8)) && dir == LEFT) {
+        player = Vec3(16,8,0);
         newroom();
         }
- if (hit(player, Vec2(16,8)) && dir == RIGHT) {
-        player = Vec2(0,8);
+ if (hit(playerxy, Vec2(16,8)) && dir == RIGHT) {
+        player = Vec3(0,8,0);
         newroom();
         }
- if (hit(player, Vec2(8,0)) && dir == UP) {
-        player = Vec2(8,16);
+ if (hit(playerxy, Vec2(8,0)) && dir == UP) {
+        player = Vec3(8,16,0);
         newroom();
         }
- if (hit(player, Vec2(8,16)) && dir == DOWN) {
-        player = Vec2(8,0);
+ if (hit(playerxy, Vec2(8,16)) && dir == DOWN) {
+        player = Vec3(8,0,0);
         newroom();
         }
 
