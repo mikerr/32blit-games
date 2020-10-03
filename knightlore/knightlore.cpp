@@ -13,24 +13,38 @@ const int RIGHT = 1;
 const int UP = 2; 
 const int DOWN = 3; 
 
-bool wolf = false;
+int moon = 0;
 int day = 0;
 int anim = 0 ;
 int jump = 0;
 int height = 0;
+int gem = 0;
 
 SpriteSheet *backdrop,*sbsprites,*itemsprites;
 
+Rect block = Rect(36,4,4,4);
+Rect gems[] = { Rect(0,5,3,3), Rect(3,5,3,3), Rect(6,5,3,3), Rect(9,5,3,3), Rect(12,5,3,3), Rect(15,5,3,3), Rect(18,5,3,3), Rect(21,5,3,3)};
+Rect sunmoon[] = { Rect(29,0,2,2), Rect(31,0,2,2)};
+Rect windowframe = Rect(36,0,6,4);
+
 typedef struct drawobject {
 	SpriteSheet *spritesheet;
-	Vec3 position;
 	Rect costume;
+	Vec3 position;
 	int flip;
+        int id;
 } object;
 
 std::vector<object> drawlist;
 
-bool sort_y (object obj1, object obj2) { return (obj1.position.y < obj2.position.y); }
+// sort object by y axis 
+// higher y = closer to viewer, so drawn last.
+bool sort_y (object obj1, object obj2) { 
+	int a = (16 * obj1.position.y ) + obj1.position.x ; 
+	int b = (16 * obj2.position.y ) + obj2.position.x ; 
+	return ( a < b);
+	}
+bool find_id (object obj1) { return (obj1.id == 1); }
 
 bool hit (Vec2 a, Vec2 b ) {
         Vec2 diff;
@@ -43,6 +57,24 @@ bool hit (Vec2 a, Vec2 b ) {
 
 void newroom () {
         roomcolor = Vec3(100 + rand() % 100,rand() % 255,rand() % 255);
+        gem = rand() % 8;
+
+  	drawlist.clear();
+
+  	drawobject obj;
+  	obj.spritesheet = itemsprites;
+  	obj.costume = block;
+  	obj.flip = 0;
+
+	for (int a=0;a<10;a++) {
+		obj.position = Vec3(2* (rand() % 7),2*(rand() % 7),-10);
+  		drawlist.push_back(obj);
+		}
+
+  	obj.position = Vec3(rand() % 16,rand() % 16,0);
+  	obj.costume = gems[gem];
+  	drawlist.push_back(obj);
+
 }
 
 Vec2 isometric (Vec3 grid){
@@ -58,24 +90,23 @@ void init() {
   origin = Vec2(0,0);
   player = Vec3(8,8,0);
   backdrop = SpriteSheet::load(room);
-
   sbsprites = SpriteSheet::load(sabreman);
-  //make black transparent
-  sbsprites->palette[0] = Pen(0,0,0,0); 
 
+  //make black transparent
+  sbsprites->palette[0] = Pen(0,0,0,0);
   itemsprites = SpriteSheet::load(sprites);
-  itemsprites->palette[0] = Pen(0,0,0,0); 
   newroom();
 }
 
 void render(uint32_t time) {
+  int flip;
 
   backdrop->palette[1] = Pen(roomcolor.x,roomcolor.y,roomcolor.z);
   screen.stretch_blit(backdrop,Rect(0,0,264,192),Rect(0,0,screen.bounds.w,screen.bounds.h));
 
-  player.z += jump;
+  player.z += jump ;
   height = player.z;
-  if (height > 10) jump = -1;
+  if (height > 7) jump = -1;
   if (height <= 0) jump = 0;
 
   if (time % 3 == 0 ) {
@@ -83,60 +114,46 @@ void render(uint32_t time) {
 	if (anim > 15) anim = 0;
 	}
 
+  Rect sbcostume;
   Rect sabremanback = Rect(anim,0,3,4);
   Rect sabremanfront = Rect(anim,4,3,4);
 
-  if (wolf) {
+  if (moon) { // turn into the wolf
   	 sabremanback = Rect(anim,8,3,4);
   	 sabremanfront = Rect(anim,12,3,4);
 	}
-
-  Rect sbcostume;
-  int flip;
   if (dir == LEFT)    { sbcostume = sabremanback; flip = 0;}
   if (dir == RIGHT)   { sbcostume = sabremanfront; flip = 0;}
   if (dir == UP)      { sbcostume = sabremanback; flip = 1;}
   if (dir == DOWN)    { sbcostume = sabremanfront; flip = 1;}
 
-  Rect block = Rect(36,4,4,4);
-
-  drawlist.clear();
+  // add player sprite
   drawobject obj;
-
   obj.spritesheet = sbsprites;
   obj.costume = sbcostume;
   obj.position = player;
   obj.flip = flip;
+  obj.id = 1;
   drawlist.push_back(obj);
 
-  obj.spritesheet = itemsprites;
-  obj.costume = block;
-  obj.position = Vec3(5,5,0);
-  obj.flip = 0;
-  drawlist.push_back(obj);
-
-  obj.position = Vec3(9,5,0);
-  drawlist.push_back(obj);
-
-  obj.position = Vec3(5,9,0);
-  drawlist.push_back(obj);
-
-  //sort and draw by y axis 
+  //sort sprites by y axis and draw in order (back -> front)
   std::sort(drawlist.begin(),drawlist.end(),sort_y);
   for (auto &item: drawlist) {
   	screen.sprites = item.spritesheet;
   	screen.sprite(item.costume,isometric(item.position),origin,1,item.flip); 
 	}
 
+  //remove player for next frame
+  auto it = std::find_if (drawlist.begin(),drawlist.end(),find_id);
+  drawlist.erase(it);
+
+  // animate sun and moon in window
   screen.sprites = itemsprites;
-  Rect sun = Rect(29,0,2,2);
-  if (wolf) { sun = Rect(31,0,2,2);}
-  screen.sprite(sun,Vec2(240 + day / 75,205)); 
   if (day++ > 2400) {
-	wolf = !wolf;
+	moon = !moon;
 	day = 0;
 	}
-  Rect windowframe = Rect(36,0,6,4);
+  screen.sprite(sunmoon[moon],Vec2(240 + day / 75,205)); 
   screen.sprite(windowframe,Vec2(240,200)); 
 }
 
@@ -190,5 +207,4 @@ switch (dir) {
         player = Vec3(8,0,0);
         newroom();
         }
-
 }
