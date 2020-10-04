@@ -17,8 +17,6 @@ int moon = 0;
 int day = 0;
 int anim = 0 ;
 int jump = 0;
-int height = 0;
-int gem = 0;
 
 SpriteSheet *backdrop,*sbsprites,*itemsprites;
 
@@ -46,18 +44,17 @@ bool sort_y (object obj1, object obj2) {
 	}
 bool find_id (object obj1) { return (obj1.id == 1); }
 
-bool hit (Vec2 a, Vec2 b ) {
+bool hit (Vec3 a, Vec3 b ) {
         Vec2 diff;
         diff.x = a.x - b.x;
         diff.y = a.y - b.y;
         float distance = sqrt ( diff.x * diff.x  + diff.y * diff.y);
 
-	return ( distance < 0.8f );
+	return ( distance < 0.9f );
 }
 
 void newroom () {
         roomcolor = Vec3(100 + rand() % 100,rand() % 255,rand() % 255);
-        gem = rand() % 8;
 
   	drawlist.clear();
 
@@ -66,13 +63,13 @@ void newroom () {
   	obj.costume = block;
   	obj.flip = 0;
 
-	for (int a=0;a<10;a++) {
-		obj.position = Vec3(2* (rand() % 7),2*(rand() % 7),-10);
+	for (int a=0;a<5;a++) {
+		obj.position = Vec3(2* (rand() % 7),2*(rand() % 7),-3);
   		drawlist.push_back(obj);
 		}
 
   	obj.position = Vec3(rand() % 16,rand() % 16,0);
-  	obj.costume = gems[gem];
+  	obj.costume = gems[rand() % 8];
   	drawlist.push_back(obj);
 
 }
@@ -91,21 +88,17 @@ void init() {
   player = Vec3(8,8,0);
   backdrop = SpriteSheet::load(room);
   sbsprites = SpriteSheet::load(sabreman);
-
-  //make black transparent
-  sbsprites->palette[0] = Pen(0,0,0,0);
   itemsprites = SpriteSheet::load(sprites);
   newroom();
 }
 
 void render(uint32_t time) {
-  int flip;
 
   backdrop->palette[1] = Pen(roomcolor.x,roomcolor.y,roomcolor.z);
   screen.stretch_blit(backdrop,Rect(0,0,264,192),Rect(0,0,screen.bounds.w,screen.bounds.h));
 
   player.z += jump ;
-  height = player.z;
+  int height = player.z;
   if (height > 7) jump = -1;
   if (height <= 0) jump = 0;
 
@@ -122,6 +115,7 @@ void render(uint32_t time) {
   	 sabremanback = Rect(anim,8,3,4);
   	 sabremanfront = Rect(anim,12,3,4);
 	}
+  int flip;
   if (dir == LEFT)    { sbcostume = sabremanback; flip = 0;}
   if (dir == RIGHT)   { sbcostume = sabremanfront; flip = 0;}
   if (dir == UP)      { sbcostume = sabremanback; flip = 1;}
@@ -167,44 +161,47 @@ if (move.x > 0 && move.y > 0 ) dir = RIGHT;
 if (move.x > 0 && move.y < 0 ) dir = UP;
 if (move.x < 0 && move.y > 0 ) dir = DOWN;
 
-if (pressed(Button::DPAD_LEFT)) dir = LEFT;
+if (pressed(Button::DPAD_LEFT))  dir = LEFT;
 if (pressed(Button::DPAD_RIGHT)) dir = RIGHT;
-if (pressed(Button::DPAD_UP)) dir = UP;
-if (pressed(Button::DPAD_DOWN)) dir = DOWN;
+if (pressed(Button::DPAD_UP))    dir = UP;
+if (pressed(Button::DPAD_DOWN))  dir = DOWN;
+if (pressed(Button::A) && !jump) jump = 1;
 
-if ((pressed(Button::A)) && jump == 0 ) jump = 1;
+Vec3 nomove = player;
+if (dir == LEFT)  player.x -= 0.1;
+if (dir == RIGHT) player.x += 0.1;
+if (dir == UP)    player.y -= 0.1;
+if (dir == DOWN)  player.y += 0.1;
 
-switch (dir) {
-	case (LEFT):
-        	if (player.x > 0) player.x -= 0.1;
-		break;
-	case (RIGHT):
-        	if (player.x < 16) player.x += 0.1;
-		break;
-	case (UP):
-        	if (player.y > 0) player.y -= 0.1;
-		break;
-	case (DOWN):
-        	if (player.y < 16) player.y += 0.1;
-		break;
+// walls
+if (player.x < 0 || player.x > 16) player = nomove;  
+if (player.y < 0 || player.y > 16) player = nomove;  
+ 
+//check for collisions
+for (auto &item: drawlist) { 
+if (hit (player,item.position) && item.id !=1) player = nomove ; 
+if (hit (player - Vec3(0,1,0),item.position) && item.id !=1) player = nomove ; 
+if (hit (player - Vec3(1,0,0),item.position) && item.id !=1) player = nomove ; 
+if (hit (player - Vec3(1,1,0),item.position) && item.id !=1) player = nomove ; 
 }
 
-// doors 
- Vec2 playerxy =Vec2(player.x,player.y);
- if (hit(playerxy, Vec2(0,8)) && dir == LEFT) {
-        player = Vec3(16,8,0);
+//move between doors 
+Vec3 doors[] = { Vec3(0,8,0), Vec3(16,8,0), Vec3(8,0,0), Vec3(8,16,0) };
+
+if (hit(player, doors[LEFT]) && dir == LEFT) {
+        player = doors[RIGHT];
         newroom();
         }
- if (hit(playerxy, Vec2(16,8)) && dir == RIGHT) {
-        player = Vec3(0,8,0);
+if (hit(player, doors[RIGHT]) && dir == RIGHT) {
+        player = doors[LEFT];
         newroom();
         }
- if (hit(playerxy, Vec2(8,0)) && dir == UP) {
-        player = Vec3(8,16,0);
+if (hit(player, doors[UP]) && dir == UP) {
+        player = doors[DOWN];
         newroom();
         }
- if (hit(playerxy, Vec2(8,16)) && dir == DOWN) {
-        player = Vec3(8,0,0);
+if (hit(player, doors[DOWN]) && dir == DOWN) {
+        player = doors[UP];
         newroom();
         }
 }
