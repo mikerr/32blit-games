@@ -16,9 +16,8 @@ SpriteSheet *backdrop;
 // Static wave config
 static uint32_t wavSize = 0;
 static uint16_t wavPos = 0;
-static uint16_t wavSampleRate = 0;
-static const uint16_t *wavSample;
-
+static uint16_t wavSampleRate = 11025;
+static const uint8_t *wavSample;
 
 // Called everytime audio buffer ends
 void buffCallBack(void *) {
@@ -30,7 +29,7 @@ void buffCallBack(void *) {
 
     // As the engine is 22050Hz, we can timestretch to match by incrementing our sample every other step (every even 'x')
     if (wavSampleRate == 11025) {
-      if (x % 8) wavPos++;
+      if (x % 2) wavPos++;
     } else {
       wavPos++;
     }
@@ -43,7 +42,6 @@ void buffCallBack(void *) {
     wavSample = nullptr;
     wavSize = 0;
     wavPos = 0;
-    wavSampleRate = 0;
   }
 }
 
@@ -54,15 +52,16 @@ void draw_cursor(Vec2 pos) {
     screen.line(pos + Vec2 (5, -5), pos + Vec2 (-5, 5) );
 }
 
-void play_wav(char *message, const uint16_t *wav,uint32_t wav_len ) {
+void play_wav(char *message, const uint8_t *wav,uint32_t wav_len ) {
 
 screen.pen = Pen(255,0,0);
 screen.text(message, minimal_font, Vec2(0,0));
 
 wavSample = wav;
-wavSize = wav_len /2;
+wavSize = wav_len;
 channels[0].trigger_attack();
 }
+
 void init() {
     set_screen_mode(ScreenMode::lores);
     low_res = fire = button_up = 0;
@@ -104,7 +103,7 @@ static int y=0;
 
     draw_cursor(joypos);
 
-    //if (rand() % 99999 > 99997) play_wav("Enemy unit approaching",enemyunit,enemyunit_length);
+    //if (time % 2000 == 0) play_wav("Enemy unit approaching",enemyunit,enemyunit_length);
 
     if (button_up) {
 		button_up = 0;
