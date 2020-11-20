@@ -1,0 +1,8 @@
+title: Jetpac
+description: Classic 80s game - collect parts of your rocket and fuel it up  
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: no-icon.png
+version: v1.0.0
