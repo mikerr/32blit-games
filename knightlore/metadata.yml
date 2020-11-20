@@ -1,0 +1,8 @@
+title: Knight Lore 84
+description: The first Isometric 3d game - Sabreman has 40 days to collect items for the wizard to lift the werewolf's curse
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: no-icon.png
+version: v1.0.0
