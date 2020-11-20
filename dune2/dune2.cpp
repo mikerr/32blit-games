@@ -70,6 +70,7 @@ void init() {
     channels[0].callback_waveBufferRefresh = &buffCallBack;  // Set callback address
 
     backdrop = SpriteSheet::load(map1);
+    screen.sprites = SpriteSheet::load(quad);
 }
 
 void render(uint32_t time) {
@@ -115,10 +116,13 @@ static int y=0;
 }
 
 void update(uint32_t time) {
-	if (pressed(Button::B)) { fire = 1; } 
-        if (!pressed(Button::B)) {
-		if (fire == 1) { button_up = 1; }
-		fire = 0;
+	if (pressed(Button::B)) { 
+		fire = 1; 
+		}  else { 
+		if (fire == 1) { // button released
+			button_up = 1; 
+			fire = 0;
+			}
 		}
 	if (pressed(Button::DPAD_DOWN))  { 
 		low_res = 1 - low_res;
