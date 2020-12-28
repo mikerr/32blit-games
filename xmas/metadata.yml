@@ -1,8 +1,8 @@
 title: xmas
-description: Christmas demo
+description: Falling snowflakes
 author: mikered
 splash:
-  file: no-image.png
+  file: splash.png
 icon:
   file: no-icon.png
 version: v1.0.0
