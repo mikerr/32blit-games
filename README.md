@@ -12,6 +12,7 @@ Vector3d - 3d wireframe graphics  ( rotzooming cubes )
 3dCube - 3d vector cube 
 
 dune2 - classic RTS
+
 ![](https://raw.githubusercontent.com/mikerr/32blit-games/master/dune2/splash.png)
 
 knightlore - isometric 3d game 
@@ -21,4 +22,5 @@ jetpac - classic zx spectrum platformer
 ![](https://i.imgur.com/rX7QNcmm.jpg)
 
 xmas - falling snowflakes
+
 ![](https://raw.githubusercontent.com/mikerr/32blit-games/master/xmas/splash.png)
