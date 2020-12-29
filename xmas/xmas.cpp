@@ -32,7 +32,10 @@ void render(uint32_t time) {
 	screen.stretch_blit(snow,Rect(0,0,256,256),Rect(p.x, p.y, p.z * screen.bounds.w / snowsize, p.z * screen.bounds.h / snowsize));
 
 	p.y +=  p.z /  speed ;
-	if (p.y > screen.bounds.h) { p.x = rand() % screen.bounds.w ; p.y = -50; } 
+	if (p.y > screen.bounds.h) { 
+		p.x = rand() % screen.bounds.w ; 
+		p.y = -50; 
+		} 
 
 	p.x += tilt.x * p.z ;
 	if (p.x > screen.bounds.w) p.x = -50;   
@@ -41,8 +44,6 @@ void render(uint32_t time) {
 }
 
 void update(uint32_t time) {
-
-    //pos += joystick;
 
     if (pressed(Button::DPAD_UP)   && snowsize > 200)  snowsize--;
     if (pressed(Button::DPAD_DOWN) && snowsize < 1000) snowsize++;
