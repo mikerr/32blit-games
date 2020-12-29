@@ -1,0 +1,8 @@
+title: Starfield
+description: 3D starfield game with added lasers
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: no-icon.png
+version: v1.0.0
