@@ -1,0 +1,8 @@
+title: Keypad
+description: Keypad numeric entry with joystick
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: no-icon.png
+version: v1.0.0

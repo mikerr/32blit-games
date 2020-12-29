@@ -1,0 +1,11 @@
+assets.hpp:
+  map1.png:
+    name: map1
+  quad.png:
+    name: quad
+  yessir.wav:
+    name: yessir
+  acknowledged.wav:
+    name: ack
+  enemyunitapproaching.wav:
+    name: enemyunit
