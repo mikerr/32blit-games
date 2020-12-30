@@ -1,0 +1,8 @@
+title: 3dcube
+description: Spinning 3d cube
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: no-icon.png
+version: v1.0.0

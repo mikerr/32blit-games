@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.1)
+project (3dcube)
+include (~/32blit-beta/32blit.cmake)
+blit_executable (3dcube 3dcube.cpp)
+blit_metadata (3dcube metadata.yml)
