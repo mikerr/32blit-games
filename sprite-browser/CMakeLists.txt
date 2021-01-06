@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.1)
+project (sprite-browser)
+include (~/32blit-beta/32blit.cmake)
+blit_executable (sprite-browser sprite-browser.cpp)
+blit_assets_yaml (sprite-browser assets.yml)
+blit_metadata (sprite-browser metadata.yml)

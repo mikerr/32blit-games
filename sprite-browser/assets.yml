@@ -1,0 +1,17 @@
+assets.hpp:
+    ../../32blit-beta/assets/s4m_ur4i-dingbads.png:
+      name: dingbads
+    ../../32blit-beta/assets/s4m_ur4i-pirate-characters.png:
+      name: pirate_characters
+    ../../32blit-beta/assets/s4m_ur4i-pirate-tilemap.png:
+      name: pirate_tilemap
+    ../../32blit-beta/assets/s4m_ur4i-platformer.png:
+      name: platformer
+    ../../32blit-beta/assets/s4m_ur4i-space-shooter-backdrop-palette.png:
+      name: space_shooter_backdrop_palette
+    ../../32blit-beta/assets/s4m_ur4i-space-shooter-backdrop.png:
+      name: space_shooter_backdrop
+    ../../32blit-beta/assets/s4m_ur4i-space-shooter-ships.png:
+      name: space_shooter_ships
+    ../../32blit-beta/assets/s4m_ur4i-top-down-shooter.png:
+      name: top_down_shooter

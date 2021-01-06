@@ -1,0 +1,8 @@
+title: Sprite browser
+description: Sprite browser. Show spritesheets and zoom in on indiviual sprites.
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: no-icon.png
+version: v1.0.0
