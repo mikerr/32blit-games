@@ -8,9 +8,16 @@ int x,y,fire,button_up;
 std::string status;
 Vec2 center,move,joypos;
 
-bool toggle = false;
+struct unit {
+	Vec2 pos;
+	Vec2 dest;
+};
 
-SpriteSheet *backdrop;
+unit quads[10];
+unit trikes[10];
+unit soldiers[10];
+
+SpriteSheet *backdrop,*quadsprite;
 
 // Static wave config
 static uint32_t wavSize = 0;
@@ -18,7 +25,7 @@ static uint16_t wavPos = 0;
 static uint16_t wavSampleRate = 11025;
 static const uint8_t *wavSample;
 
-// Called everytimeaudio buffer ends
+// Called everytime audio buffer ends
 void buffCallBack(void *) {
 
   // Copy 64 bytes to the channel audio buffer
@@ -56,17 +63,13 @@ void draw_cursor(Vec2 pos) {
     screen.line(pos + Vec2 (5, -5), pos + Vec2 (-5, 5) );
 }
 
-void flashborder(){
-    int w = screen.bounds.w-1;
-    int h = screen.bounds.h-1;
-
+void draw_box(int x, int y, int w, int h){
     screen.pen = Pen(25,25,25);
-    screen.line(Vec2(0,0),Vec2(0,h));
-    screen.line(Vec2(0,h),Vec2(w,h));
-    screen.line(Vec2(w,h),Vec2(w,0));
-    screen.line(Vec2(w,0),Vec2(0,0));
+    screen.line(Vec2(x,y),Vec2(x,h));
+    screen.line(Vec2(x,h),Vec2(w,h));
+    screen.line(Vec2(w,h),Vec2(w,y));
+    screen.line(Vec2(w,y),Vec2(x,y));
 }
-
 void init() {
     set_screen_mode(ScreenMode::hires);
     fire = button_up = 0;
@@ -75,40 +78,74 @@ void init() {
     channels[0].callback_waveBufferRefresh = &buffCallBack;  
 
     backdrop = SpriteSheet::load(map1);
-    screen.sprites = SpriteSheet::load(quad);
+    quadsprite = SpriteSheet::load(quad);
+
+    //spawn 10 quads at random locations
+    for (int x=0;x<10;x++) {
+	    quads[x].pos = Vec2(rand() % 300, rand() % 200);
+	    quads[x].dest = quads[x].pos;
+    }
 }
 
 void render(uint32_t time) {
-Vec2 cursorpos;
+static int commanding = 0;
+int selected = 0;
+int cursor = 0;
 
-    screen.pen = Pen(0, 0, 0);
-    screen.clear();
-
+    // Draw map
     screen.stretch_blit(backdrop,Rect(x+1,y,screen.bounds.w,screen.bounds.h),Rect(0,0,screen.bounds.w,screen.bounds.h));
-    screen.pen = Pen(255,255,255);
 
-    cursorpos = Vec2(0,screen.bounds.h - 10);
-    screen.text(status, minimal_font, cursorpos);
+    // Draw quads
+    for (int i=1;i<10;i++) {
+	int size = 20;
+	Vec2 unitpos = quads[i].pos;
+
+	int distance = abs(joypos.x - unitpos.x - 10) + abs(joypos.y - unitpos.y - 10);
+	if (distance < 20) {
+		if (status == "") status = "Harkonnen quad unit";
+		selected = i;
+	}
+
+	// move units to their destination, one step at a time
+	Vec2 dir = quads[i].dest - unitpos;
+	//normalize
+	dir.x = dir.x / std::max(1,abs(dir.x));
+	dir.y = dir.y / std::max(1,abs(dir.y));
+
+	quads[i].pos += dir;
+
+        if (i == selected) size = 30;
+	screen.stretch_blit(quadsprite,Rect(0,0,56,52),Rect(unitpos.x,unitpos.y,size,size));
+	}
 
     draw_cursor(joypos);
 
-    //if (time % 2000 == 0) play_wav("Enemy unit approaching",enemyunit,enemyunit_length);
-
     if (time % 50 == 0) status = "";
+
+    if (time % 2000 == 0) { 
+	    	    status = "Warning, Enemy unit approaching";
+		    //play_wav(enemyunit,enemyunit_length);
+		    }
 
     if (button_up) {
 		button_up = 0;
 
-		if (toggle) {
-			status = "Yes, sir !";
-			play_wav(yessir,yessir_length);
-			}
-		else {
+		if (commanding) {
 			status = "Acknowledged !";
 			play_wav(ack,ack_length);
-			}
-		toggle = !toggle;
+			quads[commanding].dest = joypos;
+			commanding = 0;
 		}
+		if (selected) {
+			status = "Yes, sir !";
+			play_wav(yessir,yessir_length);
+			commanding = selected;
+			}
+    }
+
+    screen.pen = Pen(255,255,255);
+    Vec2 screenbottom = Vec2(0,screen.bounds.h - 10);
+    screen.text(status, minimal_font, screenbottom);
 }
 
 void update(uint32_t time) {
@@ -126,7 +163,7 @@ void update(uint32_t time) {
 
     int SCROLLSPEED = 3;
     if ( joypos.x < 10 || pressed(Button::DPAD_LEFT)) x -= SCROLLSPEED;
-    if ( joypos.x > screen.bounds.h - 10 || pressed(Button::DPAD_RIGHT)) x += SCROLLSPEED;
+    if ( joypos.x > screen.bounds.w - 10 || pressed(Button::DPAD_RIGHT)) x += SCROLLSPEED;
 
     if ( joypos.y < 10 || pressed(Button::DPAD_UP)) y -= SCROLLSPEED;
     if ( joypos.y > screen.bounds.h - 10|| pressed(Button::DPAD_DOWN)) y += SCROLLSPEED;
@@ -134,8 +171,8 @@ void update(uint32_t time) {
     int width  = 568 - screen.bounds.w -2; 
     int height = 568 - screen.bounds.h; 
 
-    if ( x < 0 || x > width)  flashborder();
-    if ( y < 0 || y > height) flashborder();
+    if ( x < 0 || x > width)  draw_box(0,0,screen.bounds.w-1,screen.bounds.h-1);
+    if ( y < 0 || y > height) draw_box(0,0,screen.bounds.w-1,screen.bounds.h-1);
 
     x = std::min(x,width);
     y = std::min(y,height);
