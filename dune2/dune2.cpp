@@ -4,8 +4,7 @@
 #include "types/vec2.hpp"
 
 using namespace blit;
-
-int low_res,fire,button_up;
+int x,y,fire,button_up;
 std::string status;
 Vec2 center,move,joypos;
 
@@ -19,7 +18,7 @@ static uint16_t wavPos = 0;
 static uint16_t wavSampleRate = 11025;
 static const uint8_t *wavSample;
 
-// Called everytime audio buffer ends
+// Called everytimeaudio buffer ends
 void buffCallBack(void *) {
 
   // Copy 64 bytes to the channel audio buffer
@@ -35,16 +34,21 @@ void buffCallBack(void *) {
     }
   }
   
-  // For this example, clear the values
   if (wavPos >= wavSize) {
     channels[0].off();        // Stop playback of this channel.
-    //Clear buffer
+     //Clear buffer
     wavSample = nullptr;
     wavSize = 0;
     wavPos = 0;
   }
 }
 
+void play_wav(const uint8_t *wav,uint32_t wav_len ) {
+
+wavSample = wav;
+wavSize = wav_len;
+channels[0].trigger_attack();
+}
 
 void draw_cursor(Vec2 pos) {
     screen.pen = Pen(255,255,255);
@@ -52,22 +56,23 @@ void draw_cursor(Vec2 pos) {
     screen.line(pos + Vec2 (5, -5), pos + Vec2 (-5, 5) );
 }
 
-void play_wav(char *message, const uint8_t *wav,uint32_t wav_len ) {
+void flashborder(){
+    int w = screen.bounds.w-1;
+    int h = screen.bounds.h-1;
 
-screen.pen = Pen(255,0,0);
-screen.text(message, minimal_font, Vec2(0,0));
-
-wavSample = wav;
-wavSize = wav_len;
-channels[0].trigger_attack();
+    screen.pen = Pen(25,25,25);
+    screen.line(Vec2(0,0),Vec2(0,h));
+    screen.line(Vec2(0,h),Vec2(w,h));
+    screen.line(Vec2(w,h),Vec2(w,0));
+    screen.line(Vec2(w,0),Vec2(0,0));
 }
 
 void init() {
-    set_screen_mode(ScreenMode::lores);
-    low_res = fire = button_up = 0;
+    set_screen_mode(ScreenMode::hires);
+    fire = button_up = 0;
 
     channels[0].waveforms = Waveform::WAVE;
-    channels[0].callback_waveBufferRefresh = &buffCallBack;  // Set callback address
+    channels[0].callback_waveBufferRefresh = &buffCallBack;  
 
     backdrop = SpriteSheet::load(map1);
     screen.sprites = SpriteSheet::load(quad);
@@ -76,29 +81,12 @@ void init() {
 void render(uint32_t time) {
 Vec2 cursorpos;
 
-static int x=0;
-static int y=0;
-
     screen.pen = Pen(0, 0, 0);
     screen.clear();
 
-    screen.stretch_blit(backdrop,Rect(x,y,56,56),Rect(0,0,screen.bounds.h,screen.bounds.h));
-
-    if ( joypos.x < 5 ) x--;
-    if ( joypos.x > screen.bounds.h - 5) x++;
-
-    if ( joypos.y < 5 ) y--;
-    if ( joypos.y > screen.bounds.h - 5) y++;
-
-    if ( x < 0 ) x = 0;
-    if ( y < 0 ) y = 0;
-    if ( x > 200 ) x = 200;
-    if ( y > 200 ) y = 200;
-
+    screen.stretch_blit(backdrop,Rect(x+1,y,screen.bounds.w,screen.bounds.h),Rect(0,0,screen.bounds.w,screen.bounds.h));
     screen.pen = Pen(255,255,255);
 
-    if (!low_res) status = "Lo-res - down to toggle";
-	    else status = "Hi-res - down to toggle";
     cursorpos = Vec2(0,screen.bounds.h - 10);
     screen.text(status, minimal_font, cursorpos);
 
@@ -106,37 +94,58 @@ static int y=0;
 
     //if (time % 2000 == 0) play_wav("Enemy unit approaching",enemyunit,enemyunit_length);
 
+    if (time % 50 == 0) status = "";
+
     if (button_up) {
 		button_up = 0;
 
-		if (toggle) play_wav("Yes sir!",yessir,yessir_length);
-		else 	play_wav("Acknowledged",ack,ack_length);
+		if (toggle) {
+			status = "Yes, sir !";
+			play_wav(yessir,yessir_length);
+			}
+		else {
+			status = "Acknowledged !";
+			play_wav(ack,ack_length);
+			}
 		toggle = !toggle;
 		}
 }
 
 void update(uint32_t time) {
-	if (pressed(Button::B)) { 
-		fire = 1; 
-		}  else { 
-		if (fire == 1) { // button released
-			button_up = 1; 
-			fire = 0;
-			}
-		}
-	if (pressed(Button::DPAD_DOWN))  { 
-		low_res = 1 - low_res;
-		if (low_res) { 
-			set_screen_mode(ScreenMode::hires); 
-			} else { 
-			set_screen_mode(ScreenMode::lores);
-			}
-                }
 
     center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
-    move = blit::joystick;
 
-    joypos.x =  move.x * center.x ;
-    joypos.y =  move.y * center.y ;
+    // stretch joystick diagonals to reach corners
+    float diag = 1;
+    if ( (fabs((float)joystick.x) > (double)0.5f) && (fabs((float)joystick.y) > (double)0.5f) ) diag = 1.5;
+
+    joypos.x =  joystick.x * center.x * diag;
+    joypos.y =  joystick.y * center.y * diag;
+
     joypos = joypos + center;
+
+    int SCROLLSPEED = 3;
+    if ( joypos.x < 10 || pressed(Button::DPAD_LEFT)) x -= SCROLLSPEED;
+    if ( joypos.x > screen.bounds.h - 10 || pressed(Button::DPAD_RIGHT)) x += SCROLLSPEED;
+
+    if ( joypos.y < 10 || pressed(Button::DPAD_UP)) y -= SCROLLSPEED;
+    if ( joypos.y > screen.bounds.h - 10|| pressed(Button::DPAD_DOWN)) y += SCROLLSPEED;
+
+    int width  = 568 - screen.bounds.w -2; 
+    int height = 568 - screen.bounds.h; 
+
+    if ( x < 0 || x > width)  flashborder();
+    if ( y < 0 || y > height) flashborder();
+
+    x = std::min(x,width);
+    y = std::min(y,height);
+    x = std::max(0,x);
+    y = std::max(0,y);
+
+    if (pressed(Button::A)) fire = 1; 
+    if (!pressed(Button::A) && fire == 1 ) {
+		 // button released
+		button_up = 1; 
+		fire = 0;
+		}
 }
