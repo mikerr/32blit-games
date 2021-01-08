@@ -14,8 +14,6 @@ struct unit {
 };
 
 unit quads[10];
-unit trikes[10];
-unit soldiers[10];
 
 SpriteSheet *backdrop,*quadsprite;
 
@@ -70,6 +68,7 @@ void draw_box(int x, int y, int w, int h){
     screen.line(Vec2(w,h),Vec2(w,y));
     screen.line(Vec2(w,y),Vec2(x,y));
 }
+
 void init() {
     set_screen_mode(ScreenMode::hires);
     fire = button_up = 0;
@@ -81,9 +80,9 @@ void init() {
     quadsprite = SpriteSheet::load(quad);
 
     //spawn 10 quads at random locations
-    for (int x=0;x<10;x++) {
-	    quads[x].pos = Vec2(rand() % 300, rand() % 200);
-	    quads[x].dest = quads[x].pos;
+    for (int i=0;i<10;i++) {
+	    quads[i].pos = Vec2(rand() % 568, rand() % 568);
+	    quads[i].dest = Vec2(rand() % 568, rand() % 568);
     }
 }
 
@@ -100,7 +99,7 @@ int cursor = 0;
 	int size = 20;
 	Vec2 unitpos = quads[i].pos;
 
-	int distance = abs(joypos.x - unitpos.x - 10) + abs(joypos.y - unitpos.y - 10);
+	int distance = abs(x + joypos.x - unitpos.x - 10) + abs(y + joypos.y - unitpos.y - 10);
 	if (distance < 20) {
 		if (status == "") status = "Harkonnen quad unit";
 		selected = i;
@@ -115,8 +114,15 @@ int cursor = 0;
 	quads[i].pos += dir;
 
         if (i == selected) size = 30;
-	screen.stretch_blit(quadsprite,Rect(0,0,56,52),Rect(unitpos.x,unitpos.y,size,size));
+
+	screen.stretch_blit(quadsprite,Rect(0,0,56,52),Rect(unitpos.x - x, unitpos.y - y, size, size));
 	}
+
+    Vec2 yard = Vec2(200,166);
+    int distance = abs(x + joypos.x - yard.x - 10) + abs(y + joypos.y - yard.y - 10);
+    if (distance < 20) {
+	    status = "Construction yard";
+    }
 
     draw_cursor(joypos);
 
@@ -133,7 +139,7 @@ int cursor = 0;
 		if (commanding) {
 			status = "Acknowledged !";
 			play_wav(ack,ack_length);
-			quads[commanding].dest = joypos;
+			quads[commanding].dest = Vec2(x,y) + joypos;
 			commanding = 0;
 		}
 		if (selected) {
@@ -142,7 +148,6 @@ int cursor = 0;
 			commanding = selected;
 			}
     }
-
     screen.pen = Pen(255,255,255);
     Vec2 screenbottom = Vec2(0,screen.bounds.h - 10);
     screen.text(status, minimal_font, screenbottom);
