@@ -4,7 +4,7 @@
 #include "types/vec2.hpp"
 
 using namespace blit;
-int x,y,fire,button_up;
+int x,y,fire,lowres,button_up,maps;
 std::string status;
 Vec2 center,move,joypos;
 
@@ -15,7 +15,9 @@ struct unit {
 
 unit quads[10];
 
-SpriteSheet *backdrop,*quadsprite;
+Surface *backdrop,*quadsprite;
+
+#define MAPSIZE 568
 
 // Static wave config
 static uint32_t wavSize = 0;
@@ -31,7 +33,7 @@ void buffCallBack(void *) {
     // Note: The sample used here has an offset, so we adjust by 0x7f. 
     channels[0].wave_buffer[x] = (wavPos < wavSize) ? wavSample[wavPos] - 0x7f : 0;
 
-    // As the engine is 22050Hz, we can timestretch to match by incrementing our sample every other step (every even 'x')
+    // As the engine is 22050Hz, we can timestretch to match 
     if (wavSampleRate == 11025) {
       if (x % 2) wavPos++;
     } else {
@@ -70,19 +72,20 @@ void draw_box(int x, int y, int w, int h){
 }
 
 void init() {
-    set_screen_mode(ScreenMode::hires);
+    set_screen_mode(ScreenMode::lores);
     fire = button_up = 0;
 
     channels[0].waveforms = Waveform::WAVE;
     channels[0].callback_waveBufferRefresh = &buffCallBack;  
 
-    backdrop = SpriteSheet::load(map1);
-    quadsprite = SpriteSheet::load(quad);
+    maps = 1;
+    backdrop = Surface::load(map1);
+    quadsprite = Surface::load(quad);
 
     //spawn 10 quads at random locations
     for (int i=0;i<10;i++) {
-	    quads[i].pos = Vec2(rand() % 568, rand() % 568);
-	    quads[i].dest = Vec2(rand() % 568, rand() % 568);
+	    quads[i].pos = Vec2(rand() % MAPSIZE, rand() % MAPSIZE);
+	    quads[i].dest = Vec2(rand() % MAPSIZE, rand() % MAPSIZE);
     }
 }
 
@@ -91,12 +94,19 @@ static int commanding = 0;
 int selected = 0;
 int cursor = 0;
 
+    if (pressed(Button::Y)) {
+	    maps++;
+	    if (maps > 3) maps = 1;
+	    if (maps == 1) backdrop = Surface::load(map1);
+	    if (maps == 2) backdrop = Surface::load(map2);
+	    if (maps == 3) backdrop = Surface::load(map3);
+    }
     // Draw map
     screen.stretch_blit(backdrop,Rect(x+1,y,screen.bounds.w,screen.bounds.h),Rect(0,0,screen.bounds.w,screen.bounds.h));
 
     // Draw quads
     for (int i=1;i<10;i++) {
-	int size = 20;
+	int size = 15;
 	Vec2 unitpos = quads[i].pos;
 
 	int distance = abs(x + joypos.x - unitpos.x - 10) + abs(y + joypos.y - unitpos.y - 10);
@@ -113,7 +123,7 @@ int cursor = 0;
 
 	quads[i].pos += dir;
 
-        if (i == selected) size = 30;
+        if (i == selected) size = 20;
 
 	screen.stretch_blit(quadsprite,Rect(0,0,56,52),Rect(unitpos.x - x, unitpos.y - y, size, size));
 	}
@@ -166,15 +176,15 @@ void update(uint32_t time) {
 
     joypos = joypos + center;
 
-    int SCROLLSPEED = 3;
+    int SCROLLSPEED = 1;
     if ( joypos.x < 10 || pressed(Button::DPAD_LEFT)) x -= SCROLLSPEED;
     if ( joypos.x > screen.bounds.w - 10 || pressed(Button::DPAD_RIGHT)) x += SCROLLSPEED;
 
     if ( joypos.y < 10 || pressed(Button::DPAD_UP)) y -= SCROLLSPEED;
     if ( joypos.y > screen.bounds.h - 10|| pressed(Button::DPAD_DOWN)) y += SCROLLSPEED;
 
-    int width  = 568 - screen.bounds.w -2; 
-    int height = 568 - screen.bounds.h; 
+    int width  = MAPSIZE - screen.bounds.w; 
+    int height = MAPSIZE - screen.bounds.h; 
 
     if ( x < 0 || x > width)  draw_box(0,0,screen.bounds.w-1,screen.bounds.h-1);
     if ( y < 0 || y > height) draw_box(0,0,screen.bounds.w-1,screen.bounds.h-1);
@@ -190,4 +200,9 @@ void update(uint32_t time) {
 		button_up = 1; 
 		fire = 0;
 		}
+    if (pressed(Button::X)) {
+	    if (lowres) set_screen_mode(ScreenMode::lores);
+	    else set_screen_mode(ScreenMode::hires);
+	    lowres = !lowres;
+	    }
 }

@@ -1,6 +1,12 @@
 assets.hpp:
   map1.png:
     name: map1
+  map2.png:
+    name: map2
+  map3.png:
+    name: map3
+  map4.png:
+    name: map4
   quad.png:
     name: quad
   yessir.wav:
