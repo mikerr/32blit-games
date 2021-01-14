@@ -31,6 +31,7 @@ float maxspeed;
 int player;
 
 void settracklimits() {
+// polygon inside track - sandy area
 	innerarea.points.push_back(Vec2(50,180));
 	innerarea.points.push_back(Vec2(64,190));
 	innerarea.points.push_back(Vec2(250,190));
@@ -52,6 +53,7 @@ void settracklimits() {
 	innerarea.points.push_back(Vec2(61,171));
 	innerarea.points.push_back(Vec2(50,180));
 
+// polygon surrounding track - sandy area
 	outerarea.points.push_back(Vec2(61,222));
 	outerarea.points.push_back(Vec2(257,222));
 	outerarea.points.push_back(Vec2(280,210));
@@ -88,7 +90,7 @@ Vec2 lastpos = shape.points[0];
 }
 
 bool point_inside_shape ( Vec2 point, shape shape ) {
-// http://erich.realtimerendering.com/ptinpoly/
+// http://erich.realtimerendering.com/ptinpoly/ for an explanation !
 
   int i, j, nvert = shape.points.size();
   bool c = false;
@@ -105,7 +107,7 @@ bool point_inside_shape ( Vec2 point, shape shape ) {
 
 bool near (Vec2 point,Vec2 target){
 	int hit = 0;
-	if ( (abs(point.x - target.x) < 20 ) && (abs(point.y - target.y) < 20)) hit = 1;
+	if ( (abs(point.x - target.x) < 10 ) && (abs(point.y - target.y) < 10)) hit = 1;
 	return (hit);
 }
 
@@ -127,34 +129,42 @@ void init() {
 
 void render(uint32_t time) {
 int size;
-Pen colours[] = {Pen(0,255,0),Pen(0,255,255),Pen(0,0,255),Pen(255,255,0)};
-static uint32_t start,lastlap;
+static uint32_t start = time;
+static int lastlap,bestlap;
 
-    //screen.pen = Pen(0,0,0);
-    //screen.clear();
+    Pen colours[] = {Pen(0,255,0),Pen(0,255,255),Pen(0,0,255),Pen(255,255,0)};
 
     // Draw track
     screen.stretch_blit(backdrop,Rect(0,0,320,240),Rect(0,0,screen.bounds.w,screen.bounds.h));
 
     // scale car if res changed
-    size = screen.bounds.w / 32;
+    size = screen.bounds.w / 64;
+
     // Draw car
     //screen.stretch_blit(carsprite,Rect(0,0,64,45),Rect(pos.x, pos.y, size, size / 1.5));
 
     for (int i=0;i<MAXCARS;i++) {
     	screen.pen = colours[i];
     	screen.line(cars[i].pos, cars[i].pos + (cars[i].dir * size));
+    	screen.line(cars[i].pos, cars[i].pos - (cars[i].dir * size));
 	}
 
+    int clock = (time - start) / 100;
+    status = "Lap time: " + std::to_string(clock);
+    screen.pen = Pen(255,255,255);
+    screen.text(status, minimal_font, Vec2(0,screen.bounds.h - 10));
+
+    status = "Last: " + std::to_string(lastlap);
+    screen.text(status, minimal_font, Vec2(screen.bounds.w / 2, screen.bounds.h - 10));
+
+    status = "Best: " + std::to_string(bestlap);
+    screen.text(status, minimal_font, Vec2(screen.bounds.w - 50, screen.bounds.h - 10));
+
     if (near (cars[player].pos,Vec2(75,205)) ) {
-	    lastlap = time - start;
+	    lastlap = clock;
+	    if (lastlap < bestlap) bestlap = lastlap;
 	    start = time;
     	    }
-
-    status = "Lap time: " + std::to_string(time - start) + " Last lap: " + std::to_string(lastlap);
-    screen.pen = Pen(255,255,255);
-    Vec2 screenbottom = Vec2(0,screen.bounds.h - 10);
-    screen.text(status, minimal_font, screenbottom);
 }
 	
 void update(uint32_t time) {
@@ -162,9 +172,8 @@ void update(uint32_t time) {
     if (pressed(Button::DPAD_LEFT) || joystick.x < -0.2) cars[player].angle -= 0.05;
     if (pressed(Button::DPAD_RIGHT) || joystick.x > 0.2) cars[player].angle += 0.05; 
 
-    if (pressed(Button::A)) {
-	    if ( cars[player].speed < maxspeed ) cars[player].speed += 0.05;
-    }
+    if (pressed(Button::A) && cars[player].speed < maxspeed ) cars[player].speed += 0.05;
+
     if (pressed(Button::X)) {
 	    if (lowres) set_screen_mode(ScreenMode::lores);
 	    else set_screen_mode(ScreenMode::hires);
@@ -178,8 +187,8 @@ void update(uint32_t time) {
 
 	    if (i != player) { // AI
 		    cars[i].speed = i /2.5;
-		    if (near (cars[i].pos,Vec2(280,204)) ) cars[i].angle = 5.1;
-		    //if (near (cars[i].pos,Vec2(269,48)) ) cars[i].angle = 3.3;
+		    if (near (cars[i].pos,Vec2(280,204)) ) cars[i].angle = 5.3;
+		    if (near (cars[i].pos,Vec2(269,48)) ) cars[i].angle = 3.2;
 		    if (near (cars[i].pos,Vec2(33,75)) ) cars[i].angle = 2;
 	    }
 
