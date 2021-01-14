@@ -14,14 +14,14 @@ typedef struct shape {
 	 std::vector<Vec2> points ;
 } shape;
 
-shape innerarea;
-shape outerarea;
+shape innerarea, outerarea, waypoints;
 
 typedef struct car {
 	Vec2 pos;
 	Vec2 dir;
 	float angle;
 	float speed;
+	int waypt;
 } car;
 
 #define MAXCARS 4
@@ -80,13 +80,24 @@ void settracklimits() {
 	outerarea.points.push_back(Vec2(61,222));
 }
 
-void draw_shape (shape shape){
-Vec2 lastpos = shape.points[0];
+void set_waypoints(){
+int i=1;
+	for (auto &inner: innerarea.points) {
+		Vec2 outer = outerarea.points[i++];
+		Vec2 dest ;
+		// get point half way between inner and outer track - i.e. middle of track
+		dest.x = inner.x + (outer.x - inner.x )/ 2;
+		dest.y = inner.y + (outer.y - inner.y )/ 2;
+		waypoints.points.push_back(dest);
+	}
+}
 
-	for (auto &point: shape.points) {
-	        screen.line(lastpos, point);
-		lastpos = point;
-		}
+float ang_to_point ( Vec2 point, Vec2 dest ) {
+// return angle of vector between points
+
+	Vec2 diff = dest - point;
+	float angle = atan2( diff.y , diff.x );
+	return (angle);
 }
 
 bool point_inside_shape ( Vec2 point, shape shape ) {
@@ -118,19 +129,20 @@ void init() {
     carsprite = Surface::load(carimg);
 
     settracklimits();
+    set_waypoints();
 
-    status = "Score: 0";
-    
     for (int i=0;i<MAXCARS;i++) {
     	cars[i].pos = Vec2( screen.bounds.w / 5, i * 5 + screen.bounds.h - 40 );
     	cars[i].speed = maxspeed = 2;
+	cars[i].waypt = 1;
 	}
+
 }
 
 void render(uint32_t time) {
 int size;
 static uint32_t start = time;
-static int lastlap,bestlap;
+static int lastlap,bestlap,clock;
 
     Pen colours[] = {Pen(0,255,0),Pen(0,255,255),Pen(0,0,255),Pen(255,255,0)};
 
@@ -149,7 +161,7 @@ static int lastlap,bestlap;
     	screen.line(cars[i].pos, cars[i].pos - (cars[i].dir * size));
 	}
 
-    int clock = (time - start) / 100;
+    clock = (time - start) / 100;
     status = "Lap time: " + std::to_string(clock);
     screen.pen = Pen(255,255,255);
     screen.text(status, minimal_font, Vec2(0,screen.bounds.h - 10));
@@ -161,16 +173,16 @@ static int lastlap,bestlap;
     screen.text(status, minimal_font, Vec2(screen.bounds.w - 50, screen.bounds.h - 10));
 
     if (near (cars[player].pos,Vec2(75,205)) ) {
-	    lastlap = clock;
-	    if (lastlap < bestlap) bestlap = lastlap;
+	    if (clock > 100) lastlap = clock;
+	    if (lastlap < bestlap || bestlap == 0) bestlap = lastlap;
 	    start = time;
     	    }
 }
 	
 void update(uint32_t time) {
 
-    if (pressed(Button::DPAD_LEFT) || joystick.x < -0.2) cars[player].angle -= 0.05;
-    if (pressed(Button::DPAD_RIGHT) || joystick.x > 0.2) cars[player].angle += 0.05; 
+    if (pressed(Button::DPAD_LEFT)  || joystick.x < -0.2) cars[player].angle -= 0.05;
+    if (pressed(Button::DPAD_RIGHT) || joystick.x > 0.2)  cars[player].angle += 0.05; 
 
     if (pressed(Button::A) && cars[player].speed < maxspeed ) cars[player].speed += 0.05;
 
@@ -186,15 +198,15 @@ void update(uint32_t time) {
             cars[i].pos += cars[i].dir * cars[i].speed;
 
 	    if (i != player) { // AI
-		    cars[i].speed = i /2.5;
-		    if (near (cars[i].pos,Vec2(280,204)) ) cars[i].angle = 5.3;
-		    if (near (cars[i].pos,Vec2(269,48)) ) cars[i].angle = 3.2;
-		    if (near (cars[i].pos,Vec2(33,75)) ) cars[i].angle = 2;
+		    cars[i].speed = i /2.5; 
+		    int w = cars[i].waypt;
+		    cars[i].angle = ang_to_point( cars[i].pos, waypoints.points[w]);
+		    if (near(cars[i].pos,waypoints.points[w])) cars[i].waypt++;
 	    }
+
 
             if (point_inside_shape(cars[i].pos,innerarea) || !point_inside_shape(cars[i].pos,outerarea)) {
 		cars[i].speed = 0.2;
-		// AI
 	    	if (i != player) { cars[i].angle -= 0.05; }
 	        }
 	    }
