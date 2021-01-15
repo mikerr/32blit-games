@@ -115,8 +115,8 @@ bool point_inside_shape ( Vec2 point, shape shape ){
   return c;
 }
 
-bool near(Vec2 point,Vec2 target){
-	return ( (abs(point.x - target.x) < 10 ) && (abs(point.y - target.y) < 10));
+bool near(Vec2 point,Vec2 target, int howfar){
+	return ( (abs(point.x - target.x) < howfar ) && (abs(point.y - target.y) < howfar));
 }
 
 void init() {
@@ -130,7 +130,7 @@ void init() {
     set_waypoints();
 
     for (int i=0;i<MAXCARS;i++) 
-    	cars[i].pos = Vec2( screen.bounds.w / 5, i * 5 + screen.bounds.h - 40 );
+    	cars[i].pos = Vec2( screen.bounds.w / 3, i * 5 + screen.bounds.h - 40 );
 
 }
 
@@ -153,7 +153,9 @@ static int lastlap,bestlap,clock;
     for (int i=0;i<MAXCARS;i++) {
     	screen.pen = colours[i];
     	Vec2 rotatedline = cars[i].dir * size;
-    	screen.line(cars[i].pos - rotatedline, cars[i].pos + rotatedline);
+	Vec2 pos = cars[i].pos;
+	if (lowres) pos = pos / 2;
+    	screen.line(pos - rotatedline, pos + rotatedline);
 	}
 
     clock = (time - start) / 100;
@@ -168,8 +170,8 @@ static int lastlap,bestlap,clock;
     screen.text(status, minimal_font, Vec2(screen.bounds.w - 50, screen.bounds.h - 10));
 
     Vec2 FinishLine = Vec2(75,205);
-    if (near (cars[player].pos,FinishLine)) {
-	    if (clock > 100) lastlap = clock;
+    if (near (cars[player].pos,FinishLine,20)) {
+	    if (clock > 50) lastlap = clock;
 	    if (lastlap < bestlap || bestlap == 0) bestlap = lastlap;
 	    start = time;
     	    }
@@ -183,9 +185,9 @@ void update(uint32_t time) {
     if (pressed(Button::A) && cars[player].speed < maxspeed ) cars[player].speed += 0.05;
 
     if (pressed(Button::X)) {
+	    lowres = !lowres;
 	    if (lowres) set_screen_mode(ScreenMode::lores);
 	    else set_screen_mode(ScreenMode::hires);
-	    lowres = !lowres;
 	    }
 
     for (int i=0;i<MAXCARS;i++) {
@@ -197,7 +199,7 @@ void update(uint32_t time) {
 		    cars[i].speed = i / 2.5; 
 		    unsigned int w = cars[i].waypt;
 		    cars[i].angle = ang_to_point( cars[i].pos, waypoints[w]);
-		    if (near(cars[i].pos,waypoints[w])) {
+		    if (near(cars[i].pos,waypoints[w],10)) {
 			    w++;
 			    if (w == waypoints.size()) w = 1;
 			    cars[i].waypt = w;
