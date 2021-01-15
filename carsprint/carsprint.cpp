@@ -4,16 +4,14 @@
 #include "types/vec2.hpp"
 
 using namespace blit;
-int lowres;
 
+int lowres,player;
+float maxspeed;
 std::string status;
 
 Surface *backdrop,*carsprite;
 
-typedef struct shape {
-	 std::vector<Vec2> points ;
-} shape;
-
+typedef std::vector<Vec2> shape;
 shape innerarea, outerarea, waypoints;
 
 typedef struct car {
@@ -27,71 +25,69 @@ typedef struct car {
 #define MAXCARS 4
 car cars[MAXCARS];
 
-float maxspeed;
-int player;
-
-void settracklimits() {
+void set_tracklimits() {
 // polygon inside track - sandy area
-	innerarea.points.push_back(Vec2(50,180));
-	innerarea.points.push_back(Vec2(64,190));
-	innerarea.points.push_back(Vec2(250,190));
-	innerarea.points.push_back(Vec2(258,188));
-	innerarea.points.push_back(Vec2(264,178));
-	innerarea.points.push_back(Vec2(264,72));
-	innerarea.points.push_back(Vec2(259,65));
-	innerarea.points.push_back(Vec2(250,61));
-	innerarea.points.push_back(Vec2(191,62));
-	innerarea.points.push_back(Vec2(158,36));
-	innerarea.points.push_back(Vec2(113,62));
-	innerarea.points.push_back(Vec2(62,62));
-	innerarea.points.push_back(Vec2(51,72));
-	innerarea.points.push_back(Vec2(64,85));
-	innerarea.points.push_back(Vec2(182,85));
-	innerarea.points.push_back(Vec2(211,112));
-	innerarea.points.push_back(Vec2(209,149));
-	innerarea.points.push_back(Vec2(171,171));
-	innerarea.points.push_back(Vec2(61,171));
-	innerarea.points.push_back(Vec2(50,180));
-	innerarea.points.push_back(Vec2(50,180));
-	innerarea.points.push_back(Vec2(50,180));
-	innerarea.points.push_back(Vec2(50,180));
+	innerarea.push_back(Vec2(50,180));
+	innerarea.push_back(Vec2(64,190));
+	innerarea.push_back(Vec2(250,190));
+	innerarea.push_back(Vec2(258,188));
+	innerarea.push_back(Vec2(264,178));
+	innerarea.push_back(Vec2(264,72));
+	innerarea.push_back(Vec2(259,65));
+	innerarea.push_back(Vec2(250,61));
+	innerarea.push_back(Vec2(191,62));
+	innerarea.push_back(Vec2(158,36));
+	innerarea.push_back(Vec2(113,62));
+	innerarea.push_back(Vec2(62,62));
+	innerarea.push_back(Vec2(51,72));
+	innerarea.push_back(Vec2(64,85));
+	innerarea.push_back(Vec2(182,85));
+	innerarea.push_back(Vec2(211,112));
+	innerarea.push_back(Vec2(209,149));
+	innerarea.push_back(Vec2(171,171));
+	innerarea.push_back(Vec2(61,171));
+	innerarea.push_back(Vec2(50,180));
+	innerarea.push_back(Vec2(50,180));
+	innerarea.push_back(Vec2(50,180));
+	innerarea.push_back(Vec2(50,180));
 
 // polygon surrounding track - sandy area
-	outerarea.points.push_back(Vec2(61,222));
-	outerarea.points.push_back(Vec2(257,222));
-	outerarea.points.push_back(Vec2(280,210));
-	outerarea.points.push_back(Vec2(290,188));
-	outerarea.points.push_back(Vec2(290,66));
-	outerarea.points.push_back(Vec2(281,46));
-	outerarea.points.push_back(Vec2(257,31));
-	outerarea.points.push_back(Vec2(200,31));
-	outerarea.points.push_back(Vec2(174,8));
-	outerarea.points.push_back(Vec2(157,5));
-	outerarea.points.push_back(Vec2(133,12));
-	outerarea.points.push_back(Vec2(106,31));
-	outerarea.points.push_back(Vec2(48,34));
-	outerarea.points.push_back(Vec2(19,62));
-	outerarea.points.push_back(Vec2(22,88));
-	outerarea.points.push_back(Vec2(52,114));
-	outerarea.points.push_back(Vec2(169,116));
-	outerarea.points.push_back(Vec2(181,128));
-	outerarea.points.push_back(Vec2(169,139));
-	outerarea.points.push_back(Vec2(51,139));
-	outerarea.points.push_back(Vec2(23,164));
-	outerarea.points.push_back(Vec2(23,200));
-	outerarea.points.push_back(Vec2(35,214));
-	outerarea.points.push_back(Vec2(61,222));
+	outerarea.push_back(Vec2(61,222));
+	outerarea.push_back(Vec2(257,222));
+	outerarea.push_back(Vec2(280,210));
+	outerarea.push_back(Vec2(290,188));
+	outerarea.push_back(Vec2(290,66));
+	outerarea.push_back(Vec2(281,46));
+	outerarea.push_back(Vec2(257,31));
+	outerarea.push_back(Vec2(200,31));
+	outerarea.push_back(Vec2(174,8));
+	outerarea.push_back(Vec2(157,5));
+	outerarea.push_back(Vec2(133,12));
+	outerarea.push_back(Vec2(106,31));
+	outerarea.push_back(Vec2(48,34));
+	outerarea.push_back(Vec2(19,62));
+	outerarea.push_back(Vec2(22,88));
+	outerarea.push_back(Vec2(52,114));
+	outerarea.push_back(Vec2(169,116));
+	outerarea.push_back(Vec2(181,128));
+	outerarea.push_back(Vec2(169,139));
+	outerarea.push_back(Vec2(51,139));
+	outerarea.push_back(Vec2(23,164));
+	outerarea.push_back(Vec2(23,200));
+	outerarea.push_back(Vec2(35,214));
+	outerarea.push_back(Vec2(61,222));
 }
 
 void set_waypoints(){
 int i=1;
-	for (auto &inner: innerarea.points) {
-		Vec2 outer = outerarea.points[i++];
+	for (auto &inner: innerarea) {
+		Vec2 outer = outerarea[i++];
 		Vec2 dest;
-		// get point half way between inner and outer track - i.e. middle of track
+		// get points half way between inner and outer track 
+		// i.e. middle of track to guide AI
 		dest.x = inner.x + ( (outer.x - inner.x ) / 2);
 		dest.y = inner.y + ( (outer.y - inner.y ) / 2);
-		waypoints.points.push_back(dest);
+		waypoints.push_back(dest);
 	}
 }
 
@@ -103,15 +99,15 @@ float ang_to_point ( Vec2 point, Vec2 dest ) {
 	return (angle);
 }
 
-bool point_inside_shape ( Vec2 point, shape shape ) {
+bool point_inside_shape ( Vec2 point, shape shape ){
 // http://erich.realtimerendering.com/ptinpoly/ for an explanation !
 
-  int i, j, nvert = shape.points.size();
+  int i, j, nvert = shape.size();
   bool c = false;
 
   for(i = 0, j = nvert - 1; i < nvert; j = i++) {
-    if( ( (shape.points[i].y >= point.y ) != (shape.points[j].y >= point.y) ) &&
-        (point.x <= (shape.points[j].x - shape.points[i].x) * (point.y - shape.points[i].y) / (shape.points[j].y - shape.points[i].y) + shape.points[i].x)
+    if( ( (shape[i].y >= point.y ) != (shape[j].y >= point.y) ) &&
+        (point.x <= (shape[j].x - shape[i].x) * (point.y - shape[i].y) / (shape[j].y - shape[i].y) + shape[i].x)
       )
       c = !c;
   }
@@ -119,10 +115,8 @@ bool point_inside_shape ( Vec2 point, shape shape ) {
   return c;
 }
 
-bool near (Vec2 point,Vec2 target){
-	int hit = 0;
-	if ( (abs(point.x - target.x) < 10 ) && (abs(point.y - target.y) < 10)) hit = 1;
-	return (hit);
+bool near(Vec2 point,Vec2 target){
+	return ( (abs(point.x - target.x) < 10 ) && (abs(point.y - target.y) < 10));
 }
 
 void init() {
@@ -131,14 +125,12 @@ void init() {
     backdrop = Surface::load(trackimg);
     carsprite = Surface::load(carimg);
 
-    settracklimits();
+    maxspeed = 2;
+    set_tracklimits();
     set_waypoints();
 
-    for (int i=0;i<MAXCARS;i++) {
+    for (int i=0;i<MAXCARS;i++) 
     	cars[i].pos = Vec2( screen.bounds.w / 5, i * 5 + screen.bounds.h - 40 );
-    	cars[i].speed = maxspeed = 2;
-	cars[i].waypt = 1;
-	}
 
 }
 
@@ -147,7 +139,7 @@ int size;
 static uint32_t start = time;
 static int lastlap,bestlap,clock;
 
-    Pen colours[] = {Pen(0,255,0),Pen(0,255,255),Pen(0,0,255),Pen(255,255,0)};
+    Pen colours[] = {Pen(0,255,0),Pen(0,255,255),Pen(255,128,0),Pen(255,255,0)};
 
     // Draw track
     screen.stretch_blit(backdrop,Rect(0,0,320,240),Rect(0,0,screen.bounds.w,screen.bounds.h));
@@ -160,8 +152,8 @@ static int lastlap,bestlap,clock;
 
     for (int i=0;i<MAXCARS;i++) {
     	screen.pen = colours[i];
-    	screen.line(cars[i].pos, cars[i].pos + (cars[i].dir * size));
-    	screen.line(cars[i].pos, cars[i].pos - (cars[i].dir * size));
+    	Vec2 rotatedline = cars[i].dir * size;
+    	screen.line(cars[i].pos - rotatedline, cars[i].pos + rotatedline);
 	}
 
     clock = (time - start) / 100;
@@ -175,7 +167,8 @@ static int lastlap,bestlap,clock;
     status = "Best: " + std::to_string(bestlap);
     screen.text(status, minimal_font, Vec2(screen.bounds.w - 50, screen.bounds.h - 10));
 
-    if (near (cars[player].pos,Vec2(75,205)) ) {
+    Vec2 FinishLine = Vec2(75,205);
+    if (near (cars[player].pos,FinishLine)) {
 	    if (clock > 100) lastlap = clock;
 	    if (lastlap < bestlap || bestlap == 0) bestlap = lastlap;
 	    start = time;
@@ -201,21 +194,17 @@ void update(uint32_t time) {
             cars[i].pos += cars[i].dir * cars[i].speed;
 
 	    if (i != player) { // AI
-		    cars[i].speed = i /2.5; 
-		    int w = cars[i].waypt;
-		    cars[i].angle = ang_to_point( cars[i].pos, waypoints.points[w]);
-		    if (near(cars[i].pos,waypoints.points[w])) {
+		    cars[i].speed = i / 2.5; 
+		    unsigned int w = cars[i].waypt;
+		    cars[i].angle = ang_to_point( cars[i].pos, waypoints[w]);
+		    if (near(cars[i].pos,waypoints[w])) {
 			    w++;
-			    if (w == waypoints.points.size()) w = 1;
+			    if (w == waypoints.size()) w = 1;
 			    cars[i].waypt = w;
 		    }
 	    }
-
-
-            if (point_inside_shape(cars[i].pos,innerarea) || !point_inside_shape(cars[i].pos,outerarea)) {
-		cars[i].speed = 0.2;
-	    	if (i != player) { cars[i].angle -= 0.05; }
-	        }
+            if (point_inside_shape(cars[i].pos,innerarea) || !point_inside_shape(cars[i].pos,outerarea)) 
+		    cars[i].speed = 0.2;
 	    }
     cars[player].speed *= 0.98;
 }
