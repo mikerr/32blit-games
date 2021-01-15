@@ -52,6 +52,9 @@ void settracklimits() {
 	innerarea.points.push_back(Vec2(171,171));
 	innerarea.points.push_back(Vec2(61,171));
 	innerarea.points.push_back(Vec2(50,180));
+	innerarea.points.push_back(Vec2(50,180));
+	innerarea.points.push_back(Vec2(50,180));
+	innerarea.points.push_back(Vec2(50,180));
 
 // polygon surrounding track - sandy area
 	outerarea.points.push_back(Vec2(61,222));
@@ -84,10 +87,10 @@ void set_waypoints(){
 int i=1;
 	for (auto &inner: innerarea.points) {
 		Vec2 outer = outerarea.points[i++];
-		Vec2 dest ;
+		Vec2 dest;
 		// get point half way between inner and outer track - i.e. middle of track
-		dest.x = inner.x + (outer.x - inner.x )/ 2;
-		dest.y = inner.y + (outer.y - inner.y )/ 2;
+		dest.x = inner.x + ( (outer.x - inner.x ) / 2);
+		dest.y = inner.y + ( (outer.y - inner.y ) / 2);
 		waypoints.points.push_back(dest);
 	}
 }
@@ -201,7 +204,11 @@ void update(uint32_t time) {
 		    cars[i].speed = i /2.5; 
 		    int w = cars[i].waypt;
 		    cars[i].angle = ang_to_point( cars[i].pos, waypoints.points[w]);
-		    if (near(cars[i].pos,waypoints.points[w])) cars[i].waypt++;
+		    if (near(cars[i].pos,waypoints.points[w])) {
+			    w++;
+			    if (w == waypoints.points.size()) w = 1;
+			    cars[i].waypt = w;
+		    }
 	    }
 
 
