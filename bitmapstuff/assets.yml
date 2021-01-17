@@ -1,0 +1,5 @@
+assets.hpp:
+  baboon.png:
+    name: baboonimg
+  lena.png:
+    name: lenaimg

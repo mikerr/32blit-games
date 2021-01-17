@@ -1,0 +1,8 @@
+title: BitmapStuff
+description: Testing bitmap/sprite rotation
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: no-icon.png
+version: v1.0.0

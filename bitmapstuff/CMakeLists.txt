@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.1)
+project (bitmapstuff)
+set (32BLIT_PATH "~/32blit-beta" CACHE PATH "Path to 32blit.cmake")
+include (${32BLIT_PATH}/32blit.cmake)
+blit_executable (bitmapstuff bitmapstuff.cpp)
+blit_assets_yaml (bitmapstuff assets.yml)
+blit_metadata (bitmapstuff metadata.yml)
