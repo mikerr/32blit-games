@@ -1,15 +1,13 @@
 #include "32blit.hpp"
 #include "assets.hpp"
-#include "graphics/color.hpp"
-#include "types/vec2.hpp"
 
 using namespace blit;
 
-int lowres,player;
+int lowres,player,vector;
 float maxspeed;
 std::string status;
 
-Surface *backdrop,*carsprite;
+Surface *backdrop,*carsprites;
 
 typedef std::vector<Vec2> shape;
 shape innerarea, outerarea, waypoints;
@@ -24,6 +22,8 @@ typedef struct car {
 
 #define MAXCARS 4
 car cars[MAXCARS];
+
+#define PI 3.14159
 
 void set_tracklimits() {
 // polygon inside track - sandy area
@@ -119,11 +119,26 @@ bool near(Vec2 point,Vec2 target, int howfar){
 	return ( (abs(point.x - target.x) < howfar ) && (abs(point.y - target.y) < howfar));
 }
 
+void blit_rotate_sprite (Surface *sprite,Rect src, float angle, Vec2 screenpos) {
+//rotate a sprite to screen at any angle
+Vec2 rot;
+    int width = src.w;
+    int height = src.h;
+    for (int x=0;x<width;x++)
+	    for (int y=0;y<height;y++) {
+		    int x1 = x - (width / 2);
+		    int y1 = y - (height / 2);
+		    rot.x = x1 * sin(angle) + y1 * cos(angle);
+		    rot.y = y1 * sin(angle) - x1 * cos(angle);
+		    Vec2 pos = rot + screenpos;
+        	    screen.stretch_blit(sprite,Rect(src.x + x, src.y + y,1,1),Rect(pos.x, pos.y,1,1));
+	    }
+}
 void init() {
     set_screen_mode(ScreenMode::hires);
 
     backdrop = Surface::load(trackimg);
-    carsprite = Surface::load(carimg);
+    carsprites = Surface::load(carimg);
 
     maxspeed = 2;
     set_tracklimits();
@@ -131,44 +146,33 @@ void init() {
 
     for (int i=0;i<MAXCARS;i++) 
     	cars[i].pos = Vec2( screen.bounds.w / 3, i * 5 + screen.bounds.h - 40 );
-
 }
 
 void render(uint32_t time) {
-int size;
 static uint32_t start = time;
 static int lastlap,bestlap,clock;
-
-    Pen colours[] = {Pen(0,255,0),Pen(0,255,255),Pen(255,128,0),Pen(255,255,0)};
 
     // Draw track
     screen.stretch_blit(backdrop,Rect(0,0,320,240),Rect(0,0,screen.bounds.w,screen.bounds.h));
 
-    // scale car if res changed
-    size = screen.bounds.w / 64;
-
-    // Draw car
-    //screen.stretch_blit(carsprite,Rect(0,0,64,45),Rect(pos.x, pos.y, size, size / 1.5));
-
+    // Draw cars
     for (int i=0;i<MAXCARS;i++) {
-    	screen.pen = colours[i];
-    	Vec2 rotatedline = cars[i].dir * size;
 	Vec2 pos = cars[i].pos;
 	if (lowres) pos = pos / 2;
-    	screen.line(pos - rotatedline, pos + rotatedline);
+    	blit_rotate_sprite(carsprites,Rect(8*i,0,8,16),cars[i].angle, pos);
 	}
 
+    // Draw score
+    screen.pen = Pen(255,255,255);
     clock = (time - start) / 100;
     status = "Lap time: " + std::to_string(clock);
-    screen.pen = Pen(255,255,255);
-    screen.text(status, minimal_font, Vec2(0,screen.bounds.h - 10));
-
+    screen.text(status, minimal_font, Vec2(0, screen.bounds.h - 10));
     status = "Last: " + std::to_string(lastlap);
     screen.text(status, minimal_font, Vec2(screen.bounds.w / 2, screen.bounds.h - 10));
-
     status = "Best: " + std::to_string(bestlap);
     screen.text(status, minimal_font, Vec2(screen.bounds.w - 50, screen.bounds.h - 10));
 
+    // Manage laps
     Vec2 FinishLine = Vec2(75,205);
     if (near (cars[player].pos,FinishLine,20)) {
 	    if (clock > 50) lastlap = clock;
@@ -180,7 +184,7 @@ static int lastlap,bestlap,clock;
 void update(uint32_t time) {
 
     if (pressed(Button::DPAD_LEFT)  || joystick.x < -0.2) cars[player].angle -= 0.05;
-    if (pressed(Button::DPAD_RIGHT) || joystick.x > 0.2)  cars[player].angle += 0.05; 
+    if (pressed(Button::DPAD_RIGHT) || joystick.x > 0.2)  cars[player].angle += 0.05;
 
     if (pressed(Button::A) && cars[player].speed < maxspeed ) cars[player].speed += 0.05;
 
@@ -190,6 +194,9 @@ void update(uint32_t time) {
 	    else set_screen_mode(ScreenMode::hires);
 	    }
 
+    if (pressed(Button::Y)) { vector = !vector; }
+
+    // Move cars
     for (int i=0;i<MAXCARS;i++) {
 	    float angle = cars[i].angle;
             cars[i].dir = Vec2( cos(angle), sin(angle));
@@ -197,16 +204,22 @@ void update(uint32_t time) {
 
 	    if (i != player) { // AI
 		    cars[i].speed = i / 2.5; 
-		    unsigned int w = cars[i].waypt;
-		    cars[i].angle = ang_to_point( cars[i].pos, waypoints[w]);
+		    // point car at checkpoint
+		    int w = cars[i].waypt;
+		    float angle = ang_to_point( cars[i].pos, waypoints[w]);
+	            cars[i].angle = angle;
+
 		    if (near(cars[i].pos,waypoints[w],10)) {
+			    //move to next checkpoint if near current one
 			    w++;
-			    if (w == waypoints.size()) w = 1;
+			    if (w == (int) waypoints.size()) w = 1;
 			    cars[i].waypt = w;
 		    }
 	    }
             if (point_inside_shape(cars[i].pos,innerarea) || !point_inside_shape(cars[i].pos,outerarea)) 
+		    // slow car if outside track 
 		    cars[i].speed = 0.2;
 	    }
+    // car gradually slows down 
     cars[player].speed *= 0.98;
 }
