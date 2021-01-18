@@ -4,7 +4,7 @@
 using namespace blit;
 
 int lowres,pic;
-float angle,speed;
+float angle,speed,zoom;
 bool blur;
 std::string status;
 
@@ -23,7 +23,7 @@ Vec2 rot;
 		    int y1 = y - (height / 2);
 		    rot.x = x1 * sin(angle) + y1 * cos(angle);
 		    rot.y = y1 * sin(angle) - x1 * cos(angle);
-		    Vec2 pos = rot + screenpos;
+		    Vec2 pos = (rot * zoom ) + screenpos;
         	    screen.stretch_blit(sprite,Rect(src.x + x, src.y + y,1,1),Rect(pos.x, pos.y,blocks,blocks));
 	    }
 }
@@ -34,6 +34,7 @@ void init() {
 
     blur = true;
     speed = 0.01;
+    zoom = 1;
 }
 
 void render(uint32_t time) {
@@ -51,17 +52,16 @@ void render(uint32_t time) {
     if (time % 1000 < 5) blur = !blur;
     if (time % 2000 < 5) pic = 1 - pic;
 
-
     // Draw bitmap
     blit_rotate_sprite(pictures[pic],Rect(0,0,256,256),angle,blur,center);
     
     uint32_t ms_end = now();
 
-    // Draw score
     screen.pen = Pen(255,255,255);
+    status = "Zoom: " + std::to_string(zoom);
+    screen.text(status, minimal_font, Vec2(screen.bounds.w - 50, screen.bounds.h - 20));
     status = "Blur: " + std::to_string(blur);
     screen.text(status, minimal_font, Vec2(screen.bounds.w - 50, screen.bounds.h - 10));
-
 
     // draw FPS meter
     uint32_t ms = ms_end - ms_start;
@@ -75,8 +75,8 @@ void update(uint32_t time) {
     if (pressed(Button::DPAD_RIGHT) || joystick.x > 0.2)  speed += 0.005;
 
     if (abs(speed) > 0.5) speed = speed / 2;
-    if (pressed(Button::DPAD_UP)  || joystick.y < -0.2) ;
-    if (pressed(Button::DPAD_DOWN) || joystick.y > 0.2) ;
+    if (pressed(Button::DPAD_UP)  || joystick.y < -0.2) zoom += 0.01;
+    if (pressed(Button::DPAD_DOWN) || joystick.y > 0.2) zoom -= 0.01;
 
     if (pressed(Button::A)) speed = 0;
     if (pressed(Button::B)) blur = !blur;
