@@ -5,7 +5,7 @@ using namespace blit;
 
 int lowres,pic;
 float angle,speed,zoom;
-bool blur;
+bool blur,demo,pan;
 std::string status;
 
 Surface *pictures[2];
@@ -35,13 +35,15 @@ void init() {
     blur = true;
     speed = 0.01;
     zoom = 1;
+    demo = true;
 }
 
 void render(uint32_t time) {
 
     Vec2 center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
 
-    angle += speed;
+    if (pan) center.x += speed * 100;
+    else angle += speed;
 
     uint32_t ms_start = now();
 
@@ -49,7 +51,7 @@ void render(uint32_t time) {
     screen.pen = Pen (0,0,0);
     screen.clear();
 
-    if (time % 1000 < 5) blur = !blur;
+    if (time % 1000 < 5 && demo) blur = !blur;
     if (time % 2000 < 5) pic = 1 - pic;
 
     // Draw bitmap
@@ -74,16 +76,42 @@ void update(uint32_t time) {
     if (pressed(Button::DPAD_LEFT)  || joystick.x < -0.2) speed -= 0.005;
     if (pressed(Button::DPAD_RIGHT) || joystick.x > 0.2)  speed += 0.005;
 
-    if (abs(speed) > 0.5) speed = speed / 2;
+    if (abs(speed) > 0.1) speed = speed / 2;
     if (pressed(Button::DPAD_UP)  || joystick.y < -0.2) zoom += 0.01;
     if (pressed(Button::DPAD_DOWN) || joystick.y > 0.2) zoom -= 0.01;
 
     if (pressed(Button::A)) speed = 0;
-    if (pressed(Button::B)) blur = !blur;
+    if (pressed(Button::B)) {
+	    static uint32_t lasttime;
+	    if (now() - lasttime > 500) blur = !blur;
+	    lasttime = now();
+	    demo = false;
+    }
+    if (pressed(Button::Y)) {
+	    static uint32_t lasttime;
+	    if (now() - lasttime > 500) {
+		    pan = !pan;
+		    speed = 0;
+	    }
+	    lasttime = now();
+    }
 
+    if (pressed(Button::MENU)) {
+    	screen.text("H E L P   M E N U", minimal_font, Vec2(50, 0));
+    	screen.text("Up/down    - Zoom in/out", minimal_font, Vec2(0 , 30));
+    	screen.text("Left/Right - Rotate", minimal_font, Vec2(0 , 40));
+    	screen.text("X: Toggle resolution", minimal_font, Vec2(50 , 60));
+    	screen.text("Y: Pan mode", minimal_font, Vec2(10 , 70));
+    	screen.text("A: Stop", minimal_font, Vec2(90 , 70));
+    	screen.text("B: Blur on/off", minimal_font, Vec2(50 , 80));
+    }
     if (pressed(Button::X)) {
-	    lowres = !lowres;
-	    if (lowres) set_screen_mode(ScreenMode::lores);
-	    else set_screen_mode(ScreenMode::hires);
+	    static uint32_t lasttime;
+	    if (now() - lasttime > 500) {
+	    	lowres = !lowres;
+	    	if (lowres) set_screen_mode(ScreenMode::lores);
+	    	else set_screen_mode(ScreenMode::hires);
+	    }
+	    lasttime = now();
 	    }
 }
