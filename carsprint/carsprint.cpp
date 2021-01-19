@@ -23,8 +23,6 @@ typedef struct car {
 #define MAXCARS 4
 car cars[MAXCARS];
 
-#define PI 3.14159
-
 void set_tracklimits() {
 // polygon inside track - sandy area
 	innerarea.push_back(Vec2(50,180));
@@ -100,6 +98,7 @@ float ang_to_point ( Vec2 point, Vec2 dest ) {
 }
 
 bool point_inside_shape ( Vec2 point, shape shape ){
+// check a given point is enclosed by a polygon
 // http://erich.realtimerendering.com/ptinpoly/ for an explanation !
 
   int i, j, nvert = shape.size();
@@ -131,7 +130,7 @@ Vec2 rot;
 		    rot.x = x1 * sin(angle) + y1 * cos(angle);
 		    rot.y = y1 * sin(angle) - x1 * cos(angle);
 		    Vec2 pos = rot + screenpos;
-        	    screen.stretch_blit(sprite,Rect(src.x + x, src.y + y,1,1),Rect(pos.x, pos.y,1,1));
+        	    screen.stretch_blit(sprite,Rect(src.x + x, src.y + y,1,1),Rect(pos.x, pos.y,2,2));
 	    }
 }
 void init() {
@@ -189,9 +188,13 @@ void update(uint32_t time) {
     if (pressed(Button::A) && cars[player].speed < maxspeed ) cars[player].speed += 0.05;
 
     if (pressed(Button::X)) {
-	    lowres = !lowres;
-	    if (lowres) set_screen_mode(ScreenMode::lores);
-	    else set_screen_mode(ScreenMode::hires);
+	    static uint32_t lasttime;
+	    if (now() - lasttime > 100) {
+	        lowres = !lowres;
+	        if (lowres) set_screen_mode(ScreenMode::lores);
+	        else set_screen_mode(ScreenMode::hires);
+	    }
+	    lasttime = now();
 	    }
 
     if (pressed(Button::Y)) { vector = !vector; }
@@ -202,7 +205,7 @@ void update(uint32_t time) {
             cars[i].dir = Vec2( cos(angle), sin(angle));
             cars[i].pos += cars[i].dir * cars[i].speed;
 
-	    if (i != player) { // AI
+	    if (i != player) { // AI follows waypoints
 		    cars[i].speed = i / 2.5; 
 		    // point car at checkpoint
 		    int w = cars[i].waypt;
