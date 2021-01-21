@@ -1,0 +1,8 @@
+title: Missile Command
+description: Defend your cities from incoming missile attacks
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: no-icon.png
+version: v1.0.0
