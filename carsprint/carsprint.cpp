@@ -3,7 +3,8 @@
 
 using namespace blit;
 
-int lowres,player,vector;
+bool lowres,showpos;
+int player,offset;
 float maxspeed;
 std::string status;
 
@@ -18,6 +19,7 @@ typedef struct car {
 	float angle;
 	float speed;
 	int waypt;
+	int distance;
 } car;
 
 #define MAXCARS 4
@@ -139,6 +141,8 @@ void init() {
     backdrop = Surface::load(trackimg);
     carsprites = Surface::load(carimg);
 
+    carsprites->palette[0] = Pen(0,0,0,0); //transparent
+
     maxspeed = 2;
     set_tracklimits();
     set_waypoints();
@@ -158,7 +162,8 @@ static int lastlap,bestlap,clock;
     for (int i=0;i<MAXCARS;i++) {
 	Vec2 pos = cars[i].pos;
 	if (lowres) pos = pos / 2;
-    	blit_rotate_sprite(carsprites,Rect(8*i,0,8,16),cars[i].angle, pos);
+    	blit_rotate_sprite(carsprites,Rect(8*(i+offset),0,8,16),cars[i].angle, pos);
+    	if (showpos) screen.text(std::to_string(i), minimal_font, pos );
 	}
 
     // Draw score
@@ -178,6 +183,7 @@ static int lastlap,bestlap,clock;
 	    if (lastlap < bestlap || bestlap == 0) bestlap = lastlap;
 	    start = time;
     	    }
+    if (showpos) screen.text("Sprite offset: " + std::to_string(offset), minimal_font, Vec2(0, 10));
 }
 	
 void update(uint32_t time) {
@@ -187,18 +193,32 @@ void update(uint32_t time) {
 
     if (pressed(Button::A) && cars[player].speed < maxspeed ) cars[player].speed += 0.05;
 
+    showpos = false;
+    if (pressed(Button::MENU)) { showpos = !showpos; }
+
+
+    if (pressed(Button::Y)) { 
+	    static uint32_t lasttime;
+	    if (now() - lasttime > 100) {
+		    offset++;
+		    if (offset > 13) offset = 0;
+	        }
+	    lasttime = now();
+    }
+
     if (pressed(Button::X)) {
 	    static uint32_t lasttime;
 	    if (now() - lasttime > 100) {
 	        lowres = !lowres;
 	        if (lowres) set_screen_mode(ScreenMode::lores);
 	        else set_screen_mode(ScreenMode::hires);
-	    }
+	        }
 	    lasttime = now();
 	    }
 
-    if (pressed(Button::Y)) { vector = !vector; }
-
+    // slow car if outside track 
+    if (point_inside_shape(cars[player].pos,innerarea) || !point_inside_shape(cars[player].pos,outerarea)) 
+		    cars[player].speed = 0.2;
     // Move cars
     for (int i=0;i<MAXCARS;i++) {
 	    float angle = cars[i].angle;
@@ -217,11 +237,8 @@ void update(uint32_t time) {
 			    w++;
 			    if (w == (int) waypoints.size()) w = 1;
 			    cars[i].waypt = w;
-		    }
-	    }
-            if (point_inside_shape(cars[i].pos,innerarea) || !point_inside_shape(cars[i].pos,outerarea)) 
-		    // slow car if outside track 
-		    cars[i].speed = 0.2;
+		            }
+	    		}
 	    }
     // car gradually slows down 
     cars[player].speed *= 0.98;
