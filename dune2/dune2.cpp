@@ -1,7 +1,5 @@
 #include "32blit.hpp"
 #include "assets.hpp"
-#include "graphics/color.hpp"
-#include "types/vec2.hpp"
 
 using namespace blit;
 int x,y,fire,lowres,button_up,maps;
@@ -57,6 +55,22 @@ wavSize = wav_len;
 channels[0].trigger_attack();
 }
 
+
+void blit_rotate_sprite (Surface *sprite,Rect src, float angle, Vec2 screenpos) {
+//rotate a sprite to screen at any angle
+Vec2 rot;
+    int width = src.w;
+    int height = src.h;
+    for (int x=0;x<width;x++)
+	    for (int y=0;y<height;y++) {
+		    int x1 = x - (width / 2);
+		    int y1 = y - (height / 2);
+		    rot.x = x1 * sin(angle) + y1 * cos(angle);
+		    rot.y = y1 * sin(angle) - x1 * cos(angle);
+		    Vec2 pos = rot + screenpos;
+        	    screen.stretch_blit(sprite,Rect(src.x + x, src.y + y,1,1),Rect(pos.x, pos.y,2,2));
+	    }
+}
 void draw_cursor(Vec2 pos) {
     screen.pen = Pen(255,255,255);
     screen.line(pos + Vec2 (-5, -5), pos + Vec2 (5, 5) );
@@ -72,13 +86,12 @@ void draw_box(int x, int y, int w, int h){
 }
 
 void init() {
-    set_screen_mode(ScreenMode::lores);
+    set_screen_mode(ScreenMode::hires);
     fire = button_up = 0;
 
     channels[0].waveforms = Waveform::WAVE;
     channels[0].callback_waveBufferRefresh = &buffCallBack;  
 
-    maps = 1;
     backdrop = Surface::load(map1);
     quadsprite = Surface::load(quad);
 
@@ -94,13 +107,6 @@ static int commanding = 0;
 int selected = 0;
 int cursor = 0;
 
-    if (pressed(Button::Y)) {
-	    maps++;
-	    if (maps > 3) maps = 1;
-	    if (maps == 1) backdrop = Surface::load(map1);
-	    if (maps == 2) backdrop = Surface::load(map2);
-	    if (maps == 3) backdrop = Surface::load(map3);
-    }
     // Draw map
     screen.stretch_blit(backdrop,Rect(x+1,y,screen.bounds.w,screen.bounds.h),Rect(0,0,screen.bounds.w,screen.bounds.h));
 
@@ -117,6 +123,7 @@ int cursor = 0;
 
 	// move units to their destination, one step at a time
 	Vec2 dir = quads[i].dest - unitpos;
+	float angle = atan2(dir.y,dir.x);
 	//normalize
 	dir.x = dir.x / std::max(1,abs(dir.x));
 	dir.y = dir.y / std::max(1,abs(dir.y));
@@ -125,7 +132,7 @@ int cursor = 0;
 
         if (i == selected) size = 20;
 
-	screen.stretch_blit(quadsprite,Rect(0,0,56,52),Rect(unitpos.x - x, unitpos.y - y, size, size));
+	blit_rotate_sprite(quadsprite,Rect(0,0,16,16),angle,Vec2(unitpos.x - x, unitpos.y - y));
 	}
 
     Vec2 yard = Vec2(200,166);
