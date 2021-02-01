@@ -3,8 +3,8 @@
 
 using namespace blit;
 
-bool lowres,showpos;
-int player,offset;
+bool showpos;
+int player,offset=4;
 float maxspeed;
 std::string status;
 
@@ -20,10 +20,13 @@ typedef struct car {
 	float speed;
 	int waypt;
 	int distance;
+	int rank;
 } car;
 
 #define MAXCARS 4
 car cars[MAXCARS];
+
+Rect cone = Rect ( 0,16,16,40);
 
 void set_tracklimits() {
 // polygon inside track - sandy area
@@ -135,6 +138,7 @@ Vec2 rot;
         	    screen.stretch_blit(sprite,Rect(src.x + x, src.y + y,1,1),Rect(pos.x, pos.y,2,2));
 	    }
 }
+
 void init() {
     set_screen_mode(ScreenMode::hires);
 
@@ -147,6 +151,7 @@ void init() {
     set_tracklimits();
     set_waypoints();
 
+    // car starting positions on grid
     for (int i=0;i<MAXCARS;i++) 
     	cars[i].pos = Vec2( screen.bounds.w / 3, i * 5 + screen.bounds.h - 40 );
 }
@@ -161,9 +166,10 @@ static int lastlap,bestlap,clock;
     // Draw cars
     for (int i=0;i<MAXCARS;i++) {
 	Vec2 pos = cars[i].pos;
-	if (lowres) pos = pos / 2;
     	blit_rotate_sprite(carsprites,Rect(8*(i+offset),0,8,16),cars[i].angle, pos);
-    	if (showpos) screen.text(std::to_string(i), minimal_font, pos );
+	// show curent rank
+    	blit_rotate_sprite(carsprites,Rect(8*(i+offset),0,8,16),0, Vec2(cars[i].rank * 20,10));
+    	if (cars[player].speed < 0.2) screen.text(std::to_string(cars[i].rank), minimal_font, pos );
 	}
 
     // Draw score
@@ -183,7 +189,6 @@ static int lastlap,bestlap,clock;
 	    if (lastlap < bestlap || bestlap == 0) bestlap = lastlap;
 	    start = time;
     	    }
-    if (showpos) screen.text("Sprite offset: " + std::to_string(offset), minimal_font, Vec2(0, 10));
 }
 	
 void update(uint32_t time) {
@@ -196,7 +201,6 @@ void update(uint32_t time) {
     showpos = false;
     if (pressed(Button::MENU)) { showpos = !showpos; }
 
-
     if (pressed(Button::Y)) { 
 	    static uint32_t lasttime;
 	    if (now() - lasttime > 100) {
@@ -206,40 +210,40 @@ void update(uint32_t time) {
 	    lasttime = now();
     }
 
-    if (pressed(Button::X)) {
-	    static uint32_t lasttime;
-	    if (now() - lasttime > 100) {
-	        lowres = !lowres;
-	        if (lowres) set_screen_mode(ScreenMode::lores);
-	        else set_screen_mode(ScreenMode::hires);
-	        }
-	    lasttime = now();
-	    }
-
-    // slow car if outside track 
+    // slow car if off track 
     if (point_inside_shape(cars[player].pos,innerarea) || !point_inside_shape(cars[player].pos,outerarea)) 
 		    cars[player].speed = 0.2;
-    // Move cars
+
+    // Move all cars (including player's car)
     for (int i=0;i<MAXCARS;i++) {
 	    float angle = cars[i].angle;
             cars[i].dir = Vec2( cos(angle), sin(angle));
             cars[i].pos += cars[i].dir * cars[i].speed;
 
+	    int w = cars[i].waypt;
+	    int dist = 50;
 	    if (i != player) { // AI follows waypoints
-		    cars[i].speed = i / 2.5; 
 		    // point car at checkpoint
-		    int w = cars[i].waypt;
 		    float angle = ang_to_point( cars[i].pos, waypoints[w]);
 	            cars[i].angle = angle;
+		    cars[i].speed = 0.6 + i * 0.1;
+		    dist = 10;
+		            }
 
-		    if (near(cars[i].pos,waypoints[w],10)) {
-			    //move to next checkpoint if near current one
+	    if (near(cars[i].pos,waypoints[w],dist)) {
+			    //move target to next checkpoint if near current one
 			    w++;
 			    if (w == (int) waypoints.size()) w = 1;
 			    cars[i].waypt = w;
-		            }
-	    		}
-	    }
-    // car gradually slows down 
+			    cars[i].distance++;
+	    	    	    }
+    	   //Get car ranking by distance travelled
+	   int rank=1;
+    	   for (int j=0;j<MAXCARS;j++) {
+	    	if (cars[i].distance < cars[j].distance) rank++;
+	   }
+	   cars[i].rank = rank;
+    }
+    // player car gradually slows down 
     cars[player].speed *= 0.98;
 }
