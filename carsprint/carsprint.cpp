@@ -3,9 +3,7 @@
 
 using namespace blit;
 
-bool showpos;
 int player,offset=4;
-float maxspeed;
 std::string status;
 
 Surface *backdrop,*carsprites;
@@ -14,6 +12,7 @@ typedef std::vector<Vec2> shape;
 shape innerarea, outerarea, waypoints;
 
 typedef struct car {
+	Rect sprite;
 	Vec2 pos;
 	Vec2 dir;
 	float angle;
@@ -23,10 +22,10 @@ typedef struct car {
 	int rank;
 } car;
 
-#define MAXCARS 4
-car cars[MAXCARS];
+car cars[4];
 
 Rect cone = Rect ( 0,16,16,40);
+Vec2 FinishLine = Vec2(75,205);
 
 void set_tracklimits() {
 // polygon inside track - sandy area
@@ -147,13 +146,18 @@ void init() {
 
     carsprites->palette[0] = Pen(0,0,0,0); //transparent
 
-    maxspeed = 2;
     set_tracklimits();
     set_waypoints();
 
     // car starting positions on grid
-    for (int i=0;i<MAXCARS;i++) 
-    	cars[i].pos = Vec2( screen.bounds.w / 3, i * 5 + screen.bounds.h - 40 );
+    int spritenum = offset;
+    int speed = 0;
+    for (auto &car: cars) {
+    	car.pos = FinishLine;
+    	car.sprite = Rect(spritenum*8,0,8,16);
+	car.speed = 0.55 + ( rand() % 5) * 0.1;
+	spritenum++;
+    }
 }
 
 void render(uint32_t time) {
@@ -164,12 +168,11 @@ static int lastlap,bestlap,clock;
     screen.stretch_blit(backdrop,Rect(0,0,320,240),Rect(0,0,screen.bounds.w,screen.bounds.h));
 
     // Draw cars
-    for (int i=0;i<MAXCARS;i++) {
-	Vec2 pos = cars[i].pos;
-    	blit_rotate_sprite(carsprites,Rect(8*(i+offset),0,8,16),cars[i].angle, pos);
-	// show curent rank
-    	blit_rotate_sprite(carsprites,Rect(8*(i+offset),0,8,16),0, Vec2(cars[i].rank * 20,10));
-    	if (cars[player].speed < 0.2) screen.text(std::to_string(cars[i].rank), minimal_font, pos );
+    for (auto &car: cars){
+    	blit_rotate_sprite(carsprites,car.sprite,car.angle, car.pos);
+	// show curent rank at top of screen
+    	blit_rotate_sprite(carsprites,car.sprite,0, Vec2(car.rank * 20,10));
+    	if (cars[player].speed < 0.2) screen.text(std::to_string(car.rank), minimal_font, car.pos );
 	}
 
     // Draw score
@@ -183,7 +186,6 @@ static int lastlap,bestlap,clock;
     screen.text(status, minimal_font, Vec2(screen.bounds.w - 50, screen.bounds.h - 10));
 
     // Manage laps
-    Vec2 FinishLine = Vec2(75,205);
     if (near (cars[player].pos,FinishLine,20)) {
 	    if (clock > 50) lastlap = clock;
 	    if (lastlap < bestlap || bestlap == 0) bestlap = lastlap;
@@ -196,53 +198,41 @@ void update(uint32_t time) {
     if (pressed(Button::DPAD_LEFT)  || joystick.x < -0.2) cars[player].angle -= 0.05;
     if (pressed(Button::DPAD_RIGHT) || joystick.x > 0.2)  cars[player].angle += 0.05;
 
-    if (pressed(Button::A) && cars[player].speed < maxspeed ) cars[player].speed += 0.05;
-
-    showpos = false;
-    if (pressed(Button::MENU)) { showpos = !showpos; }
-
-    if (pressed(Button::Y)) { 
-	    static uint32_t lasttime;
-	    if (now() - lasttime > 100) {
-		    offset++;
-		    if (offset > 13) offset = 0;
-	        }
-	    lasttime = now();
-    }
+    if (pressed(Button::A) && cars[player].speed < 2 ) cars[player].speed += 0.05;
 
     // slow car if off track 
     if (point_inside_shape(cars[player].pos,innerarea) || !point_inside_shape(cars[player].pos,outerarea)) 
 		    cars[player].speed = 0.2;
 
     // Move all cars (including player's car)
-    for (int i=0;i<MAXCARS;i++) {
-	    float angle = cars[i].angle;
-            cars[i].dir = Vec2( cos(angle), sin(angle));
-            cars[i].pos += cars[i].dir * cars[i].speed;
+    bool aicar = false;
+    for (auto &car: cars){
+	    float angle = car.angle;
+            car.dir = Vec2( cos(angle), sin(angle));
+            car.pos += car.dir * car.speed;
 
-	    int w = cars[i].waypt;
 	    int dist = 50;
-	    if (i != player) { // AI follows waypoints
+	    if (aicar){
+		    // AI follows waypoints
 		    // point car at checkpoint
-		    float angle = ang_to_point( cars[i].pos, waypoints[w]);
-	            cars[i].angle = angle;
-		    cars[i].speed = 0.6 + i * 0.1;
+		    float angle = ang_to_point( car.pos, waypoints[car.waypt]);
+	            car.angle = angle;
 		    dist = 10;
-		            }
+		    }
 
-	    if (near(cars[i].pos,waypoints[w],dist)) {
+	    if (near(car.pos,waypoints[car.waypt],dist)) {
 			    //move target to next checkpoint if near current one
-			    w++;
-			    if (w == (int) waypoints.size()) w = 1;
-			    cars[i].waypt = w;
-			    cars[i].distance++;
+			    car.waypt++;
+			    if (car.waypt == (int) waypoints.size()) car.waypt = 1;
+			    car.distance++;
 	    	    	    }
     	   //Get car ranking by distance travelled
 	   int rank=1;
-    	   for (int j=0;j<MAXCARS;j++) {
-	    	if (cars[i].distance < cars[j].distance) rank++;
+    	   for (auto &othercar: cars){
+	    	if (car.distance < othercar.distance) rank++;
 	   }
-	   cars[i].rank = rank;
+	   car.rank = rank;
+	   aicar = true;
     }
     // player car gradually slows down 
     cars[player].speed *= 0.98;
