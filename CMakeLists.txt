@@ -4,6 +4,13 @@ project (32blit-games)
 set (32BLIT_PATH "~/32blit-beta" CACHE PATH "Path to 32blit.cmake")
 include (${32BLIT_PATH}/32blit.cmake)
 
+# Build configuration; approach this with caution!
+if(MSVC)
+  add_compile_options("/W4" "/wd4244" "/wd4324")
+else()
+  add_compile_options("-Wall" "-Wextra" "-Wdouble-promotion")
+endif()
+
 add_subdirectory (3dcube)
 add_subdirectory (bitmapstuff)
 add_subdirectory (carsprint)
