@@ -24,12 +24,12 @@ static uint16_t wavSampleRate = 11025;
 static const uint8_t *wavSample;
 
 // Called everytime audio buffer ends
-void buffCallBack(void *) {
+void buffCallBack(AudioChannel &channel) {
 
   // Copy 64 bytes to the channel audio buffer
   for (int x = 0; x < 64; x++) {
     // Note: The sample used here has an offset, so we adjust by 0x7f. 
-    channels[0].wave_buffer[x] = (wavPos < wavSize) ? wavSample[wavPos] - 0x7f : 0;
+    channel.wave_buffer[x] = (wav_pos < wav_size) ? (wav_sample[wav_pos] << 8) - 0x7f00 : 0;
 
     // As the engine is 22050Hz, we can timestretch to match 
     if (wavSampleRate == 11025) {
@@ -40,7 +40,7 @@ void buffCallBack(void *) {
   }
   
   if (wavPos >= wavSize) {
-    channels[0].off();        // Stop playback of this channel.
+    channel.off();        // Stop playback of this channel.
      //Clear buffer
     wavSample = nullptr;
     wavSize = 0;
@@ -90,7 +90,7 @@ void init() {
     fire = button_up = 0;
 
     channels[0].waveforms = Waveform::WAVE;
-    channels[0].callback_waveBufferRefresh = &buffCallBack;  
+    channels[0].wave_buffer_callback = &buffCallBack;  
 
     backdrop = Surface::load(map1);
     quadsprite = Surface::load(quad);
