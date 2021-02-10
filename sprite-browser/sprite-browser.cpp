@@ -3,28 +3,28 @@
 
 using namespace blit;
 
-int x,y,index;
+int x,y,sindex;
 Vec2 size;
 
-SpriteSheet *sheets[7];
+Surface *sheets[7];
 std::string names[] = {"dingbads","pirate_characters","pirate_tilemap","platformer","space_shooter_backdrop","space_shooter_ships","top_down_shooter"};
 
 void init() {
   set_screen_mode(ScreenMode::hires);
 
-  sheets[0] = SpriteSheet::load(dingbads);
-  sheets[1] = SpriteSheet::load(pirate_characters);
-  sheets[2] = SpriteSheet::load(pirate_tilemap);
-  sheets[3] = SpriteSheet::load(platformer);
-  sheets[4] = SpriteSheet::load(space_shooter_backdrop);
-  sheets[5] = SpriteSheet::load(space_shooter_ships);
-  sheets[6] = SpriteSheet::load(top_down_shooter);
+  sheets[0] = Surface::load(dingbads);
+  sheets[1] = Surface::load(pirate_characters);
+  sheets[2] = Surface::load(pirate_tilemap);
+  sheets[3] = Surface::load(platformer);
+  sheets[4] = Surface::load(space_shooter_backdrop);
+  sheets[5] = Surface::load(space_shooter_ships);
+  sheets[6] = Surface::load(top_down_shooter);
 
   x = 0;
   y = 0;
-  index = 0;
+  sindex = 0;
   size = Vec2(1,1);
-  screen.sprites = sheets[index];
+  screen.sprites = sheets[sindex];
 }
 
 void render(uint32_t time_ms) {
@@ -49,7 +49,7 @@ void render(uint32_t time_ms) {
 
   // spritesheet name
   screen.pen = Pen(255, 255, 255);
-  text = "Spritesheet: " + names[index];
+  text = "Spritesheet: " + names[sindex];
   screen.text(text, minimal_font, Point(8, 16));
 
   // Draw full spritesheet
@@ -100,16 +100,16 @@ if (now() - last_time > 200) {
 
 	// change spritesheet to previous one
 	if (pressed(Button::Y)) {
-		index--;
-		if (index < 0) index = 6;
-  		screen.sprites = sheets[index];
+		sindex--;
+		if (sindex < 0) sindex = 6;
+  		screen.sprites = sheets[sindex];
 		}
 
 	// change spritesheet to next one
 	if (pressed(Button::A)) {
-		index++;
-		if (index > 6) index = 0;
-  		screen.sprites = sheets[index];
+		sindex++;
+		if (sindex > 6) sindex = 0;
+  		screen.sprites = sheets[sindex];
 		}
 	// change sprite size up - 1x1 1x2 2x2
 	if (pressed(Button::X)) {
