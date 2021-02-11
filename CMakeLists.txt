@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.9)
 project (32blit-games)
 
+
+# Build configuration; approach this with caution!
+if(MSVC)
+  add_compile_options("/W4" "/wd4244" "/wd4324")
+else()
+  add_compile_options("-Wall" "-Wextra" "-Wdouble-promotion")
+endif()
+find_package (32BLIT CONFIG REQUIRED PATHS ../32blit-sdk)
+
 add_subdirectory (3dcube)
 add_subdirectory (bitmapstuff)
 add_subdirectory (carsprint)
@@ -13,15 +22,6 @@ add_subdirectory (sprite-browser)
 add_subdirectory (starfield)
 add_subdirectory (vector3d)
 add_subdirectory (xmas)
-
-
-# Build configuration; approach this with caution!
-if(MSVC)
-  add_compile_options("/W4" "/wd4244" "/wd4324")
-else()
-  add_compile_options("-Wall" "-Wextra" "-Wdouble-promotion")
-endif()
-find_package (32BLIT CONFIG REQUIRED PATHS ../32blit-sdk)
 
 # setup release packages
 install (FILES ${PROJECT_DISTRIBS} DESTINATION .)
