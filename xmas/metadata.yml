@@ -1,9 +1,9 @@
 title: xmas
-description: Falling snowflakes
+description: Falling snowflakes, parallax & accelerometer
 author: mikered
 splash:
   file: splash.png
 icon:
   file: no-icon.png
-version: v1.0.0
+version: v1.0.1
 category: demo
