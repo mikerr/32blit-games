@@ -1,0 +1,7 @@
+assets.hpp:
+  dots.png:
+    name: tilepic
+  hello_world.png:
+    name: depthpic
+  fullscreen.png:
+    name: fullscreenpic

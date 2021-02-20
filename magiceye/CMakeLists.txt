@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.1)
+project (magiceye)
+set (32BLIT_PATH "~/32blit-beta" CACHE PATH "Path to 32blit.cmake")
+include (${32BLIT_PATH}/32blit.cmake)
+blit_executable (magiceye magiceye.cpp)
+blit_assets_yaml (magiceye assets.yml)
+blit_metadata (magiceye metadata.yml)
