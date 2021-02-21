@@ -1,7 +1,8 @@
 # 32blit-games
 Code and games for the 32blit console  !(https://github.com/pimoroni/32blit-beta)
 
-Each game/project is targeted to be under 200 lines of readable code.
+Each game/project is targeted to be "under 200 lines of readable code"
+(I'll spin off each game into its own repository they get larger)
 
 ![](https://raw.githubusercontent.com/mikerr/32blit-games/master/3dcube/splash.png)
 3dcube - 3d vector cube 
