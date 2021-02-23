@@ -1,0 +1,10 @@
+title: Tilemap Stuff
+description: A showcase of Tilemap Stuff 
+author: mikerr
+splash:
+  file: no-image.png
+icon:
+  file: no-icon.png
+version: v1.0.0
+url: https://github.com/pimoroni/32blit-beta
+category: demo
