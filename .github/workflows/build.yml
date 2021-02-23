@@ -36,12 +36,8 @@ jobs:
             cmake-args: -DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/32blit/32blit.toolchain
             apt-packages: gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib python3-setuptools
             
-          - os: ubuntu-20.04
-            name: Emscripten
-            release-suffix: WEB
-            cmake-args: -D32BLIT_DIR=$GITHUB_WORKSPACE/32blit
-            cmake-prefix: emcmake
-            apt-packages: python3-setuptools
+       
+         
 
           - os: macos-latest
             name: macOS
