@@ -1,7 +1,4 @@
 #include "32blit.hpp"
-#include "types/vec3.hpp"
-#include "types/vec2.hpp"
-#include "graphics/color.hpp"
 
 using namespace blit;
 
@@ -93,7 +90,9 @@ void init() {
     cube.points.push_back(Vec3(10,10,10));
     cube.points.push_back(Vec3(10,10,-10));
     cube.points.push_back(Vec3(10,-10,-10));
-    
+    cube.points.push_back(Vec3(10,-10,10));
+    cube.points.push_back(Vec3(-10,-10,10));
+
     low_res = 0;
     spin = 0.02;
     zoom = 3;
@@ -111,8 +110,14 @@ void render(uint32_t time) {
 
     Vec2 edge = center * 2;
     int cubesize = zoom * 10;
-    if ((pos.x < cubesize ) || (pos.x > edge.x - cubesize )) { dir.x = -dir.x; spin = spin; }
-    if ((pos.y < cubesize ) || (pos.y > edge.y - cubesize )) { dir.y = -dir.y; spin = spin; }
+    if ((pos.x < cubesize ) || (pos.x > edge.x - cubesize )) { 
+	    dir.x = -dir.x; 
+	    spin = spin; 
+    }
+    if ((pos.y < cubesize ) || (pos.y > edge.y - cubesize )) { 
+	    dir.y = -dir.y; 
+	    spin = spin; 
+    }
 
     pos = pos + dir;
     draw_shape (cube, pos, zoom);
