@@ -29,7 +29,7 @@ void buffCallBack(AudioChannel &channel) {
   // Copy 64 bytes to the channel audio buffer
   for (int x = 0; x < 64; x++) {
     // Note: The sample used here has an offset, so we adjust by 0x7f. 
-    channel.wave_buffer[x] = (wavPos < wavSize) ? (wavSample[wavPos] << 8) - 0x7f00 : 0;
+    channel.wave_buffer[x] = (wavPos < wavSize) ? wavSample[wavPos]  - 0x7f : 0;
 
     // As the engine is 22050Hz, we can timestretch to match 
     if (wavSampleRate == 11025) {

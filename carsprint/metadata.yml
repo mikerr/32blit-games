@@ -4,6 +4,6 @@ author: mikered
 splash:
   file: splash.png
 icon:
-  file: no-icon.png
-version: v1.0.3
+  file: car-icon.png
+version: v1.0.4
 category: game
