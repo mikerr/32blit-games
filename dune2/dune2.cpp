@@ -29,7 +29,7 @@ void buffCallBack(AudioChannel &channel) {
   // Copy 64 bytes to the channel audio buffer
   for (int x = 0; x < 64; x++) {
     // Note: The sample used here has an offset, so we adjust by 0x7f. 
-    channel.wave_buffer[x] = (wavPos < wavSize) ? wavSample[wavPos]  - 0x7f : 0;
+    channel.wave_buffer[x] = (wavPos < wavSize) ? (wavSample[wavPos]  - 0x7f) << 8 : 0;
 
     // As the engine is 22050Hz, we can timestretch to match 
     if (wavSampleRate == 11025) {
@@ -108,7 +108,7 @@ int selected = 0;
 int cursor = 0;
 
     // Draw map
-    screen.stretch_blit(backdrop,Rect(x+1,y,screen.bounds.w,screen.bounds.h),Rect(0,0,screen.bounds.w,screen.bounds.h));
+    screen.stretch_blit(backdrop,Rect(x,y,screen.bounds.w,screen.bounds.h),Rect(0,0,screen.bounds.w,screen.bounds.h));
 
     // Draw quads
     for (int i=1;i<10;i++) {
@@ -168,6 +168,10 @@ int cursor = 0;
     screen.pen = Pen(255,255,255);
     Vec2 screenbottom = Vec2(0,screen.bounds.h - 10);
     screen.text(status, minimal_font, screenbottom);
+
+    // Draw mini map
+    if (pressed(Button::MENU)) 
+	    screen.stretch_blit(backdrop,Rect(1,0,MAPSIZE,MAPSIZE),Rect(screen.bounds.w-100,screen.bounds.h-100,100,100));
 }
 
 void update(uint32_t time) {
