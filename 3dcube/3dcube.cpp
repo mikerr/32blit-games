@@ -19,24 +19,24 @@ Surface *texture;
 int zbuffer[320][240];
 
 Vec3 rotate3d (Vec3 point3d,Vec3 rot) {
-static Vec2 point;
+static Point point;
 
     // rotate 3d point about X
-    point = Vec2(point3d.y,point3d.z);
+    point = Point(point3d.y,point3d.z);
     point *= Mat3::rotation(rot.x);
 
     point3d.y = point.x;
     point3d.z = point.y;
 
     // rotate 3d point about Y
-    point = Vec2(point3d.z,point3d.x);
+    point = Point(point3d.z,point3d.x);
     point *= Mat3::rotation(rot.y);
 
     point3d.z = point.x;
     point3d.x = point.y;
 
     // rotate 3d point about Z
-    point = Vec2(point3d.x,point3d.y);
+    point = Point(point3d.x,point3d.y);
     point *= Mat3::rotation(rot.z);
 
     point3d.x = point.x;
@@ -46,8 +46,8 @@ static Vec2 point;
 }
 
 
-Vec2 to2d (Vec3 point3d) {
-    Vec2 point;
+Point to2d (Vec3 point3d) {
+    Point point;
 
     // project to screen
     int z = point3d.z - 500;
@@ -61,11 +61,11 @@ void draw_shape(shape shape,Vec2 pos,float size){
     Vec3 p0 = shape.points[0];
     p0 = rotate3d(p0,rot);
 
-    Vec2 lastpos = to2d(p0) * size;
+    Point lastpos = to2d(p0) * size;
 
     for (auto &p: shape.points) {
         p = rotate3d(p,rot);
-        Vec2 point = to2d(p) * size;
+        Point point = to2d(p) * size;
         screen.line(lastpos + pos , point + pos);
         lastpos = point;
     }
@@ -82,12 +82,14 @@ bool check_zbuffer(Point point,int z) {
 
    return (true);
 }
+
 void texmap (Vec3 p, int x, int y){
            p = rotate3d(p,rot);
-           Vec2 point = to2d(p) + pos;
+           Point point = to2d(p) + pos;
 	   if (check_zbuffer(point,p.z))
            	screen.blit(texture,Rect(x,y,1,1),point);
 }
+
 void draw_texture(shape shape,Vec2 pos,float size){
     for (int x=0;x < 64; x++)
         for (int y=0;y < 64; y++) {
@@ -184,6 +186,7 @@ void render(uint32_t time) {
 
     rot += Vec3(spin,spin,0);
 
+    // clear zbuffer
     for (int i = 0;i < 320; i++) 
 	    for (int j =0;j<240;j++)
 		    zbuffer[i][j] = 0;
@@ -192,7 +195,7 @@ void render(uint32_t time) {
     uint32_t ms_end = now();
     uint32_t ms = ms_end - ms_start;
     std::string status = std::to_string(1000 / ms) + " fps    " + std::to_string(ms) + " ms";
-    screen.text(status, minimal_font, Vec2(0, screen.bounds.h - 10));
+    screen.text(status, minimal_font, Point(0, screen.bounds.h - 10));
 }
 
 void update(uint32_t time) {
