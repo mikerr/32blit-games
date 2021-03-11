@@ -236,8 +236,10 @@ void render(uint32_t time) {
      // draw FPS meter
     uint32_t ms_end = now();
     uint32_t ms = ms_end - ms_start;
-    std::string status = std::to_string(1000 / (ms>0 ? ms: 1)) + " fps    " + std::to_string(ms) + " ms";
     screen.pen = white;
+    screen.text("Y: change wireframe / filled", minimal_font, Point(0, 0));
+    screen.text("B: change texture", minimal_font, Point(160, 0));
+    std::string status = std::to_string(1000 / (ms>0 ? ms: 1)) + " fps    " + std::to_string(ms) + " ms";
     screen.text(status, minimal_font, Point(0, screen.bounds.h - 10));
 }
 
