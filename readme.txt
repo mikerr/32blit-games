@@ -6,7 +6,7 @@ PC build:
 ---------
 
 cd build
-cmake .. -D32BLITPATH="~/32blit-beta/"
+cmake .. -D32BLIT_DIR="~/32blit-beta/"
 make
 
 
@@ -14,5 +14,5 @@ make
 -------------
 
 cd build.stm32
-cmake .. -D32BLITPATH="~/32blit-beta/" -DCMAKE_TOOLCHAIN_FILE="~/32blit-beta/32blit.toolchain"
+cmake .. -D32BLIT_DIR="~/32blit-beta/" -DCMAKE_TOOLCHAIN_FILE="~/32blit-beta/32blit.toolchain"
 make 
