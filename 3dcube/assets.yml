@@ -1,3 +1,7 @@
 assets.hpp:
   crate.png:
     name: crateimg
+  stones.png:
+    name: stonesimg
+  bricks.png:
+    name: bricksimg

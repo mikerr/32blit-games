@@ -10,12 +10,12 @@ typedef struct shape {
 
 shape cube,texcube;
 
-int low_res, wireframe;
+int low_res, filled = 2,tex;
 float zoom,spin;
 Vec2 joypos,pos,dir,center;
 Vec3 rot;
 
-Surface *texture;
+Surface *texture[3];
 
 Pen colours[] = {
 	Pen(255,0,0),
@@ -73,6 +73,51 @@ Vec2 to2d (Vec3 point3d) {
     return (point);
     }
 
+void texline ( Point p1,Point p2,int y) {
+    int32_t dx = int32_t(abs(p2.x - p1.x));
+    int32_t dy = -int32_t(abs(p2.y - p1.y));
+
+    int32_t sx = (p1.x < p2.x) ? 1 : -1;
+    int32_t sy = (p1.y < p2.y) ? 1 : -1;
+
+    int32_t err = dx + dy;
+
+    Point p(p1);
+    int i=0;
+    while (true) {
+      if (i > 64) i = 0;   
+      screen.blit(texture[tex],Rect(i++,y,1,1),p);
+
+      if ((p.x == p2.x) && (p.y == p2.y)) break;
+
+      int32_t e2 = err * 2;
+      if (e2 >= dy) { err += dy; p.x += sx; }
+      if (e2 <= dx) { err += dx; p.y += sy; }
+    }
+}
+void textri ( Point p1,Point p2,Point p3) {
+    int32_t dx = int32_t(abs(p2.x - p1.x));
+    int32_t dy = -int32_t(abs(p2.y - p1.y));
+
+    int32_t sx = (p1.x < p2.x) ? 1 : -1;
+    int32_t sy = (p1.y < p2.y) ? 1 : -1;
+
+    int32_t err = dx + dy;
+
+    Point p(p1);
+    int i=0;
+    while (true) {
+      texline(p,p3,i++);
+      if (i > 64) i = 0;   
+
+      if ((p.x == p2.x) && (p.y == p2.y)) break;
+
+      int32_t e2 = err * 2;
+      if (e2 >= dy) { err += dy; p.x += sx; }
+      if (e2 <= dx) { err += dx; p.y += sy; }
+    }
+}
+
 void draw_shape(shape shape,Vec2 pos,float size){
     int i=0;
     for (auto &face: shape.faces) {
@@ -98,18 +143,24 @@ void draw_shape(shape shape,Vec2 pos,float size){
             Point t2 = pos + to2d(p2) * size;
             Point t3 = pos + to2d(p3) * size;
 
-	    if (!wireframe) {
-	       // filled
-               screen.pen = colours[i++];
-               screen.triangle(t1,t2,t3);
-	       } else {
+	    if (filled == 0) {
 	       // vector
                screen.pen = white;
                screen.line(t1,t2);
                screen.line(t2,t3);
                screen.line(t3,t1);
+	       } 
+	    if (filled == 1) {
+	       // filled
+               screen.pen = colours[i++];
+               screen.triangle(t1,t2,t3);
 	       }
-	}
+	    if (filled == 2) {
+	       // textured
+               screen.pen = {255,0,0};
+	       textri(t1,t2,t3);
+	       }
+	    }
     }
 }
 
@@ -152,7 +203,10 @@ void init() {
     pos = center;
     dir = Vec2 (1,1);
 
-    texture = Surface::load(crateimg);
+    texture[tex++] = Surface::load(bricksimg);
+    texture[tex++] = Surface::load(stonesimg);
+    texture[tex++] = Surface::load(crateimg);
+    tex = 0;
 }
 
 void render(uint32_t time) {
@@ -175,15 +229,15 @@ void render(uint32_t time) {
     }
 
     pos = pos + dir;
+    rot += Vec3(spin,spin,0);
 
     draw_shape (cube, pos, 5);
-
-    rot += Vec3(spin,spin,0);
 
      // draw FPS meter
     uint32_t ms_end = now();
     uint32_t ms = ms_end - ms_start;
     std::string status = std::to_string(1000 / (ms>0 ? ms: 1)) + " fps    " + std::to_string(ms) + " ms";
+    screen.pen = white;
     screen.text(status, minimal_font, Point(0, screen.bounds.h - 10));
 }
 
@@ -204,5 +258,6 @@ void update(uint32_t time) {
         center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
         pos = center;
         }
-    if (pressed(Button::Y))  { wireframe = 1 - wireframe; }
+    if (pressed(Button::Y))  { filled++; if (filled > 2) filled = 0;}
+    if (pressed(Button::B))  { tex++; if (tex > 2) tex = 0;}
 }
