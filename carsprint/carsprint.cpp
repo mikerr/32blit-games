@@ -178,6 +178,12 @@ static int lastlap,bestlap,clock;
     // Draw score
     screen.pen = Pen(255,255,255);
     clock = (time - start) / 100;
+    status = "1st 2nd 3rd 4th";
+    screen.text(status, minimal_font, Vec2(13,0));
+    status = "Position: " + std::to_string(cars[0].rank);
+    screen.text(status, minimal_font, Vec2(screen.bounds.w-60,0));
+    status = "Lap : 1 / 3";
+    screen.text(status, minimal_font, Vec2(screen.bounds.w-60,10));
     status = "Lap time: " + std::to_string(clock);
     screen.text(status, minimal_font, Vec2(0, screen.bounds.h - 10));
     status = "Last: " + std::to_string(lastlap);
