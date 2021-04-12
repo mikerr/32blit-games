@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.1)
+project (willy)
+set (32BLIT_PATH "~/32blit-beta" CACHE PATH "Path to 32blit.cmake")
+include (${32BLIT_PATH}/32blit.cmake)
+blit_executable (willy willy.cpp)
+blit_assets_yaml(willy assets.yml)
+blit_metadata(willy metadata.yml)

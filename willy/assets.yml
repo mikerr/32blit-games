@@ -1,0 +1,9 @@
+assets.hpp:
+  level.png:
+    name: level
+  sprites.png:
+    name: spritesheet
+  manicminer_tiles.png:
+    name: tiles
+  manic_pickups.png:
+    name: pickups

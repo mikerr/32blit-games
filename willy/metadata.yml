@@ -1,0 +1,9 @@
+title: Miner Willy
+description: Welcome back Miner Willy of manic miner / jetset willy fame
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: icon.png
+version: v1.0.0
+category: game
