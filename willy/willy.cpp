@@ -1,6 +1,8 @@
 #include "32blit.hpp"
 #include "assets.hpp"
 
+#include "audio/mp3-stream.hpp"
+
 using namespace blit;
 
 #define LEFT 0
@@ -8,10 +10,11 @@ using namespace blit;
 #define RND(a) (rand() % a )
 
 Surface *backdrop,*tileblocks,*characters,*keys;
+MP3Stream stream;
 
 int dir,grounded,jumping,o2;
 
-Point player;
+Vec2 player;
 
 Vec2 speed;
 Vec2 playerstart = Vec2(40,150);
@@ -25,6 +28,7 @@ Rect monster = Rect(128,0,12,16);
 // platform format: start.x start.y endpoint.x
 Vec3 platforms[] = { Vec3(39,160,280), Vec3(70,145,190), Vec3(190,135,280), Vec3(260,120,280), Vec3(95,112,255), Vec3(39,110,70), Vec3(39,95,70), Vec3(39,80,280), Vec3(165,103,190) 
 }; 
+Vec3 conveyor = Vec3(95,112,255);
 
 Vec2 gems[]= { Vec2(102,40),Vec2(157,50),Vec2(260,40),Vec2(270,90),Vec2(225,70)};
 bool collectedgems[5];
@@ -78,6 +82,12 @@ void init() {
   keys = Surface::load(pickups);
   screen.sprites = keys;
 
+  File::add_buffer_file("music.mp3", music, music_length);
+  stream.load("music.mp3", false);
+
+  // Any channel can be used here, the others are free for other sounds.
+  stream.play(0);
+
   player = playerstart;
 }
 
@@ -100,7 +110,7 @@ static float o2 = 200;
   // air supply bar
   screen.pen = white;
   screen.line(Vec2(60,180),Vec2(60+o2,180));
-  o2 = o2 - 0.01;
+  o2 = o2 - 0.05;
   if (o2 < 0) {
 	  player = playerstart;
 	  lives--;
@@ -111,7 +121,8 @@ static float o2 = 200;
   //	 screen.line(Vec2(plat.x,plat.y), Vec2(plat.z,plat.y));
 
   // Willy !
-  int animframe = 3-((player.x >> 1)&3);
+
+  int animframe = 3-(((int)player.x >> 1)&3);
   costume = willywalk [animframe]; 
   colorsprites(characters,white);
   if (dir == RIGHT) screen.blit(characters,costume,player);
@@ -182,8 +193,6 @@ Vec2 move = joystick;
  else 
  	speed.y = 1; // gravity
 
- // slow down player movement
- if (time % 3 > 0) player += speed;
 
  // stay on screen
  if (player.x > 265) player.x = 265;
@@ -194,4 +203,14 @@ Vec2 move = joystick;
  // fall onto platforms
  for (Vec3 plat : platforms) 
 	playerhitplatform(plat,false);
+ //special platforms
+ 
+ Vec3 platform = conveyor;
+ if ((player.x > platform.x) && (player.x < platform.z)) {
+	 if (grounded && abs(platform.y - 16 - player.y) < 5) speed.x = -0.5;
+ }
+ // slow down player movement
+ if (time % 3 > 0) player += speed;
+
+ stream.update();
 }

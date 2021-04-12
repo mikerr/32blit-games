@@ -7,3 +7,6 @@ assets.hpp:
     name: tiles
   manic_pickups.png:
     name: pickups
+  mm_music.mp3:
+    name: music
+    type: raw/binary
