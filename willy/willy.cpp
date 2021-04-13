@@ -5,22 +5,21 @@
 
 using namespace blit;
 
-#define LEFT 0
 #define RIGHT 1
+#define LEFT -1
+#define UP -1
+#define DOWN 1
 #define RND(a) (rand() % a )
 
 Surface *backdrop,*tileblocks,*characters,*keys;
 MP3Stream stream;
 
-int dir,grounded,jumping,o2;
+bool grounded,jumping; // grounded, jumping or falling
+int lives = 5;
 
-Vec2 player;
-
-Vec2 speed;
-Vec2 playerstart = Vec2(40,150);
-
-Vec2  monsterpos = Vec2(155,95);
-int monsterdir = 1;
+Vec2 player,speed;
+Vec2 playerstart = Vec2(40,120);
+Point monsterpos = Point(155,95);
 //costumes
 Rect willywalk [] = { Rect(0,0,8,16), Rect(18,0,8,16), Rect(36,0,8,16), Rect(52,0,11,16) };
 Rect monster = Rect(128,0,12,16);
@@ -30,10 +29,9 @@ Vec3 platforms[] = { Vec3(39,160,280), Vec3(70,145,190), Vec3(190,135,280), Vec3
 }; 
 Vec3 conveyor = Vec3(95,112,255);
 
-Vec2 gems[]= { Vec2(102,40),Vec2(157,50),Vec2(260,40),Vec2(270,90),Vec2(225,70)};
+Point spikes[]= { Point(120,40), Point(160,40), Point(215,65), Point(250,65), Point(200,100), Point(130,130)};
+Point gempos[]= { Point(102,40), Point(157,50), Point(260,40), Point(270,90), Point(225,70)};
 bool collectedgems[5];
-
-Vec2 spikes[]= { Vec2(120,45),Vec2(160,45), Vec2(215,65), Vec2(255,65), Vec2(200,100), Vec2(130,130)};
 
 // ZX spectrum colors
 Pen black = Pen(0,0,0);
@@ -46,6 +44,8 @@ Pen yellow = Pen(255,255,0);
 Pen white = Pen(255,255,255);
 Pen colors[] = { black, blue, red, magenta, green, cyan, yellow, white };
 
+void colorsprites(Surface *sprites,Pen color) { sprites->palette[1] = color; } 
+
 int collide (Point a, Point b) {
    if (abs(a.x - b.x) < 8  && abs(a.y - b.y) < 8 ) return 1;
    return 0;
@@ -56,13 +56,12 @@ void playerhitplatform (Vec3 platform, bool solid){
     int ypos = platform.y - 16;
 
     // if hitting underside, bounce down
-    if (solid) {
-    	if ((speed.y < 0) && (abs(player.y - ypos)) < 5) { 
-	jumping = 0;}
-    }
+    if (solid && (speed.y == UP) && abs(player.y - ypos) < 5) 
+		jumping = 0;
+    
 
     // if on top, land
-    if ((speed.y > 0) && abs(ypos - player.y) < 2) { 
+    if ((speed.y == DOWN) && abs(ypos - player.y) < 2) { 
 	player.y = ypos; 
 	speed.y = 0;
         grounded = 1;
@@ -71,7 +70,11 @@ void playerhitplatform (Vec3 platform, bool solid){
   }
 }
 
-void colorsprites(Surface *sprites,Pen color) { sprites->palette[1] = color; } 
+void player_die(){
+ lives--;
+ jumping = 0;
+ player = playerstart;
+}
 
 void init() {
   set_screen_mode(ScreenMode::hires);
@@ -84,133 +87,120 @@ void init() {
 
   File::add_buffer_file("music.mp3", music, music_length);
   stream.load("music.mp3", false);
-
-  // Any channel can be used here, the others are free for other sounds.
   stream.play(0);
 
   player = playerstart;
 }
 
 void render(uint32_t time) {
-static int lives = 3;
-static int dance;
+static int score,dir,monsterdir = 1;
+static int framecount;
 static float o2 = 200;
-  Rect costume;
+Rect costume;
+
+  framecount++;
 
   screen.pen = black;
   screen.clear();
-
   // copy background
   Rect backdropsize = Rect (0,0,backdrop->bounds.w,backdrop->bounds.h);
-  screen.blit(backdrop,backdropsize,Vec2(30,40));
+  screen.blit(backdrop,backdropsize,Point(30,40));
 
   screen.pen = yellow;
-  screen.line(Vec2(30,39),Vec2(285,39));
+  screen.line(Point(30,39),Point(285,39));
+  screen.text("00000" + std::to_string(score),minimal_font,Point(120,193));
+  screen.text("00000" + std::to_string(score),minimal_font,Point(240,193));
 
   // air supply bar
   screen.pen = white;
-  screen.line(Vec2(60,180),Vec2(60+o2,180));
+  screen.line(Point(60,180),Point(60+o2,180));
   o2 = o2 - 0.05;
   if (o2 < 0) {
-	  player = playerstart;
-	  lives--;
 	  o2 = 200;
+	  player_die();
+	  for (auto& collected : collectedgems)
+		  collected = false;
+	  score = 0;
   }
 
   //for (Vec3 plat : platforms) 
   //	 screen.line(Vec2(plat.x,plat.y), Vec2(plat.z,plat.y));
 
   // Willy !
-
   int animframe = 3-(((int)player.x >> 1)&3);
   costume = willywalk [animframe]; 
   colorsprites(characters,white);
-  if (dir == RIGHT) screen.blit(characters,costume,player);
-  else screen.blit(characters,costume,player,SpriteTransform::HORIZONTAL);
+  if (speed.x != 0) dir = speed.x < 0;
+  screen.blit(characters,costume,player,dir);
  
   // Monster
-  if ( dance % 2) monsterpos.x += monsterdir;
-  if (monsterpos.x > 155) monsterdir = -1;
-  if (monsterpos.x < 90) monsterdir = 1;
+  if (framecount % 2) monsterpos.x += monsterdir;
+  if (monsterpos.x > 155) monsterdir = LEFT;
+  if (monsterpos.x < 90)  monsterdir = RIGHT;
   costume = monster;
-  costume.x +=  18 * ((dance / 6 ) % 3);
-  if (monsterdir == RIGHT) screen.blit(characters,costume,monsterpos);
-  else screen.blit(characters,costume,monsterpos,SpriteTransform::HORIZONTAL);
+  costume.x +=  18 * ((framecount / 6 ) % 3);
+  bool flip = monsterdir < 0;
+  screen.blit(characters,costume,monsterpos,flip);
 
-  if (collide(player,monsterpos) || collide(player,monsterpos + Vec2(0,16))) {
-	  	player = playerstart;
-	        lives--;
-	        jumping = 0;
-  }
+  if (collide(player,monsterpos) || collide(player,monsterpos + Point(0,8))) 
+	  player_die();
+
   // Gems
-  for (int i=0; i<5;i++) {
-               Vec2 gempos = gems[i];
-	       colorsprites(keys,colors[RND(6)]); // sparkle 
-	       if (collide(player,gempos)) 
-		       collectedgems[i] = true;
-	       if (!collectedgems[i])
-		       screen.sprite(Rect(0,0,1,1),gempos);
+  for (int i=0;i<5;i++) {
+	       if (!collectedgems[i]) {
+  	       	       colorsprites(keys,colors[RND(6)]); // sparkle 
+		       screen.sprite(Rect(0,0,1,1),gempos[i]);
+	       		if (collide(player,gempos[i])) {
+		       		collectedgems[i] = true;
+		       		score += 100;
+			}
+	       }
 	}
   // Spikes
-  for (auto spike : spikes) {
-  	if (collide(player,spike)) {
-	  	player = playerstart;
-	        lives--;
-	        jumping = 0;
-	}
-  }
+  for (auto spike : spikes)  
+  	if (collide(player,spike)) 
+	  	player_die();
+  
   // Dancing willies !
-  dance++;
-  costume = willywalk [(dance / 30 )% 4]; 
+  costume = willywalk [(framecount / 30 )% 4]; 
   colorsprites(characters,blue);
-  for (int i=0;i<lives;i++)
-	  screen.blit(characters,costume,Vec2(35+ i*16,205));
+  for (int i=0; i<lives; i++)
+	  screen.blit(characters,costume,Point(35 + i*16,205));
 }
 
 void update(uint32_t time) {
 static int jumpheight = 0;
 
-Vec2 move = joystick;
  if (grounded == 1) speed.x = 0;
- if (pressed(Button::DPAD_LEFT) || move.x < 0) {
-	speed.x = -1;
-	dir = LEFT;
- }
- if (pressed(Button::DPAD_RIGHT) || move.x > 0) {
-	speed.x = 1;
-	dir = RIGHT;
- }
+ if (pressed(Button::DPAD_LEFT)  || joystick.x < 0) speed.x = LEFT;
+ if (pressed(Button::DPAD_RIGHT) || joystick.x > 0) speed.x = RIGHT;
 
  if ((pressed(Button::DPAD_UP) || pressed(Button::A)) && grounded) {
 	grounded = 0;
 	jumping = 1;
 	jumpheight = player.y - 20;
  }
- if (jumping && player.y < jumpheight) jumping = 0;
+ if (jumping && player.y < jumpheight) jumping = 0; // reached top of jump
  if (grounded == 1) jumping = 0;
- if (jumping && !grounded) 
-	speed.y = -1;
- else 
- 	speed.y = 1; // gravity
 
+ if (jumping && !grounded) speed.y = UP;
+ else speed.y = DOWN; // gravity
 
  // stay on screen
  if (player.x > 265) player.x = 265;
  if (player.x < 40 ) player.x = 40;
- if (player.y > 145 ) player.y = 145;
- if (player.y < 0 ) player.y = 0;
 
  // fall onto platforms
  for (Vec3 plat : platforms) 
 	playerhitplatform(plat,false);
- //special platforms
  
+ //special platforms
  Vec3 platform = conveyor;
  if ((player.x > platform.x) && (player.x < platform.z)) {
-	 if (grounded && abs(platform.y - 16 - player.y) < 5) speed.x = -0.5;
+	 if (grounded && abs(platform.y - 16 - player.y) < 5) speed.x = LEFT;
  }
  // slow down player movement
  if (time % 3 > 0) player += speed;
-
+ //play music
  stream.update();
 }
