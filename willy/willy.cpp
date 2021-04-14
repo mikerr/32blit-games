@@ -11,21 +11,25 @@ using namespace blit;
 #define DOWN 1
 #define RND(a) (rand() % a )
 
-Surface *backdrop,*tileblocks,*characters,*keys;
+Surface *backdrop,*tileblocks,*pythonboot,*characters,*keys;
+Surface *levels[2];
 MP3Stream stream;
 
 bool grounded,jumping; // grounded, jumping or falling
-int lives = 5;
+int framecount,y,lives = 5;
 
 Vec2 player,speed;
 Vec2 playerstart = Vec2(40,120);
 Point monsterpos = Point(155,95);
 //costumes
 Rect willywalk [] = { Rect(0,0,8,16), Rect(18,0,8,16), Rect(36,0,8,16), Rect(52,0,11,16) };
-Rect monster = Rect(128,0,12,16);
+Rect monsters[] = { Rect(128,0,12,16), Rect(0,16,12,16)};
+
+Rect boot = Rect(0,0,16,16);
+Rect plinth = Rect(0,16,16,16);
 
 // platform format: start.x start.y endpoint.x
-Vec3 platforms[] = { Vec3(39,160,280), Vec3(70,145,190), Vec3(190,135,280), Vec3(260,120,280), Vec3(95,112,255), Vec3(39,110,70), Vec3(39,95,70), Vec3(39,80,280), Vec3(165,103,190) 
+Vec3 platforms[] = { Vec3(39,160,280), Vec3(70,145,190), Vec3(190,135,280), Vec3(260,120,280), Vec3(95,112,255), Vec3(39,110,70), Vec3(39,95,60), Vec3(39,80,280), Vec3(165,103,190) 
 }; 
 Vec3 conveyor = Vec3(95,112,255);
 
@@ -46,26 +50,20 @@ Pen colors[] = { black, blue, red, magenta, green, cyan, yellow, white };
 
 void colorsprites(Surface *sprites,Pen color) { sprites->palette[1] = color; } 
 
-int collide (Point a, Point b) {
-   if (abs(a.x - b.x) < 8  && abs(a.y - b.y) < 8 ) return 1;
-   return 0;
-}
+int collide (Point a, Point b) { return (abs(a.x - b.x) < 8  && abs(a.y - b.y) < 8 ); } 
 
 void playerhitplatform (Vec3 platform, bool solid){
   if ((player.x > platform.x) && (player.x < platform.z)) {
     int ypos = platform.y - 16;
 
     // if hitting underside, bounce down
-    if (solid && (speed.y == UP) && abs(player.y - ypos) < 5) 
-		jumping = 0;
-    
+    if (solid && (speed.y == UP) && abs(player.y - ypos) < 5) jumping = 0;
 
     // if on top, land
     if ((speed.y == DOWN) && abs(ypos - player.y) < 2) { 
 	player.y = ypos; 
-	speed.y = 0;
+	speed.y = jumping = 0;
         grounded = 1;
-	jumping = 0;
     } 
   }
 }
@@ -76,25 +74,8 @@ void player_die(){
  player = playerstart;
 }
 
-void init() {
-  set_screen_mode(ScreenMode::hires);
-
-  backdrop = Surface::load(level);
-  tileblocks = Surface::load(tiles);
-  characters = Surface::load(spritesheet);
-  keys = Surface::load(pickups);
-  screen.sprites = keys;
-
-  File::add_buffer_file("music.mp3", music, music_length);
-  stream.load("music.mp3", false);
-  stream.play(0);
-
-  player = playerstart;
-}
-
-void render(uint32_t time) {
-static int score,dir,monsterdir = 1;
-static int framecount;
+void gameloop(){
+static int score,level,dir,monsterdir = 1;
 static float o2 = 200;
 Rect costume;
 
@@ -103,6 +84,7 @@ Rect costume;
   screen.pen = black;
   screen.clear();
   // copy background
+  backdrop = levels[level];
   Rect backdropsize = Rect (0,0,backdrop->bounds.w,backdrop->bounds.h);
   screen.blit(backdrop,backdropsize,Point(30,40));
 
@@ -123,8 +105,9 @@ Rect costume;
 	  score = 0;
   }
 
-  //for (Vec3 plat : platforms) 
-  //	 screen.line(Vec2(plat.x,plat.y), Vec2(plat.z,plat.y));
+  if (pressed(Button::MENU)) // debug
+  	for (Vec3 plat : platforms) 
+  	 	screen.line(Vec2(plat.x,plat.y), Vec2(plat.z,plat.y));
 
   // Willy !
   int animframe = 3-(((int)player.x >> 1)&3);
@@ -137,8 +120,8 @@ Rect costume;
   if (framecount % 2) monsterpos.x += monsterdir;
   if (monsterpos.x > 155) monsterdir = LEFT;
   if (monsterpos.x < 90)  monsterdir = RIGHT;
-  costume = monster;
-  costume.x +=  18 * ((framecount / 6 ) % 3);
+  costume = monsters[level];
+  costume.x += 18 * ((framecount / 6 ) % 3);
   bool flip = monsterdir < 0;
   screen.blit(characters,costume,monsterpos,flip);
 
@@ -146,14 +129,16 @@ Rect costume;
 	  player_die();
 
   // Gems
+  int gemsleft=0;
   for (int i=0;i<5;i++) {
 	       if (!collectedgems[i]) {
   	       	       colorsprites(keys,colors[RND(6)]); // sparkle 
-		       screen.sprite(Rect(0,0,1,1),gempos[i]);
+		       screen.blit(keys,Rect(0,0,8,8),gempos[i]);
 	       		if (collide(player,gempos[i])) {
 		       		collectedgems[i] = true;
 		       		score += 100;
-			}
+				}
+			gemsleft++;
 	       }
 	}
   // Spikes
@@ -163,9 +148,63 @@ Rect costume;
   
   // Dancing willies !
   costume = willywalk [(framecount / 30 )% 4]; 
-  colorsprites(characters,blue);
-  for (int i=0; i<lives; i++)
+  for (int i=0; i<lives; i++){
+  	  colorsprites(characters,colors[i+1]);
 	  screen.blit(characters,costume,Point(35 + i*16,205));
+  }
+
+  if (!gemsleft && (framecount % 2)) {
+	  screen.rectangle(Rect(262,143,16,16));
+  	  if (collide(player,Point(262,143))) {
+	  	level = !level;
+	  	player = playerstart;
+	  }
+  }
+  if (!lives) o2 = 0;
+}
+
+void init() {
+  set_screen_mode(ScreenMode::hires);
+
+  levels[0] = Surface::load(level1);
+  levels[1] = Surface::load(level2);
+  backdrop = levels[1];
+  tileblocks = Surface::load(tiles);
+  pythonboot = Surface::load(bootpic);
+  characters = Surface::load(spritesheet);
+  keys = Surface::load(pickups);
+
+  keys->palette[0] = Pen(0,0,0,0); // make black transparent
+  characters->palette[0] = Pen(0,0,0,0);
+
+  File::add_buffer_file("music.mp3", music, music_length);
+  stream.load("music.mp3", false);
+  stream.play(0);
+
+  player = playerstart;
+}
+
+void bootscene(){
+	// monty python boot
+	static int framecount = 0,y;
+	framecount++;
+	screen.pen = colors[RND(6)];
+	screen.clear();
+  	pythonboot->palette[0] = screen.pen;
+	if (y < 140) screen.blit(characters,willywalk[0],Vec2(153,145));
+	for (int i=0;i<y;i+=3)
+		screen.blit(pythonboot,boot,Vec2(150,i));
+	screen.blit(pythonboot,plinth,Vec2(150,160));
+        if ((framecount % 2) && y<145) y +=3;
+	if (framecount > 110) {
+		framecount = y = 0;
+		lives = 5;
+	}
+}
+void render(uint32_t time) {
+
+	if (lives > 0) gameloop();
+	else bootscene();
 }
 
 void update(uint32_t time) {

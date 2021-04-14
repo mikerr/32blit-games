@@ -1,8 +1,12 @@
 assets.hpp:
-  level.png:
-    name: level
+  level1.png:
+    name: level1
+  level2.png:
+    name: level2
   sprites.png:
     name: spritesheet
+  boot.png:
+    name: bootpic
   manicminer_tiles.png:
     name: tiles
   manic_pickups.png:
