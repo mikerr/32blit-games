@@ -3,14 +3,10 @@ assets.hpp:
     name: level1
   level2.png:
     name: level2
-  sprites.png:
-    name: spritesheet
-  boot.png:
-    name: bootpic
-  manicminer_tiles.png:
-    name: tiles
-  manic_pickups.png:
-    name: pickups
+  characters.png:
+    name: character_sprites
+  manic_sprites.png:
+    name: manic_sprites
   mm_music.mp3:
     name: music
     type: raw/binary

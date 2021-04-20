@@ -9,28 +9,27 @@ using namespace blit;
 #define UP -1
 #define DOWN 1
 
-Surface *backdrop,*pythonboot,*characters,*keys;
+Surface *backdrop,*sprites,*characters;
 Surface *levels[2];
 MP3Stream stream;
 
 bool grounded,jumping; // grounded, jumping or falling
 int framecount,lives = 3;
 
-Vec2 player,speed,playerstart = Vec2(40,120);
+Point player,speed,playerstart = Point(40,120);
 Point monsterpos = Point(155,95);
 //costumes
-Rect willywalk [] = { Rect(0,0,8,16), Rect(18,0,8,16), Rect(36,0,8,16), Rect(52,0,11,16) };
+Rect willywalk[] = { Rect(0,0,8,16), Rect(18,0,8,16), Rect(36,0,8,16), Rect(52,0,11,16) };
 Rect monsters[] = { Rect(128,0,12,16), Rect(0,16,12,16)};
 
 // platform format: start.x start.y endpoint.x
 Vec3 platforms[] = { Vec3(39,160,280), Vec3(70,145,190), Vec3(190,135,280), Vec3(260,120,280), Vec3(95,112,255), Vec3(39,110,70), Vec3(39,95,60), Vec3(39,80,280), Vec3(165,103,190) }; 
-Vec3 conveyor = Vec3(95,112,255);
-Vec3 collapsing [] = { Vec3(215,135,260), Vec3(140,80,175), Vec3(180,80,215)};
-int collapsed[300];
-
-Point spikes[]= { Point(120,40), Point(160,40), Point(215,65), Point(250,65), Point(200,100), Point(130,130)};
-Point gempos[]= { Point(102,40), Point(157,50), Point(260,40), Point(270,90), Point(225,70)};
+Vec3 conveyor = platforms[4];
+Vec3 collapsing[] = { Vec3(215,135,260), Vec3(140,80,175), Vec3(180,80,215)};
+Point spikes[] = { Point(120,40), Point(160,40), Point(215,65), Point(250,65), Point(200,100), Point(130,130)};
+Point gempos[] = { Point(102,40), Point(157,50), Point(260,40), Point(270,90), Point(225,70)};
 bool collectedgems[5];
+int collapsed[300];
 
 // ZX spectrum colors
 Pen black = Pen(0,0,0);
@@ -43,11 +42,17 @@ Pen yellow = Pen(255,255,0);
 Pen white = Pen(255,255,255);
 Pen colors[] = { black, blue, red, magenta, green, cyan, yellow, white };
 
-void colorsprites(Surface *sprites,Pen color) { sprites->palette[1] = color; } 
+void colorsprites(Surface *sprites,Pen color) { 
+	sprites->palette[1] = color; 
+} 
 
-int collide (Point a, Point b) { return (abs(a.x - b.x) < 8  && abs(a.y - b.y) < 8 ); } 
+int collide (Point a, Point b) { 
+	return (abs(a.x - b.x) < 8  && abs(a.y - b.y) < 8 ); 
+} 
 
-bool playerhitplatform (Vec3 platform){ return (player.x > platform.x && player.x < platform.z && abs(platform.y - 16 - player.y) < 2) ; }
+bool playerhitplatform (Vec3 platform){ 
+	return (player.x > platform.x && player.x < platform.z && abs(platform.y - 16 - player.y) < 2) ; 
+}
 
 void player_die(){
  lives--;
@@ -56,17 +61,15 @@ void player_die(){
 }
 
 void gameloop(){
-static int score,level,dir,monsterdir = 1,timer;
+static int score,level,dir,monsterdir = LEFT,timer;
 static float o2 = 200;
-Rect costume;
 
   framecount++;
   screen.pen = black;
   screen.clear();
   // copy background
   backdrop = levels[level];
-  Rect backdropsize = Rect (0,0,backdrop->bounds.w,backdrop->bounds.h);
-  screen.blit(backdrop,backdropsize,Point(30,40));
+  screen.blit(backdrop,Rect (0,0,256,192),Point(30,40));
   // score
   screen.pen = yellow;
   screen.line(Point(30,39),Point(285,39));
@@ -75,46 +78,36 @@ Rect costume;
   // air supply bar
   screen.pen = white;
   screen.line(Point(60,180),Point(60+o2,180));
-  o2 = o2 - 0.05;
-  if (o2 < 0 || !lives) {
-	  o2 = 200;
-	  score = 0;
-	  player_die();
-	  for (int i=0;i<300;i++) collapsed[i]=0;
-	  for (auto& collected : collectedgems)
-		  collected = false;
-  }
-  if (pressed(Button::MENU)) // debug - show platform bounds
-  	for (Vec3 plat : platforms) 
-  	 	screen.line(Point(plat.x,plat.y), Point(plat.z,plat.y));
+  o2 = o2 - 0.1;
+  // debug - show platform bounds
+  if (pressed(Button::MENU)) for (Vec3 plat : platforms) screen.line(Point(plat.x,plat.y), Point(plat.z,plat.y));
   // Monster walk
   if (framecount % 2) monsterpos.x += monsterdir;
   if (monsterpos.x > 155) monsterdir = LEFT;
   if (monsterpos.x < 90)  monsterdir = RIGHT;
-  costume = monsters[level];
+  Rect costume = monsters[level];
   costume.x += 18 * ((framecount / 6 ) % 3);
   bool flip = monsterdir < 0;
   screen.blit(characters,costume,monsterpos,flip);
 
   if (collide(player,monsterpos) || collide(player,monsterpos + Point(0,8))) 
 	  player_die();
+  // Spikes
+  for (auto spike : spikes) 
+	  if (collide(player,spike)) player_die();
   // Gems
   int gemsleft=0;
   for (int i=0;i<5;i++) {
 	       if (!collectedgems[i]) {
-  	       	       colorsprites(keys,colors[rand() % 6]); // sparkle 
-		       screen.blit(keys,Rect(0,0,8,8),gempos[i]);
+		       gemsleft++;
+  	       	       colorsprites(sprites,colors[rand() % 6]); // sparkle 
+		       screen.blit(sprites,Rect(0,level*8,8,8),gempos[i]);
 	       		if (collide(player,gempos[i])) {
 		       		collectedgems[i] = true;
 		       		score += 100;
 				}
-			gemsleft++;
 	       }
 	}
-  // Spikes
-  for (auto spike : spikes)  
-  	if (collide(player,spike)) 
-	  	player_die();
   // Dancing willies !
   costume = willywalk [(framecount / 30 )% 4]; 
   for (int i=0; i<lives; i++){
@@ -122,44 +115,44 @@ Rect costume;
 	  screen.blit(characters,costume,Point(35 + i*16,205));
   }
   // level complete - flashing exit
-  if (!gemsleft && (framecount % 2)) {
+  if (gemsleft && (framecount % 2)) {
 	  screen.rectangle(Rect(262,143,16,16));
   	  if (collide(player,Point(262,143))) {
-	  	for (int i=0;i<300;i++) collapsed[i]=0;
 	  	level = !level;
 	  	player = playerstart;
+	  	for (auto& c : collapsed) c = 0;
+	  	for (auto& c : collectedgems) c = false;
 	  }
   }
-  // Collapsing platforms
-  for (Vec3 plat : collapsing)  {
-      if (playerhitplatform(plat) && grounded)
-	    if (framecount % 2)
-              if (collapsed[(int)player.x] < 8) 
-			 for (int i=0; i<8; i++) collapsed[(int)player.x + i]++;
-	      else player.y += 8;
-      screen.pen = black;
-      for (int x=plat.x;x<plat.z;x++ ){
+  // Draw Collapsing platforms
+  screen.pen = black;
+  for (Vec3 plat : collapsing)  
+      for (int x=plat.x;x<plat.z;x++ )
 	         for (int y=0;y < collapsed[x];y++)
 		     screen.pixel(Point(x,plat.y + y));
-      }
-  }
   // Willy walking
-  int animframe = 3-(((int)player.x >> 1)&3);
+  int animframe = (player.x >> 2)&3;
   costume = willywalk [animframe]; 
-  colorsprites(characters,white);
   if (speed.x != 0) dir = speed.x < 0;
+  colorsprites(characters,white);
   screen.blit(characters,costume,player,dir);
+
+  // lost all lives
+  if (o2 < 0 || !lives) {
+	  o2 = 200;
+	  score = 0;
+	  player_die();
+	  for (auto& c : collapsed) c = 0;
+	  for (auto& c : collectedgems) c = false;
+  }
 }
 
 void init() {
   set_screen_mode(ScreenMode::hires);
-
   levels[0] = Surface::load(level1);
   levels[1] = Surface::load(level2);
-  keys = Surface::load(pickups);
-  pythonboot = Surface::load(bootpic);
-  characters = Surface::load(spritesheet);
-  characters->palette[0] = Pen(0,0,0,0);
+  sprites = Surface::load(manic_sprites);
+  characters = Surface::load(character_sprites);
 
   File::add_buffer_file("music.mp3", music, music_length);
   stream.load("music.mp3", false);
@@ -169,19 +162,19 @@ void init() {
 }
 
 void bootscene(){
-Rect boot = Rect(0,0,16,16), plinth = Rect(0,16,16,16);
+Rect leg = Rect(8,0,16,3), boot = Rect(8,3,16,13), plinth = Rect(8,16,16,16);
 	// monty python boot - death scene
-	static int framecount,y;
-	framecount++;
+	static int y;
 	screen.pen = colors[rand() % 6];
 	screen.rectangle(Rect(0,0,320,175));
-  	pythonboot->palette[0] = screen.pen;
+  	colorsprites(sprites,white);
 	screen.blit(characters,willywalk[0],Point(153,145));
-	for (int i=0;i<y;i+=3) screen.blit(pythonboot,boot,Point(150,i));
-	screen.blit(pythonboot,plinth,Point(150,160));
-        if (y < 145) y+= 2;
-	if (framecount > 90) {
-		framecount = y = 0;
+	for (int i=0;i<y;i+=3) screen.blit(sprites,leg,Point(150,i));
+	screen.blit(sprites,boot,Point(150,y));
+	screen.blit(sprites,plinth,Point(150,160));
+	y += 2;
+	if (y > 145) {
+		y = 0;
 		lives = 3;
 	}
 }
@@ -191,9 +184,9 @@ void render(uint32_t time) {
 }
 
 void update(uint32_t time) {
-static int jumpheight = 0,collapse =0;
+static int jumpheight = 0;
 
- if (grounded == 1) speed.x = 0;
+ if (grounded) speed.x = 0;
  if (pressed(Button::DPAD_LEFT)  || joystick.x < 0) speed.x = LEFT;
  if (pressed(Button::DPAD_RIGHT) || joystick.x > 0) speed.x = RIGHT;
  if ((pressed(Button::DPAD_UP) || pressed(Button::A)) && grounded) {
@@ -202,13 +195,11 @@ static int jumpheight = 0,collapse =0;
 	jumpheight = player.y - 20;
  }
  if (jumping && player.y < jumpheight) jumping = 0; // reached top of jump
-
  if (jumping && !grounded) speed.y = UP;
  else speed.y = DOWN; // gravity
 
  // keep on screen
- player.x = std::max((int)player.x,40);
- player.x = std::min((int)player.x,265);
+ player.x = std::clamp(player.x,40,265);
  // fall onto platforms
  for (Vec3 plat : platforms) 
 	if (playerhitplatform(plat)) {
@@ -221,6 +212,12 @@ static int jumpheight = 0,collapse =0;
     	} 
  //special platforms
  if (playerhitplatform(conveyor) && grounded) speed.x = LEFT;
+
+ for (Vec3 plat : collapsing)  
+      if (playerhitplatform(plat) && grounded)
+              if (collapsed[player.x] < 8) 
+			 for (int i=0; i<8; i++) collapsed[player.x + i]++;
+	      else player.y += 8;
  // slow down player movement
  if (time % 3 > 0) player += speed;
  //play music
