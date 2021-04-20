@@ -14,20 +14,17 @@ Surface *levels[2];
 MP3Stream stream;
 
 bool grounded,jumping; // grounded, jumping or falling
-int framecount,lives = 3;
+int framecount,level,lives = 3;
 
-Point player,speed,playerstart = Point(40,120);
-Point monsterpos = Point(155,95);
+Point player,speed,monsterpos,playerstart = Point(50,130);
 //costumes
 Rect willywalk[] = { Rect(0,0,8,16), Rect(18,0,8,16), Rect(36,0,8,16), Rect(52,0,11,16) };
 Rect monsters[] = { Rect(128,0,12,16), Rect(0,16,12,16)};
 
-// platform format: start.x start.y endpoint.x
-Vec3 platforms[] = { Vec3(39,160,280), Vec3(70,145,190), Vec3(190,135,280), Vec3(260,120,280), Vec3(95,112,255), Vec3(39,110,70), Vec3(39,95,60), Vec3(39,80,280), Vec3(165,103,190) }; 
-Vec3 conveyor = platforms[4];
-Vec3 collapsing[] = { Vec3(215,135,260), Vec3(140,80,175), Vec3(180,80,215)};
-Point spikes[] = { Point(120,40), Point(160,40), Point(215,65), Point(250,65), Point(200,100), Point(130,130)};
-Point gempos[] = { Point(102,40), Point(157,50), Point(260,40), Point(270,90), Point(225,70)};
+std::vector<Vec3> platforms,collapsing;
+std::vector<Point> spikes,gempos;
+Vec3 conveyor;
+Pen background;
 bool collectedgems[5];
 int collapsed[300];
 
@@ -60,8 +57,34 @@ void player_die(){
  player = playerstart;
 }
 
+void setup_level(int level) {
+
+ player = playerstart;
+ for (auto& c : collapsed) c = 0;
+ for (auto& c : collectedgems) c = false;
+
+ if (level == 0) { // platform format: start.x start.y endpoint.x
+ 	platforms = { Vec3(39,160,280), Vec3(70,145,190), Vec3(190,135,280), Vec3(260,120,280), Vec3(95,112,255), Vec3(39,110,70), Vec3(39,95,60), Vec3(39,80,280), Vec3(165,103,190) }; 
+ 	conveyor = platforms[4];
+ 	collapsing = { Vec3(215,135,260), Vec3(140,80,175), Vec3(180,80,215)};
+ 	spikes = { Point(120,40), Point(160,40), Point(215,65), Point(250,65), Point(200,100), Point(130,130)};
+ 	gempos = { Point(102,40), Point(157,50), Point(260,40), Point(270,90), Point(225,70)};
+	monsterpos = Point(155,95);
+	background = black;
+ }
+ if (level == 1) {
+ 	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,145,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
+ 	conveyor = platforms[1];
+ 	collapsing = { Vec3(236,88,255) };
+ 	spikes = { };
+ 	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
+	monsterpos = Point(155,65);
+	background = blue;
+ }
+
+}
 void gameloop(){
-static int score,level,dir,monsterdir = LEFT,timer;
+static int score,dir,monsterdir = LEFT,timer;
 static float o2 = 200;
 
   framecount++;
@@ -78,7 +101,7 @@ static float o2 = 200;
   // air supply bar
   screen.pen = white;
   screen.line(Point(60,180),Point(60+o2,180));
-  o2 = o2 - 0.1;
+  o2 = o2 - 0.05;
   // debug - show platform bounds
   if (pressed(Button::MENU)) for (Vec3 plat : platforms) screen.line(Point(plat.x,plat.y), Point(plat.z,plat.y));
   // Monster walk
@@ -102,7 +125,7 @@ static float o2 = 200;
 		       gemsleft++;
   	       	       colorsprites(sprites,colors[rand() % 6]); // sparkle 
 		       screen.blit(sprites,Rect(0,level*8,8,8),gempos[i]);
-	       		if (collide(player,gempos[i])) {
+	       	       if (collide(player,gempos[i])) {
 		       		collectedgems[i] = true;
 		       		score += 100;
 				}
@@ -115,17 +138,15 @@ static float o2 = 200;
 	  screen.blit(characters,costume,Point(35 + i*16,205));
   }
   // level complete - flashing exit
-  if (gemsleft && (framecount % 2)) {
+  if (!gemsleft && (framecount % 2)) {
 	  screen.rectangle(Rect(262,143,16,16));
   	  if (collide(player,Point(262,143))) {
 	  	level = !level;
-	  	player = playerstart;
-	  	for (auto& c : collapsed) c = 0;
-	  	for (auto& c : collectedgems) c = false;
+	  	setup_level(level);
 	  }
   }
-  // Draw Collapsing platforms
-  screen.pen = black;
+  // Draw Collapsed platforms
+  screen.pen = background;
   for (Vec3 plat : collapsing)  
       for (int x=plat.x;x<plat.z;x++ )
 	         for (int y=0;y < collapsed[x];y++)
@@ -141,9 +162,7 @@ static float o2 = 200;
   if (o2 < 0 || !lives) {
 	  o2 = 200;
 	  score = 0;
-	  player_die();
-	  for (auto& c : collapsed) c = 0;
-	  for (auto& c : collectedgems) c = false;
+  	  setup_level(level);
   }
 }
 
@@ -158,13 +177,12 @@ void init() {
   stream.load("music.mp3", false);
   stream.play(0);
 
-  player = playerstart;
+  setup_level(level);
 }
 
-void bootscene(){
+void bootscene(){ // monty python boot - death scene
+static int y;
 Rect leg = Rect(8,0,16,3), boot = Rect(8,3,16,13), plinth = Rect(8,16,16,16);
-	// monty python boot - death scene
-	static int y;
 	screen.pen = colors[rand() % 6];
 	screen.rectangle(Rect(0,0,320,175));
   	colorsprites(sprites,white);
@@ -199,7 +217,7 @@ static int jumpheight = 0;
  else speed.y = DOWN; // gravity
 
  // keep on screen
- player.x = std::clamp(player.x,40,265);
+ player.x = std::clamp((int)player.x,40,265);
  // fall onto platforms
  for (Vec3 plat : platforms) 
 	if (playerhitplatform(plat)) {
@@ -215,6 +233,7 @@ static int jumpheight = 0;
 
  for (Vec3 plat : collapsing)  
       if (playerhitplatform(plat) && grounded)
+	      if (framecount % 2)
               if (collapsed[player.x] < 8) 
 			 for (int i=0; i<8; i++) collapsed[player.x + i]++;
 	      else player.y += 8;
