@@ -1,5 +1,6 @@
 #include "32blit.hpp"
 #include "assets.hpp"
+#include "string.h"
 
 using namespace blit;
 
@@ -113,22 +114,41 @@ Surface *make_surface (int width,int height, Surface *paletteimg) {
     return (newsurface);
 }
 
+void depth_word() 
+{
+   static int currentword = 0;
+   int total = 0;
+   char words[] = "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG";
+   char *wordlist[100];
+
+   for (char *w = strtok( words, " " ); w ; w = strtok( NULL, " " ))
+	   wordlist[total++] = w;
+   if (currentword >= total) currentword = 0;
+
+   for (int i=0; i< depthimg->bounds.w * depthimg->bounds.h; i++) depthimg->data[i] = 0;
+   depthimg->pen = depthimg->palette[1];
+   depthimg->text(wordlist[currentword],minimal_font,Point(0,0));
+   depthimg->stretch_blit(depthimg,Rect(0,0,30,8),Rect(30,0,300,240));
+   currentword++;
+}
+
 void init() {
     set_screen_mode(ScreenMode::hires);
 
-    depthimg = Surface::load(depthpic);
+    depthimg = Surface::load(depthpic); // black = far, colours = near
     tileimg = Surface::load(tilepic);
 
     fullscreenimg = make_surface(screen.bounds.w,screen.bounds.h,tileimg);
- 
 }
 
 void render(uint32_t time) {
 
-    int x = (tilenum % 2);
-    int y = (tilenum >= 2);
-    Rect tilerect = Rect(64 * x, 64 * y,64,64);
-    fill_with_tile(fullscreenimg,tileimg,tilesize,tilerect);
+    if (!dots) { // image stereogram
+    	int x = (tilenum % 2);
+    	int y = (tilenum >= 2);
+    	Rect tilerect = Rect(64 * x, 64 * y,64,64);
+    	fill_with_tile(fullscreenimg,tileimg,tilesize,tilerect);
+    }
 
     // Clear screen
     screen.pen = Pen (0,0,0);
@@ -152,25 +172,33 @@ void update(uint32_t time) {
 	tilesize += joystick.x * 2;
 	tilesize = std::max(25,tilesize);
 
-	//dep += joystick.y / 5;
-
 	if (pressed(DPAD_RIGHT)) { 
 		static uint32_t last;
 		if (now() - last > 100) { 
 			tilenum++;  
 			if (tilenum > 3) tilenum = 0;
 		}
+		last = now();
 	}
 	if (pressed(X)) { 
 		static uint32_t last;
 		if (now() - last > 100) { 
 			dots = !dots; 
 		}
+		last = now();
 	}
 	if (pressed(Y)) {
 		static uint32_t last;
 		if (now() - last > 100) { 
 			moving = !moving;
 		}
+		last = now();
+	}
+	if (pressed(A)) {
+		static uint32_t last;
+		if (now() - last > 100) { 
+			depth_word();
+		}
+		last = now();
 	}
 }
