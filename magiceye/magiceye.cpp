@@ -109,7 +109,7 @@ Surface *make_surface (int width,int height, Surface *paletteimg) {
 
     Surface *newsurface = new Surface(data, PixelFormat::P, Size(width,height));
     newsurface->palette = new Pen[256];
-    wmemcpy((wchar_t *)newsurface->palette, (wchar_t *)paletteimg->palette, 256 * sizeof(Pen));
+    memcpy(newsurface->palette, paletteimg->palette, 256 * sizeof(Pen));
 
     return (newsurface);
 }
