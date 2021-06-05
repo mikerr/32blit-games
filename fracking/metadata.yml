@@ -1,0 +1,9 @@
+title: Fracking fractals
+description: Explore fractals
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: icon.png
+version: v1.0.2
+category: game
