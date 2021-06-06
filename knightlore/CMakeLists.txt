@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 project (knightlore)
-set (32BLIT_PATH "~/32blit-beta" CACHE PATH "Path to 32blit.cmake")
-include (${32BLIT_PATH}/32blit.cmake)
+find_package(32BLIT CONFIG REQUIRED $32BLIT_DIR)
 blit_executable (knightlore knightlore.cpp)
 blit_assets_yaml (knightlore assets.yml)
 blit_metadata (knightlore metadata.yml)
