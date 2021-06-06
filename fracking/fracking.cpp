@@ -1,18 +1,12 @@
 #include "32blit.hpp"
 using namespace blit;
 
-void draw_cross(Vec2 pos) {
-    int s = 5;
-    screen.line(pos + Vec2 (-s, -s), pos + Vec2 (s, s) );
-    screen.line(pos + Vec2 (s, -s), pos + Vec2 (-s, s) );
-}
-
-int changed = 1;
+std::string status;
+int changed;
 double scale = 1./128;
 double cx = -.6, cy = 0;
-int color_rotate = 0;
+int color_rotate, invert;
 int saturation = 1;
-int invert = 0;
 
 Pen hsv_to_rgb(int hue)
 {
@@ -40,39 +34,12 @@ Pen hsv_to_rgb(int hue)
 	default:r = c; b = X;return Pen(r,g,b);
 	}
 }
-void julia(int skip){
-int w = screen.bounds.w;
-int h = screen.bounds.h;
-float zoom = 1 + scale;
-int iter,maxiter = 255;
-float moveX = 0;
-float moveY = 0;
-double cX = cx;//-0.7;
-double cY = cy;//0.27015;
-double zx, zy, tmp;
- 
-            for (int x = 0; x < w; x += skip)
-                for (int y = 0; y < h; y += skip)
-                {
-                    zx = 1.5 * (x - w / 2) / (0.5 * zoom * w) + moveX;
-                    zy = 1.0 * (y - h / 2) / (0.5 * zoom * h) + moveY;
-                    iter = maxiter;
-                    while (zx * zx + zy * zy < 4 && iter > 1)
-                    {
-                        tmp = zx * zx - zy * zy + cX;
-                        zy = (double)2.0 * zx * zy + cY;
-                        zx = tmp;
-                        iter--;
-                    }
-	   	    screen.pen = hsv_to_rgb(iter);
-		    screen.pixel(Point(x,y));
-                }
-}
-void mandel_zoom(int max_iter,int skip) {
+
+void mandel(int skip) {
 	int width = screen.bounds.w;
 	int height = screen.bounds.h;
 
-	int iter;
+	int iter, max_iter = 256;
 	double x, y, zx, zy, zx2, zy2;
 	for (int i = 0; i < height; i += skip) {
 		y = (i - height/2) * scale + cy;
@@ -106,22 +73,23 @@ void init() { set_screen_mode(ScreenMode::hires); }
 void render(uint32_t time) {
 static int stopped = 0;
 
+    screen.pen = Pen(0, 0, 0);
     if (changed) { 
-    	    screen.pen = Pen(0, 0, 0);
-    	    screen.clear();
-    	    mandel_zoom(256,3);
-	    //julia(1);
+	    // do a quick render if scrolling / zooming around ( ~ 1 frame)
 	    changed = 0;
+    	    screen.clear();
+    	    mandel(3);
 	    stopped = 0;
     } else { 
             if (!stopped) {
-    	    screen.pen = Pen(0, 0, 0);
-    	    screen.clear();
-	    mandel_zoom(256,1);
-	    //julia(1);
+	    // do a longer, more detailed render when stopped ( ~ 1 second)
 	    stopped = 1;
+    	    screen.clear();
+	    mandel(1);
 	    }
     }
+    screen.pen = Pen(255,255,255);
+    screen.text(status,minimal_font,Point(0,screen.bounds.h - 10));
 }
 
 void update(uint32_t time) {
@@ -130,18 +98,19 @@ void update(uint32_t time) {
 		cy += scale * (double)joystick.y;
 		changed = 1;
 	}
+        if (pressed(Button::DPAD_LEFT))  cx -= scale; 
+        if (pressed(Button::DPAD_RIGHT)) cx += scale;
+        if (pressed(Button::DPAD_UP))    cy -= scale;
+        if (pressed(Button::DPAD_DOWN))  cy += scale;
 
-        if (pressed(Button::DPAD_LEFT))  { changed = 1; cx -= scale; }
-        if (pressed(Button::DPAD_RIGHT)) { changed = 1; cx += scale;}
-        if (pressed(Button::DPAD_UP))    { changed = 1; cy -= scale;}
-        if (pressed(Button::DPAD_DOWN))  { changed = 1; cy += scale;}
+        if (pressed(Button::A)) scale /= (double)1.01;
+        if (pressed(Button::B)) scale *= (double)1.01; 
 
-        if (pressed(Button::A)) { changed = 1; scale /= (double)1.01; }
-        if (pressed(Button::B)) { changed = 1; scale *= (double)1.01; }
-
-        if (pressed(Button::MENU)) { changed = 1; color_rotate = !color_rotate; }
-        if (pressed(Button::X))  { changed = 1; saturation = !saturation; }
-        if (pressed(Button::Y))  { changed = 1; invert = !invert; }
+	// toggle buttons should react on button release
+        if (buttons.released & Button::MENU) color_rotate = !color_rotate;
+        if (buttons.released & Button::Y) invert = !invert; 
+        if (buttons.released & Button::X) saturation = !saturation; 
+        if (pressed(1023)) changed = 1;
 }
 
 
