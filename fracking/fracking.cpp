@@ -110,7 +110,8 @@ void update(uint32_t time) {
         if (buttons.released & Button::MENU) color_rotate = !color_rotate;
         if (buttons.released & Button::Y) invert = !invert; 
         if (buttons.released & Button::X) saturation = !saturation; 
-        if (pressed(1023)) changed = 1;
+	// ANY button pressed
+        if (buttons) changed = 1;
 }
 
 
