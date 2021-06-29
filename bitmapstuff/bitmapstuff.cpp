@@ -82,19 +82,13 @@ void update(uint32_t time) {
     if (pressed(Button::DPAD_DOWN) || joystick.y > 0.2) zoom -= 0.01;
 
     if (pressed(Button::A)) speed = 0;
-    if (pressed(Button::B)) {
-	    static uint32_t lasttime;
-	    if (now() - lasttime > 500) blur = !blur;
-	    lasttime = now();
+    if (buttons.released & Button::B) {
+	    blur = !blur;
 	    demo = false;
     }
-    if (pressed(Button::Y)) {
-	    static uint32_t lasttime;
-	    if (now() - lasttime > 500) {
+    if (buttons.released & Button::Y) {
 		    pan = !pan;
 		    speed = 0;
-	    }
-	    lasttime = now();
     }
 
     if (pressed(Button::MENU)) {
@@ -106,13 +100,9 @@ void update(uint32_t time) {
     	screen.text("A: Stop", minimal_font, Vec2(90 , 70));
     	screen.text("B: Blur on/off", minimal_font, Vec2(50 , 80));
     }
-    if (pressed(Button::X)) {
-	    static uint32_t lasttime;
-	    if (now() - lasttime > 500) {
+    if (buttons.released & Button::X) {
 	    	lowres = !lowres;
 	    	if (lowres) set_screen_mode(ScreenMode::lores);
 	    	else set_screen_mode(ScreenMode::hires);
-	    }
-	    lasttime = now();
 	    }
 }
