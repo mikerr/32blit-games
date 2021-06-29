@@ -172,33 +172,11 @@ void update(uint32_t time) {
 	tilesize += joystick.x * 2;
 	tilesize = std::max(25,tilesize);
 
-	if (pressed(DPAD_RIGHT)) { 
-		static uint32_t last;
-		if (now() - last > 100) { 
+	if (buttons.released & DPAD_RIGHT) { 
 			tilenum++;  
 			if (tilenum > 3) tilenum = 0;
-		}
-		last = now();
 	}
-	if (pressed(X)) { 
-		static uint32_t last;
-		if (now() - last > 100) { 
-			dots = !dots; 
-		}
-		last = now();
-	}
-	if (pressed(Y)) {
-		static uint32_t last;
-		if (now() - last > 100) { 
-			moving = !moving;
-		}
-		last = now();
-	}
-	if (pressed(A)) {
-		static uint32_t last;
-		if (now() - last > 100) { 
-			depth_word();
-		}
-		last = now();
-	}
+	if (buttons.released & X) dots = !dots;
+	if (buttons.released & Y) moving = !moving;
+	if (buttons.released & A) depth_word();
 }
