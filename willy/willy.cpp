@@ -15,6 +15,7 @@ MP3Stream stream;
 
 bool grounded,jumping; // grounded, jumping or falling
 int framecount,level,lives = 3;
+float o2;
 
 Point player,speed,monsterpos,playerstart = Point(50,130);
 //costumes
@@ -39,17 +40,11 @@ Pen yellow = Pen(255,255,0);
 Pen white = Pen(255,255,255);
 Pen colors[] = { black, blue, red, magenta, green, cyan, yellow, white };
 
-void colorsprites(Surface *sprites,Pen color) { 
-	sprites->palette[1] = color; 
-} 
+void colorsprites(Surface *sprites,Pen color) { sprites->palette[1] = color; } 
 
-int collide (Point a, Point b) { 
-	return (abs(a.x - b.x) < 8  && abs(a.y - b.y) < 8 ); 
-} 
+int collide (Point a, Point b) { return (abs(a.x - b.x) < 8  && abs(a.y - b.y) < 8 ); } 
 
-bool playerhitplatform (Vec3 platform){ 
-	return (player.x > platform.x && player.x < platform.z && abs(platform.y - 16 - player.y) < 2) ; 
-}
+bool playerhitplatform (Vec3 platform){ return (player.x > platform.x && player.x < platform.z && abs(platform.y - 16 - player.y) < 2) ; }
 
 void player_die(){
  lives--;
@@ -58,7 +53,7 @@ void player_die(){
 }
 
 void setup_level(int level) {
-
+ o2 = 200;
  player = playerstart;
  for (auto& c : collapsed) c = 0;
  for (auto& c : collectedgems) c = false;
@@ -73,19 +68,18 @@ void setup_level(int level) {
 	background = black;
  }
  if (level == 1) {
- 	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,145,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
+ 	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
  	conveyor = platforms[1];
- 	collapsing = { Vec3(236,88,255) };
+ 	collapsing = { platforms[2], platforms[4],platforms[6],platforms[8],Vec3(236,88,255) };
  	spikes = { };
  	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
 	monsterpos = Point(155,65);
-	background = blue;
+	background = Pen (0,0,200);
  }
 
 }
 void gameloop(){
 static int score,dir,monsterdir = LEFT,timer;
-static float o2 = 200;
 
   framecount++;
   screen.pen = black;
@@ -99,9 +93,10 @@ static float o2 = 200;
   screen.text("00000" + std::to_string(score),minimal_font,Point(120,193));
   screen.text("00000" + std::to_string(score),minimal_font,Point(240,193));
   // air supply bar
+  o2 = o2 - 0.05;
+  if (o2 < 0 ) lives = 0;
   screen.pen = white;
   screen.line(Point(60,180),Point(60+o2,180));
-  o2 = o2 - 0.05;
   // debug - show platform bounds
   if (pressed(Button::MENU)) for (Vec3 plat : platforms) screen.line(Point(plat.x,plat.y), Point(plat.z,plat.y));
   // Monster walk
@@ -159,8 +154,7 @@ static float o2 = 200;
   screen.blit(characters,costume,player,dir);
 
   // lost all lives
-  if (o2 < 0 || !lives) {
-	  o2 = 200;
+  if (!lives) {
 	  score = 0;
   	  setup_level(level);
   }
