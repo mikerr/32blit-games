@@ -29,55 +29,19 @@ Vec2 FinishLine = Vec2(75,205);
 
 void set_tracklimits() {
 // polygon inside track - sandy area
-	innerarea.push_back(Vec2(50,180));
-	innerarea.push_back(Vec2(64,190));
-	innerarea.push_back(Vec2(250,190));
-	innerarea.push_back(Vec2(258,188));
-	innerarea.push_back(Vec2(264,178));
-	innerarea.push_back(Vec2(264,72));
-	innerarea.push_back(Vec2(259,65));
-	innerarea.push_back(Vec2(250,61));
-	innerarea.push_back(Vec2(191,62));
-	innerarea.push_back(Vec2(158,36));
-	innerarea.push_back(Vec2(113,62));
-	innerarea.push_back(Vec2(62,62));
-	innerarea.push_back(Vec2(51,72));
-	innerarea.push_back(Vec2(64,85));
-	innerarea.push_back(Vec2(182,85));
-	innerarea.push_back(Vec2(211,112));
-	innerarea.push_back(Vec2(209,149));
-	innerarea.push_back(Vec2(171,171));
-	innerarea.push_back(Vec2(61,171));
-	innerarea.push_back(Vec2(50,180));
-	innerarea.push_back(Vec2(50,180));
-	innerarea.push_back(Vec2(50,180));
-	innerarea.push_back(Vec2(50,180));
+// 
+	innerarea = { Vec2(50,180), Vec2(64,190), Vec2(250,190), Vec2(258,188), Vec2(264,178), 
+		      Vec2(264,72), Vec2(259,65), Vec2(250,61), Vec2(191,62), Vec2(158,36), 
+		      Vec2(113,62), Vec2(62,62), Vec2(51,72), Vec2(64,85), Vec2(182,85), 
+		      Vec2(211,112), Vec2(209,149), Vec2(171,171), Vec2(61,171), Vec2(50,180), 
+		      Vec2(50,180), Vec2(50,180), Vec2(50,180)};
 
 // polygon surrounding track - sandy area
-	outerarea.push_back(Vec2(61,222));
-	outerarea.push_back(Vec2(257,222));
-	outerarea.push_back(Vec2(280,210));
-	outerarea.push_back(Vec2(290,188));
-	outerarea.push_back(Vec2(290,66));
-	outerarea.push_back(Vec2(281,46));
-	outerarea.push_back(Vec2(257,31));
-	outerarea.push_back(Vec2(200,31));
-	outerarea.push_back(Vec2(174,8));
-	outerarea.push_back(Vec2(157,5));
-	outerarea.push_back(Vec2(133,12));
-	outerarea.push_back(Vec2(106,31));
-	outerarea.push_back(Vec2(48,34));
-	outerarea.push_back(Vec2(19,62));
-	outerarea.push_back(Vec2(22,88));
-	outerarea.push_back(Vec2(52,114));
-	outerarea.push_back(Vec2(169,116));
-	outerarea.push_back(Vec2(181,128));
-	outerarea.push_back(Vec2(169,139));
-	outerarea.push_back(Vec2(51,139));
-	outerarea.push_back(Vec2(23,164));
-	outerarea.push_back(Vec2(23,200));
-	outerarea.push_back(Vec2(35,214));
-	outerarea.push_back(Vec2(61,222));
+	outerarea = { Vec2(61,222), Vec2(257,222), Vec2(280,210), Vec2(290,188), Vec2(290,66),
+		      Vec2(281,46), Vec2(257,31), Vec2(200,31), Vec2(174,8), Vec2(157,5),
+		      Vec2(133,12), Vec2(106,31), Vec2(48,34), Vec2(19,62), Vec2(22,88),
+		      Vec2(52,114), Vec2(169,116), Vec2(181,128), Vec2(169,139), Vec2(51,139),
+		      Vec2(23,164), Vec2(23,200), Vec2(35,214), Vec2(61,222)};
 }
 
 void set_waypoints(){
