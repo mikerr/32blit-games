@@ -24,6 +24,7 @@ add_subdirectory (missile)
 add_subdirectory (sprite-browser)
 add_subdirectory (starfield)
 add_subdirectory (vector3d)
+add_subdirectory (wakkawakka)
 add_subdirectory (willy)
 add_subdirectory (xmas)
 

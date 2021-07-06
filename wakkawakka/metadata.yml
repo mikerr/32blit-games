@@ -1,0 +1,9 @@
+title: Wakka Wakka
+description: Wakka wakka - pacman
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: icon.png
+version: v1.0.0
+category: game

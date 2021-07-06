@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.1)
+project (wakkawakka)
+find_package(32BLIT CONFIG REQUIRED $32BLIT_DIR)
+blit_executable (wakkawakka pacman.cpp)
+blit_assets_yaml(wakkawakka assets.yml)
+blit_metadata(wakkawakka metadata.yml)

@@ -1,0 +1,10 @@
+assets.hpp:
+  pacman.png:
+    name: pacman
+  pacman_beginning.wav:
+    name: intromusic
+  pacman_death.wav:
+    name: deathmusic
+  wakkawakka.wav:
+    name: wakkawakka
+
