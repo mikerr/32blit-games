@@ -5,5 +5,5 @@ splash:
   file: splash.png
 icon:
   file: icon.png
-version: v1.0.0
+version: v1.0.1
 category: game
