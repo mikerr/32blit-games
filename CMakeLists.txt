@@ -1,13 +1,16 @@
+# Basic parameters; check that these match your project / environment
 cmake_minimum_required(VERSION 3.9)
-project (32blit-games)
+project(32blit-misc)
 
+set(PROJECT_DISTRIBS LICENSE README.md)
 
 # Build configuration; approach this with caution!
 if(MSVC)
-  add_compile_options("/W4" "/wd4244" "/wd4324")
+  add_compile_options("/W4" "/wd4244" "/wd4324" "/wd4458" "/wd4100")
 else()
-  add_compile_options("-Wall" "-Wextra" "-Wdouble-promotion")
+  add_compile_options("-Wall" "-Wextra" "-Wdouble-promotion" "-Wno-unused-parameter")
 endif()
+
 find_package (32BLIT CONFIG REQUIRED PATHS ../32blit-sdk)
 
 add_subdirectory (3dcube)
