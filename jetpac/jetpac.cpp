@@ -119,8 +119,8 @@ void init() {
   set_screen_mode(ScreenMode::hires);
   screenbottom = screen.bounds.h - 35;
 
-  backdrop = SpriteSheet::load(level);
-  screen.sprites = SpriteSheet::load(jetpac);
+  backdrop = Surface::load(level);
+  screen.sprites = Surface::load(jetpac);
 
   //make black transparent
   screen.sprites->palette[0] = Pen(0,0,0,0); 
