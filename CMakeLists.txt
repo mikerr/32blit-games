@@ -1,6 +1,6 @@
 # Basic parameters; check that these match your project / environment
 cmake_minimum_required(VERSION 3.9)
-project(32blit-misc)
+project(32blit-games)
 
 set(PROJECT_DISTRIBS LICENSE README.md)
 
