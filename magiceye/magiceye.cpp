@@ -41,8 +41,7 @@ int screenheight = screen.bounds.h;
 for (int y=0;y<screenheight;y++)  {
 	int left = 0;
 	int right = 0;
-	//int same[screenwidth];
-	int *same = new int[screenwidth]; 
+	int same[320];
 	for (int x=0;x<screenwidth;x++) same[x] = x;
 
 	// calc row
@@ -80,7 +79,7 @@ for (int y=0;y<screenheight;y++)  {
 			        }
 	         }
 	} // end for x
-	int pix[screenwidth];
+	int pix[320];
 	for (int i=0;i<screenwidth;i++)
 		pix[i]=i;
 
