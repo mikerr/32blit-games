@@ -2,6 +2,9 @@
 #include "assets.hpp"
 
 using namespace blit;
+
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 int x,y,fire,lowres,button_up,maps;
 std::string status;
 Vec2 center,move,joypos;
@@ -124,8 +127,8 @@ int selected = 0;
 	Vec2 dir = quads[i].dest - unitpos;
 	float angle = atan2(dir.y,dir.x);
 	//normalize
-	dir.x = dir.x / std::max(1,abs(dir.x));
-	dir.y = dir.y / std::max(1,abs(dir.y));
+	dir.x = dir.x / MAX(1,abs(dir.x));
+	dir.y = dir.y / MAX(1,abs(dir.y));
 
 	quads[i].pos += dir;
 
