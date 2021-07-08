@@ -115,11 +115,11 @@ void init() {
 
     // car starting positions on grid
     int spritenum = offset;
-    int speed = 0;
+    //int speed = 0;
     for (auto &car: cars) {
     	car.pos = FinishLine;
     	car.sprite = Rect(spritenum*8,0,8,16);
-	car.speed = 0.55 + ( rand() % 5) * 0.1;
+	car.speed = 0.55f + ( rand() % 5) * 0.1f;
 	spritenum++;
     }
 }
@@ -136,7 +136,7 @@ static int lastlap,bestlap,clock;
     	blit_rotate_sprite(carsprites,car.sprite,car.angle, car.pos);
 	// show curent rank at top of screen
     	blit_rotate_sprite(carsprites,car.sprite,0, Vec2(car.rank * 20,10));
-    	if (cars[player].speed < 0.2) screen.text(std::to_string(car.rank), minimal_font, car.pos );
+    	if (cars[player].speed < 0.2f) screen.text(std::to_string(car.rank), minimal_font, car.pos );
 	}
 
     // Draw score
@@ -165,10 +165,10 @@ static int lastlap,bestlap,clock;
 	
 void update(uint32_t time) {
 
-    if (pressed(Button::DPAD_LEFT)  || joystick.x < -0.2) cars[player].angle -= 0.05;
-    if (pressed(Button::DPAD_RIGHT) || joystick.x > 0.2)  cars[player].angle += 0.05;
+    if (pressed(Button::DPAD_LEFT)  || joystick.x < -0.2f) cars[player].angle -= 0.05f;
+    if (pressed(Button::DPAD_RIGHT) || joystick.x > 0.2f)  cars[player].angle += 0.05f;
 
-    if (pressed(Button::A) && cars[player].speed < 2 ) cars[player].speed += 0.05;
+    if (pressed(Button::A) && cars[player].speed < 2 ) cars[player].speed += 0.05f;
 
     // slow car if off track 
     if (point_inside_shape(cars[player].pos,innerarea) || !point_inside_shape(cars[player].pos,outerarea)) 
@@ -205,5 +205,5 @@ void update(uint32_t time) {
 	   aicar = true;
     }
     // player car gradually slows down 
-    cars[player].speed *= 0.98;
+    cars[player].speed *= 0.98f;
 }

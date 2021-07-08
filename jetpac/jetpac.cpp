@@ -7,7 +7,7 @@ using namespace blit;
 #define RIGHT 1
 #define RND(a) (rand() % a )
 
-SpriteSheet *backdrop;
+Surface *backdrop;
 
 int screenbottom,dir,fire;
 int fuelled,fuelgrabbed,gem;
@@ -97,7 +97,7 @@ Vec3 laser;
 void newalien (int n) {
   aliencolor[n] = colors[1 + RND(6)] ;
   alienpos[n] = Vec2(screen.bounds.w, RND(screen.bounds.h));
-  aliendir[n] = Vec2(-1, 0.1 + (RND(5) / 5.0f ));
+  aliendir[n] = Vec2(-1, 0.1f + (RND(5) / 5.0f ));
 
   if ( RND(2) ) { // opposite side of screen
   	alienpos[n].x = 0;
@@ -146,9 +146,9 @@ void gameloop() {
 
   playerdied = 0;
   player += speed;
-  speed.x *= 0.3;
-  speed.y *= 0.8;
-  speed.y += 1.5; // gravity
+  speed.x *= 0.3f;
+  speed.y *= 0.8f;
+  speed.y += 1.5f; // gravity
 
   // wraparound edge of screen
   if (player.x > screen.bounds.w) player.x = 0; 

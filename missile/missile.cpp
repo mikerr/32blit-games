@@ -140,7 +140,7 @@ static int heat,health;
 	if (offscreen(m.pos) || m.velocity.y == 0 ) {
 		m.start = Vec2(rand () % screen.bounds.w, 0);
 		m.pos = m.start;
-		m.velocity = Vec2(1.0 - rnd(2),rnd(1));
+		m.velocity = Vec2(1.0f - rnd(2),rnd(1));
 		if (rnd(100) < 90) m.trail = true;
 		else m.trail = false;
 		}

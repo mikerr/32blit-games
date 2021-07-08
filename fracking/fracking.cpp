@@ -93,7 +93,7 @@ static int stopped = 0;
 }
 
 void update(uint32_t time) {
-	if (joystick.x < -0.1 || joystick.x > 0.1 || (abs(joystick.y) > 0.1)) {
+	if (joystick.x < -0.1f || joystick.x > 0.1f || (abs(joystick.y) > 0.1f)) {
 		cx += scale * (double)joystick.x;
 		cy += scale * (double)joystick.y;
 		changed = 1;

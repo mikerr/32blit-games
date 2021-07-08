@@ -105,7 +105,6 @@ void init() {
 void render(uint32_t time) {
 static int commanding = 0;
 int selected = 0;
-int cursor = 0;
 
     // Draw map
     screen.stretch_blit(backdrop,Rect(x,y,screen.bounds.w,screen.bounds.h),Rect(0,0,screen.bounds.w,screen.bounds.h));
@@ -125,8 +124,8 @@ int cursor = 0;
 	Vec2 dir = quads[i].dest - unitpos;
 	float angle = atan2(dir.y,dir.x);
 	//normalize
-	dir.x = dir.x / std::max(1.0f,abs(dir.x));
-	dir.y = dir.y / std::max(1.0f,abs(dir.y));
+	dir.x = dir.x / std::max(1,abs(dir.x));
+	dir.y = dir.y / std::max(1,abs(dir.y));
 
 	quads[i].pos += dir;
 

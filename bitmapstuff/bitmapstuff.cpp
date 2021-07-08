@@ -74,12 +74,12 @@ void render(uint32_t time) {
 	
 void update(uint32_t time) {
 
-    if (pressed(Button::DPAD_LEFT)  || joystick.x < -0.2) speed -= 0.005;
-    if (pressed(Button::DPAD_RIGHT) || joystick.x > 0.2)  speed += 0.005;
+    if (pressed(Button::DPAD_LEFT)  || joystick.x < -0.2f) speed -= 0.005f;
+    if (pressed(Button::DPAD_RIGHT) || joystick.x > 0.2f)  speed += 0.005f;
 
     if (abs(speed) > 0.1) speed = speed / 2;
-    if (pressed(Button::DPAD_UP)  || joystick.y < -0.2) zoom += 0.01;
-    if (pressed(Button::DPAD_DOWN) || joystick.y > 0.2) zoom -= 0.01;
+    if (pressed(Button::DPAD_UP)  || joystick.y < -0.2f) zoom += 0.01f;
+    if (pressed(Button::DPAD_DOWN) || joystick.y > 0.2f) zoom -= 0.01f;
 
     if (pressed(Button::A)) speed = 0;
     if (buttons.released & Button::B) {

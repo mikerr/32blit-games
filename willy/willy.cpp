@@ -79,7 +79,7 @@ void setup_level(int level) {
 
 }
 void gameloop(){
-static int score,dir,monsterdir = LEFT,timer;
+static int score,dir,monsterdir = LEFT;
 
   framecount++;
   screen.pen = black;
@@ -93,7 +93,7 @@ static int score,dir,monsterdir = LEFT,timer;
   screen.text("00000" + std::to_string(score),minimal_font,Point(120,193));
   screen.text("00000" + std::to_string(score),minimal_font,Point(240,193));
   // air supply bar
-  o2 = o2 - 0.05;
+  o2 = o2 - 0.05f;
   if (o2 < 0 ) lives = 0;
   screen.pen = white;
   screen.line(Point(60,180),Point(60+o2,180));
@@ -227,10 +227,11 @@ static int jumpheight = 0;
 
  for (Vec3 plat : collapsing)  
       if (playerhitplatform(plat) && grounded)
-	      if (framecount % 2)
-              if (collapsed[player.x] < 8) 
+	      if (framecount % 2) {
+              	if (collapsed[player.x] < 8) 
 			 for (int i=0; i<8; i++) collapsed[player.x + i]++;
-	      else player.y += 8;
+	      	else player.y += 8;
+	      }
  // slow down player movement
  if (time % 3 > 0) player += speed;
  //play music

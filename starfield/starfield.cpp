@@ -57,7 +57,7 @@ void new_alien () {
 }
 void move_alien() {
     alien1.pos = alien1.pos + alien1.dir;
-    alien1.size = alien1.size + 0.02;
+    alien1.size = alien1.size + 0.02f;
     if ( alien1.size > 2) new_alien();
     if ((alien1.pos.x < 0)  || (alien1.pos.x > screen.bounds.w) || (alien1.pos.y < 0 ) || (alien1.pos.y > screen.bounds.h))
         new_alien();

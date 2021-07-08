@@ -88,6 +88,7 @@ void texline ( Point p1,Point p2,int y) {
       if (i > 64) i = 0;   
       screen.blit(texture[tex],Rect(i++,y,1,1),p);
 
+
       if ((p.x == p2.x) && (p.y == p2.y)) break;
 
       int32_t e2 = err * 2;
@@ -152,15 +153,21 @@ void draw_shape(shape shape,Vec2 pos,float size){
 	       } 
 	    if (filled == 1) {
 	       // filled
-               screen.pen = colours[i++];
+               screen.pen = colours[i];
                screen.triangle(t1,t2,t3);
 	       }
 	    if (filled == 2) {
-	       // textured
-               screen.pen = {255,0,0};
-	       textri(t1,t2,t3);
+
+	       if (i % 2)  {
+               	screen.line(t2,t3);
+               	screen.line(t3,t1);
+	       }
+	       else {
+	       }
+
 	       }
 	    }
+	i++;
     }
 }
 
@@ -253,13 +260,13 @@ void update(uint32_t time) {
     if (pressed(Button::DPAD_LEFT))  { spin -= 0.001f;}
     if (pressed(Button::DPAD_RIGHT)) { spin += 0.001f;}
 
-    if (pressed(Button::X))  {
+    if (buttons.released & Button::X)  {
         low_res = 1 - low_res;
         if (low_res) set_screen_mode(ScreenMode::hires); 
 	else set_screen_mode(ScreenMode::lores); 
         center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
         pos = center;
         }
-    if (pressed(Button::Y))  { filled++; if (filled > 2) filled = 0;}
-    if (pressed(Button::B))  { tex++; if (tex > 2) tex = 0;}
+    if (buttons.released & Button::Y)  { filled++; if (filled > 2) filled = 0;}
+    if (buttons.released & Button::B)  { tex++; if (tex > 2) tex = 0;}
 }

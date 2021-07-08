@@ -171,15 +171,15 @@ void render(uint32_t time) {
 void update(uint32_t time) {
 
     Vec2 move = blit::joystick;
-    zoom -= move.y /10.0;
+    zoom -= move.y /10.0f;
 
     zoom += zd;
     if (( zoom > 6 ) || ( zoom < 1 )) zd = -zd;
 
-    if (pressed(Button::DPAD_LEFT))  spin.y -= 0.001;
-    if (pressed(Button::DPAD_RIGHT)) spin.y += 0.001;
-    if (pressed(Button::DPAD_UP))    zoom += 0.01;
-    if (pressed(Button::DPAD_DOWN))  zoom -= 0.01;
+    if (pressed(Button::DPAD_LEFT))  spin.y -= 0.001f;
+    if (pressed(Button::DPAD_RIGHT)) spin.y += 0.001f;
+    if (pressed(Button::DPAD_UP))    zoom += 0.01f;
+    if (pressed(Button::DPAD_DOWN))  zoom -= 0.01f;
 
     if (pressed(Button::Y)) pos.x--;
     if (pressed(Button::A)) pos.x++;

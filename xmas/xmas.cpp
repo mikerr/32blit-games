@@ -9,7 +9,7 @@ typedef struct shape {
 
 shape snowflakes;
 
-SpriteSheet *snow;
+Surface *snow;
 
 int snowsize = 500;
 float speed = 20;
@@ -48,8 +48,8 @@ void update(uint32_t time) {
     if (pressed(Button::DPAD_UP)   && snowsize > 200)  snowsize--;
     if (pressed(Button::DPAD_DOWN) && snowsize < 1000) snowsize++;
 
-    if (pressed(Button::DPAD_RIGHT) && speed > 4)   speed -= 0.1;
-    if (pressed(Button::DPAD_LEFT)  && speed < 200) speed += 0.1;
+    if (pressed(Button::DPAD_RIGHT) && speed > 4)   speed -= 0.1f;
+    if (pressed(Button::DPAD_LEFT)  && speed < 200) speed += 0.1f;
 
 }
 

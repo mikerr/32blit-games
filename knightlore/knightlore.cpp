@@ -18,7 +18,7 @@ int day = 0;
 int anim = 0 ;
 int jump = 0;
 
-SpriteSheet *backdrop,*sbsprites,*itemsprites;
+Surface *backdrop,*sbsprites,*itemsprites;
 
 Rect block = Rect(36,4,4,4);
 Rect gems[] = { Rect(0,5,3,3), Rect(3,5,3,3), Rect(6,5,3,3), Rect(9,5,3,3), Rect(12,5,3,3), Rect(15,5,3,3), Rect(18,5,3,3), Rect(21,5,3,3)};
@@ -26,7 +26,7 @@ Rect sunmoon[] = { Rect(29,0,2,2), Rect(31,0,2,2)};
 Rect windowframe = Rect(36,0,6,4);
 
 typedef struct drawobject {
-	SpriteSheet *spritesheet;
+	Surface *spritesheet;
 	Rect costume;
 	Vec3 position;
 	int flip;
@@ -168,10 +168,10 @@ if (pressed(Button::DPAD_DOWN))  dir = DOWN;
 if (pressed(Button::A) && !jump) jump = 1;
 
 Vec3 nomove = player;
-if (dir == LEFT)  player.x -= 0.1;
-if (dir == RIGHT) player.x += 0.1;
-if (dir == UP)    player.y -= 0.1;
-if (dir == DOWN)  player.y += 0.1;
+if (dir == LEFT)  player.x -= 0.1f;
+if (dir == RIGHT) player.x += 0.1f;
+if (dir == UP)    player.y -= 0.1f;
+if (dir == DOWN)  player.y += 0.1f;
 
 // walls
 if (player.x < 0 || player.x > 16) player = nomove;  
