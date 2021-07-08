@@ -35,14 +35,14 @@ int dpi = 44;
 int e = round(2.5 * dpi); // eye separation = 2.5 inches
 float mu = 0.08; // depth of field
 
-static const int screenwidth = screen.bounds.w;
+int screenwidth = screen.bounds.w;
 int screenheight = screen.bounds.h;
 
 for (int y=0;y<screenheight;y++)  {
 	int left = 0;
 	int right = 0;
-	int same[screenwidth];
-	 
+	//int same[screenwidth];
+	int *same = new int[screenwidth]; 
 	for (int x=0;x<screenwidth;x++) same[x] = x;
 
 	// calc row
