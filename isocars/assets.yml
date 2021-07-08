@@ -1,0 +1,6 @@
+assets.hpp:
+  tiles.png:
+    name: tilesimg
+  vehicles.png:
+    name: vehiclesimg
+

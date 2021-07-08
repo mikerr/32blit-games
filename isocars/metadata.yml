@@ -1,0 +1,9 @@
+title: Isocars
+description: isometric cars
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: icon.png
+version: v0.0.3
+category: game
