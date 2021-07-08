@@ -35,7 +35,7 @@ int dpi = 44;
 int e = round(2.5 * dpi); // eye separation = 2.5 inches
 float mu = 0.08; // depth of field
 
-int screenwidth = screen.bounds.w;
+const int screenwidth = screen.bounds.w;
 int screenheight = screen.bounds.h;
 
 for (int y=0;y<screenheight;y++)  {
