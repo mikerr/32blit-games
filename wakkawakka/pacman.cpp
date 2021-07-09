@@ -267,8 +267,8 @@ void update(uint32_t time) {
  // ghosts
  for (auto &ghost:ghosts) {
   	Vec2 ghostdir;
-	ghostdir = (player - ghost) / 50.0f;
-       	ghostdir = Vec2(-2 + rand() % 5,-2 + rand() % 5);
+	ghostdir = (player - ghost) / 10.0f;
+       	ghostdir += Vec2(-1 + rand() % 3,-1 + rand() % 3);
   	if (ghostkiller) ghostdir = -ghostdir;
 	if (!blockedmove(ghost,ghostdir))
 		ghost += ghostdir / 20.0;
