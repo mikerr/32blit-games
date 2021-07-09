@@ -82,16 +82,17 @@ void play_wav(const uint8_t *wav,uint32_t wav_len ) {
   channels[0].trigger_attack();
 }
 
-int collide (Point a) { 
-  Point b = player;
-  return ( abs(a.x - b.x) < 2  && abs(a.y - b.y) < 2 );
+int collide (Vec2 target) { 
+  Vec2 diff = player - target; 
+  int distance = diff.x * diff.x + diff.y * diff.y;
+  return ( distance < 1.5 );
 }
 
 void reset() {
   player = Vec2(6,11);
   dir = Vec2(0,1);
   for (auto &ghost:ghosts) {
-  	ghost = Vec2(10,10);
+  	ghost = Vec2(8 + rand() % 2,8);
   }
 }
 
@@ -111,8 +112,8 @@ int ongridline(float x) {
   return (abs(ix - x) <  0.01f);
 }
 
-int blockedmove(Vec2 dir){
-  Vec2 next = player + dir  + Vec2(0.5f,0.5f);
+int blockedmove(Vec2 pos,Vec2 dir){
+  Vec2 next = pos + dir  + Vec2(0.5f,0.5f);
   return (map[(int)next.y][(int)next.x] == WALL) ;
 }
 
@@ -217,33 +218,34 @@ void update(uint32_t time) {
 
  	if (pressed(Button::DPAD_LEFT)  || move.x < 0) {
 		newdir = Vec2(-1,0);
-		if (ongridline(player.x) && !blockedmove(newdir)) {
+		if (ongridline(player.x) && !blockedmove(player,newdir)) {
 			player.y = round(player.y);
 			dir = newdir;
 		}
 	}
  	if (pressed(Button::DPAD_RIGHT) || move.x > 0) {
 		newdir = Vec2(1,0);
-		if (ongridline(player.x) && !blockedmove(newdir)) {
+		if (ongridline(player.x) && !blockedmove(player,newdir)) {
 			player.y = round(player.y);
 			dir = newdir;
 		}
 	}
  	if (pressed(Button::DPAD_UP) || move.y < 0) {
 		newdir = Vec2(0,-1);
-		if (ongridline(player.y) && !blockedmove(newdir)) {
+		if (ongridline(player.y) && !blockedmove(player,newdir)) {
 			player.x = round(player.x);
 			dir = newdir;
 		}
 	}
  	if (pressed(Button::DPAD_DOWN) || move.y > 0) {
 		newdir = Vec2(0,1);
-		if (ongridline(player.y) && !blockedmove(newdir)) {
+		if (ongridline(player.y) && !blockedmove(player,newdir)) {
 			player.x = round(player.x);
 			dir = newdir;
 		}
 	}
 
+	if (!blockedmove(player,dir))
  	player += dir / 15.0;
 
 	//wrap around left/right
@@ -266,9 +268,10 @@ void update(uint32_t time) {
  for (auto &ghost:ghosts) {
   	Vec2 ghostdir;
 	ghostdir = (player - ghost) / 50.0f;
-       	ghostdir += Vec2(-1 + rand() % 3,-1 + rand() % 3);
-  	if (!ghostkiller) ghost += ghostdir / 20.0;
-	else ghost -= ghostdir / 20.0;
+       	ghostdir = Vec2(-2 + rand() % 5,-2 + rand() % 5);
+  	if (ghostkiller) ghostdir = -ghostdir;
+	if (!blockedmove(ghost,ghostdir))
+		ghost += ghostdir / 20.0;
  }
  for (auto &ghost:ghosts) {
 	if (collide(ghost)) {
