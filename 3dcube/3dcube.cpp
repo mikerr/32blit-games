@@ -10,6 +10,10 @@ typedef struct shape {
 
 shape cube,texcube;
 
+typedef struct shape2d {
+    std::vector<Point> points;
+} shape2d;
+
 int low_res, filled = 2,tex;
 float zoom,spin;
 Vec2 joypos,pos,dir,center;
@@ -73,52 +77,56 @@ Vec2 to2d (Vec3 point3d) {
     return (point);
     }
 
+shape2d getlinepoints (Point p1,Point p2) {
+    int32_t dx = int32_t(abs(p2.x - p1.x));
+    int32_t dy = -int32_t(abs(p2.y - p1.y));
+
+    int32_t sx = (p1.x < p2.x) ? 1 : -1;
+    int32_t sy = (p1.y < p2.y) ? 1 : -1;
+
+    int32_t err = dx + dy;
+
+    shape2d linepoints;
+    Point p(p1);
+    while (true) {
+      linepoints.points.push_back(p);
+      if ((p.x == p2.x) && (p.y == p2.y)) break;
+
+      int32_t e2 = err * 2;
+      if (e2 >= dy) { err += dy; p.x += sx; }
+      if (e2 <= dx) { err += dx; p.y += sy; }
+    }
+    return linepoints;
+}
+
 void texline ( Point p1,Point p2,int y) {
-    int32_t dx = int32_t(abs(p2.x - p1.x));
-    int32_t dy = -int32_t(abs(p2.y - p1.y));
-
-    int32_t sx = (p1.x < p2.x) ? 1 : -1;
-    int32_t sy = (p1.y < p2.y) ? 1 : -1;
-
-    int32_t err = dx + dy;
-
-    Point p(p1);
+    shape2d allthepoints = getlinepoints (p1,p2);
     int i=0;
-    while (true) {
-      if (i > 64) i = 0;   
-      screen.blit(texture[tex],Rect(i++,y,1,1),p);
-
-
-      if ((p.x == p2.x) && (p.y == p2.y)) break;
-
-      int32_t e2 = err * 2;
-      if (e2 >= dy) { err += dy; p.x += sx; }
-      if (e2 <= dx) { err += dx; p.y += sy; }
+    for (auto p:allthepoints.points) {
+      screen.blit(texture[tex],Rect(i,y,1,1),p);
+      if (i++ > 64) i = 0;   
     }
 }
-void textri ( Point p1,Point p2,Point p3) {
-    int32_t dx = int32_t(abs(p2.x - p1.x));
-    int32_t dy = -int32_t(abs(p2.y - p1.y));
-
-    int32_t sx = (p1.x < p2.x) ? 1 : -1;
-    int32_t sy = (p1.y < p2.y) ? 1 : -1;
-
-    int32_t err = dx + dy;
-
-    Point p(p1);
-    int i=0;
-    while (true) {
-      texline(p,p3,i++);
-      if (i > 64) i = 0;   
-
-      if ((p.x == p2.x) && (p.y == p2.y)) break;
-
-      int32_t e2 = err * 2;
-      if (e2 >= dy) { err += dy; p.x += sx; }
-      if (e2 <= dx) { err += dx; p.y += sy; }
-    }
+void textri (Point t1,Point t2, Point t3) {
+	        shape2d allthepoints = getlinepoints (t2,t3);
+		int y = 0;
+		for (auto p:allthepoints.points){
+			texline(p,t1,y);
+			if (y++ > 64) y = 0;
+		}
 }
-
+void texquad(Point t1,Point t2,Point t3,Point t4) {
+		   int y = 0;
+	           shape2d sideA = getlinepoints (t2,t1);
+	           shape2d sideB = getlinepoints (t3,t4);
+		   int s=0;
+		   int slen = sideB.points.size();
+		   for (auto p:sideA.points){
+			texline(p,sideB.points[s++],y);
+			if (s >= slen) s = 0;
+			if (y++ > 64) y = 0;
+		   }
+}
 void draw_shape(shape shape,Vec2 pos,float size){
     int i=0;
     for (auto &face: shape.faces) {
@@ -157,13 +165,17 @@ void draw_shape(shape shape,Vec2 pos,float size){
                screen.triangle(t1,t2,t3);
 	       }
 	    if (filled == 2) {
+		// textured
+	       static Point oldt1,oldt2,oldt3;
 
 	       if (i % 2)  {
-               	screen.line(t2,t3);
-               	screen.line(t3,t1);
-	       }
+		       texquad(t2,oldt2,t1,t3);
+		   }
 	       else {
-	       }
+	       	   oldt1 = t1;
+	           oldt2 = t2;
+	           oldt3 = t3;
+	           }
 
 	       }
 	    }
@@ -228,11 +240,9 @@ void render(uint32_t time) {
     int cubesize = zoom * 10;
     if ((pos.x < cubesize ) || (pos.x > edge.x - cubesize )) { 
 	    dir.x = -dir.x; 
-	    spin = spin; 
     }
     if ((pos.y < cubesize ) || (pos.y > edge.y - cubesize )) { 
 	    dir.y = -dir.y; 
-	    spin = spin; 
     }
 
     pos = pos + dir;
