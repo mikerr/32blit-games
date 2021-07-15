@@ -10,9 +10,7 @@ typedef struct shape {
 
 shape cube,texcube;
 
-typedef struct shape2d {
-    std::vector<Point> points;
-} shape2d;
+typedef std::vector<Point> pointlist;
 
 int low_res, filled = 2,tex;
 float zoom,spin;
@@ -21,22 +19,18 @@ Vec3 rot;
 
 Surface *texture[3];
 
-Pen colours[] = {
-	Pen(255,0,0),
-	Pen(255,0,0),
-	Pen(0,255,0),
-	Pen(0,255,0),
-	Pen(0,0,255),
-	Pen(0,0,255),
-	Pen(255,255,0),
-	Pen(255,255,0),
-	Pen(255,0,255),
-	Pen(255,0,255),
-	Pen(255,255,255),
-	Pen(255,255,255)
-};
-Pen white = {255,255,255};
 Pen black = {0,0,0};
+Pen blue = {0,0,255};
+Pen red = {255,0,0}; 
+Pen magenta = { 255,0,255};
+Pen green = {0,255,0};
+Pen cyan = { 0,255,255};
+Pen yellow = { 255,255,0};
+Pen white = {255,255,255};
+
+Pen colours[] = { // face colours - 2 triangles per cube side
+	red, red, blue, blue, green, green, yellow,yellow, magenta, magenta, cyan, cyan
+};
 
 Vec3 rotate3d (Vec3 point3d,Vec3 rot) {
 static Vec2 point;
@@ -77,7 +71,8 @@ Vec2 to2d (Vec3 point3d) {
     return (point);
     }
 
-shape2d getlinepoints (Point p1,Point p2) {
+pointlist getlinepoints (Point p1,Point p2) {
+int linelen=0;
     int32_t dx = int32_t(abs(p2.x - p1.x));
     int32_t dy = -int32_t(abs(p2.y - p1.y));
 
@@ -86,45 +81,45 @@ shape2d getlinepoints (Point p1,Point p2) {
 
     int32_t err = dx + dy;
 
-    shape2d linepoints;
+    pointlist linepoints;
     Point p(p1);
-    while (true) {
-      linepoints.points.push_back(p);
-      if ((p.x == p2.x) && (p.y == p2.y)) break;
+    while (linelen++ < 999){
+        linepoints.push_back(p);
+        if ((p.x == p2.x) && (p.y == p2.y)) break;
 
-      int32_t e2 = err * 2;
-      if (e2 >= dy) { err += dy; p.x += sx; }
-      if (e2 <= dx) { err += dx; p.y += sy; }
+        int32_t e2 = err * 2;
+        if (e2 >= dy) { err += dy; p.x += sx; }
+        if (e2 <= dx) { err += dx; p.y += sy; }
     }
     return linepoints;
 }
 
 void texline ( Point p1,Point p2,int y) {
-    shape2d allthepoints = getlinepoints (p1,p2);
-    int i=0;
-    for (auto p:allthepoints.points) {
-      screen.blit(texture[tex],Rect(i,y,1,1),p);
-      if (i++ > 64) i = 0;   
+    pointlist allthepoints = getlinepoints (p1,p2);
+    int x = 0;
+    for (auto p:allthepoints) {
+        screen.blit(texture[tex],Rect(x,y,1,1),p);
+        if (++x > 64) x = 0;   
     }
 }
 void textri (Point t1,Point t2, Point t3) {
-	        shape2d allthepoints = getlinepoints (t2,t3);
 		int y = 0;
-		for (auto p:allthepoints.points){
+	        pointlist allthepoints = getlinepoints (t2,t3);
+		for (auto p:allthepoints){
 			texline(p,t1,y);
-			if (y++ > 64) y = 0;
+			if (++y > 64) y = 0;
 		}
 }
 void texquad(Point t1,Point t2,Point t3,Point t4) {
 		   int y = 0;
-	           shape2d sideA = getlinepoints (t2,t1);
-	           shape2d sideB = getlinepoints (t3,t4);
-		   int s=0;
-		   int slen = sideB.points.size();
-		   for (auto p:sideA.points){
-			texline(p,sideB.points[s++],y);
-			if (s >= slen) s = 0;
-			if (y++ > 64) y = 0;
+	           pointlist sideApoints = getlinepoints (t2,t1);
+	           pointlist sideBpoints = getlinepoints (t3,t4);
+		   int sblen = sideBpoints.size();
+		   int sb = 0;
+		   for (auto p:sideApoints){
+			texline(p,sideBpoints[sb],y);
+			if (++sb >= sblen) break;
+			if (++y > 64) y = 0;
 		   }
 }
 void draw_shape(shape shape,Vec2 pos,float size){
@@ -166,17 +161,10 @@ void draw_shape(shape shape,Vec2 pos,float size){
 	       }
 	    if (filled == 2) {
 		// textured
-	       static Point oldt1,oldt2,oldt3;
+	       static Point oldt2;
 
-	       if (i % 2)  {
-		       texquad(t2,oldt2,t1,t3);
-		   }
-	       else {
-	       	   oldt1 = t1;
-	           oldt2 = t2;
-	           oldt3 = t3;
-	           }
-
+	       if (i % 2) texquad(t2,oldt2,t1,t3);
+	       else oldt2 = t2;
 	       }
 	    }
 	i++;
@@ -234,16 +222,10 @@ void render(uint32_t time) {
     screen.pen = black;
     screen.clear();
 
-    screen.pen = white;
-
     Vec2 edge = center * 2;
     int cubesize = zoom * 10;
-    if ((pos.x < cubesize ) || (pos.x > edge.x - cubesize )) { 
-	    dir.x = -dir.x; 
-    }
-    if ((pos.y < cubesize ) || (pos.y > edge.y - cubesize )) { 
-	    dir.y = -dir.y; 
-    }
+    if ((pos.x < cubesize ) || (pos.x > edge.x - cubesize ))  dir.x = -dir.x; 
+    if ((pos.y < cubesize ) || (pos.y > edge.y - cubesize ))  dir.y = -dir.y; 
 
     pos = pos + dir;
     rot += Vec3(spin,spin,0);
