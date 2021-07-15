@@ -95,11 +95,13 @@ int linelen=0;
 }
 
 void texline ( Point p1,Point p2,int y) {
+    float x = 0;
     pointlist allthepoints = getlinepoints (p1,p2);
-    int x = 0;
+    // scale non-repeating texture to face width
+    float step = 64.0f / allthepoints.size(); 
     for (auto p:allthepoints) {
         screen.blit(texture[tex],Rect(x,y,1,1),p);
-        if (++x > 64) x = 0;   
+	x += step;
     }
 }
 void textri (Point t1,Point t2, Point t3) {
@@ -111,15 +113,16 @@ void textri (Point t1,Point t2, Point t3) {
 		}
 }
 void texquad(Point t1,Point t2,Point t3,Point t4) {
-		   int y = 0;
+		   float y = 0;
 	           pointlist sideApoints = getlinepoints (t2,t1);
 	           pointlist sideBpoints = getlinepoints (t3,t4);
 		   int sblen = sideBpoints.size();
+		   float step = 64.0f / sblen;
 		   int sb = 0;
 		   for (auto p:sideApoints){
 			texline(p,sideBpoints[sb],y);
 			if (++sb >= sblen) break;
-			if (++y > 64) y = 0;
+			y += step;
 		   }
 }
 void draw_shape(shape shape,Vec2 pos,float size){
