@@ -12,13 +12,14 @@ shape cube,texcube;
 
 typedef std::vector<Point> pointlist;
 
-bool low_res;
+bool low_res,showall;
 int filled, tex;
+float texWidth;
 float zoom,spin;
 Vec2 pos,dir,center;
 Vec3 rot;
 
-Surface *texture[3];
+Surface *texture[5];
 
 Pen black = {0,0,0};
 Pen blue = {0,0,255};
@@ -85,6 +86,7 @@ int linelen=0;
     pointlist linepoints;
     Point p(p1);
     while (linelen++ < 999){
+	// dont draw off screen
         linepoints.push_back(p);
         if ((p.x == p2.x) && (p.y == p2.y)) break;
 
@@ -99,7 +101,7 @@ void texline ( Point p1,Point p2,int y) {
     float x = 0;
     pointlist allthepoints = getlinepoints (p1,p2);
     // scale non-repeating texture to face width
-    float step = 64.0f / allthepoints.size(); 
+    float step = texWidth / allthepoints.size(); 
     for (auto p:allthepoints) {
         screen.blit(texture[tex],Rect(x,y,1,1),p);
 	x += step;
@@ -110,7 +112,7 @@ void textri (Point t1,Point t2, Point t3) {
 	        pointlist allthepoints = getlinepoints (t2,t3);
 		for (auto p:allthepoints){
 			texline(p,t1,y);
-			if (++y > 64) y = 0;
+			if (++y > texWidth) y = 0;
 		}
 }
 void texquad(Point t1,Point t2,Point t3,Point t4) {
@@ -118,7 +120,7 @@ void texquad(Point t1,Point t2,Point t3,Point t4) {
 	           pointlist sideApoints = getlinepoints (t2,t1);
 	           pointlist sideBpoints = getlinepoints (t3,t4);
 		   int sblen = sideBpoints.size();
-		   float step = 64.0f / sblen;
+		   float step = texWidth / sblen;
 		   int sb = 0;
 		   for (auto p:sideApoints){
 			texline(p,sideBpoints[sb],y);
@@ -167,7 +169,14 @@ void draw_shape(shape shape,Vec2 pos,float size){
 		// textured
 	       static Point oldt2;
 
-	       if (i % 2) texquad(t2,oldt2,t1,t3);
+	       if (i % 2) {
+		       if (showall) {
+		       		tex = i/2;
+		       		if (tex > 4) tex = 4;
+		       }
+    	       	       texWidth = texture[tex]->bounds.w;
+		       texquad(t2,oldt2,t1,t3);
+	       }
 	       else oldt2 = t2;
 	       }
 	    }
@@ -181,7 +190,7 @@ void draw_fps(uint32_t ms_start,uint32_t ms_end){
     uint32_t ms = ms_end - ms_start;
     screen.pen = white;
     std::string status;
-    status = std::to_string(1000 / (ms>0 ? ms: 1)) + " fps";
+    status = std::to_string(1000 / (ms >  0 ? ms : 1)) + " fps";
     screen.text(status, minimal_font, Point(0, screen.bounds.h - 10));
     status = std::to_string(ms) + " ms";
     screen.text(status, minimal_font, Point(100, screen.bounds.h - 10));
@@ -229,6 +238,8 @@ void init() {
     texture[tex] = Surface::load(bricksimg);
     texture[++tex] = Surface::load(stonesimg);
     texture[++tex] = Surface::load(crateimg);
+    texture[++tex] = Surface::load(baboonimg);
+    texture[++tex] = Surface::load(lenaimg);
 }
 
 void render(uint32_t time) {
@@ -262,7 +273,8 @@ void update(uint32_t time) {
         pos = center;
         }
     if (buttons.released & Button::Y)  { filled++; if (filled > 2) filled = 0;}
-    if (buttons.released & Button::B)  { tex++; if (tex > 2) tex = 0;}
+    if (buttons.released & Button::B)  { showall = 0; tex++; if (tex > 4) tex = 0;}
+    if (buttons.released & Button::A)  { showall = !showall;} 
 
     Vec2 edge = center * 2;
     int cubesize = zoom * 10;
