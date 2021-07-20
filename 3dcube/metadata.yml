@@ -1,9 +1,9 @@
 title: 3dcube
-description: Spinning 3d cube, wireframe, solid or textured
+description: Spinning 3d cube, wireframe/ solid / textured
 author: mikered
 splash:
   file: splash.png
 icon:
   file: icon.png
-version: v1.0.4
+version: v1.0.5
 category: demo

@@ -12,9 +12,10 @@ shape cube,texcube;
 
 typedef std::vector<Point> pointlist;
 
-int low_res, filled = 2,tex;
+bool low_res;
+int filled, tex;
 float zoom,spin;
-Vec2 joypos,pos,dir,center;
+Vec2 pos,dir,center;
 Vec3 rot;
 
 Surface *texture[3];
@@ -174,6 +175,18 @@ void draw_shape(shape shape,Vec2 pos,float size){
     }
 }
 
+
+void draw_fps(uint32_t ms_start,uint32_t ms_end){
+     // draw FPS meter
+    uint32_t ms = ms_end - ms_start;
+    screen.pen = white;
+    std::string status;
+    status = std::to_string(1000 / (ms>0 ? ms: 1)) + " fps";
+    screen.text(status, minimal_font, Point(0, screen.bounds.h - 10));
+    status = std::to_string(ms) + " ms";
+    screen.text(status, minimal_font, Point(100, screen.bounds.h - 10));
+}
+
 void init() {
     set_screen_mode(ScreenMode::hires);
     center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
@@ -206,57 +219,43 @@ void init() {
             {2, 7, 3}
 	    };
 
-    low_res = 0;
     spin = 0.01f;
-    zoom = 1;
+    filled = 2;
+    zoom = 5;
 
     pos = center;
     dir = Vec2 (1,1);
 
-    texture[tex++] = Surface::load(bricksimg);
-    texture[tex++] = Surface::load(stonesimg);
-    texture[tex++] = Surface::load(crateimg);
-    tex = 0;
+    texture[tex] = Surface::load(bricksimg);
+    texture[++tex] = Surface::load(stonesimg);
+    texture[++tex] = Surface::load(crateimg);
 }
 
 void render(uint32_t time) {
 
-    uint32_t ms_start = now();
+    uint32_t start = now();
     screen.pen = black;
     screen.clear();
 
-    Vec2 edge = center * 2;
-    int cubesize = zoom * 10;
-    if ((pos.x < cubesize ) || (pos.x > edge.x - cubesize ))  dir.x = -dir.x; 
-    if ((pos.y < cubesize ) || (pos.y > edge.y - cubesize ))  dir.y = -dir.y; 
+    pos += dir;
+    rot += Vec3(spin,spin,spin);
 
-    pos = pos + dir;
-    rot += Vec3(spin,spin,0);
+    draw_shape (cube, pos, zoom);
 
-    draw_shape (cube, pos, 5);
-
-     // draw FPS meter
-    uint32_t ms_end = now();
-    uint32_t ms = ms_end - ms_start;
-    screen.pen = white;
-    screen.text("Y: change wireframe / filled", minimal_font, Point(0, 0));
-    screen.text("B: change texture", minimal_font, Point(160, 0));
-    std::string status = std::to_string(1000 / (ms>0 ? ms: 1)) + " fps    " + std::to_string(ms) + " ms";
-    screen.text(status, minimal_font, Point(0, screen.bounds.h - 10));
+    draw_fps(start,now());
 }
 
 void update(uint32_t time) {
 
-    Vec2 move = blit::joystick;
-    if (move.y > 0) zoom += 0.01f;
-    if (move.y < 0) zoom -= 0.01f;
-    pos.x += move.x;
+    pos += joystick;
 
-    if (pressed(Button::DPAD_LEFT))  { spin -= 0.001f;}
-    if (pressed(Button::DPAD_RIGHT)) { spin += 0.001f;}
+    if (pressed(DPAD_UP)) zoom += 0.1f;
+    if (pressed(DPAD_DOWN)) zoom -= 0.1f;
+    if (pressed(DPAD_LEFT))  { spin -= 0.001f;}
+    if (pressed(DPAD_RIGHT)) { spin += 0.001f;}
 
     if (buttons.released & Button::X)  {
-        low_res = 1 - low_res;
+        low_res = !low_res;
         if (low_res) set_screen_mode(ScreenMode::hires); 
 	else set_screen_mode(ScreenMode::lores); 
         center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
@@ -264,4 +263,9 @@ void update(uint32_t time) {
         }
     if (buttons.released & Button::Y)  { filled++; if (filled > 2) filled = 0;}
     if (buttons.released & Button::B)  { tex++; if (tex > 2) tex = 0;}
+
+    Vec2 edge = center * 2;
+    int cubesize = zoom * 10;
+    if ((pos.x < cubesize ) || (pos.x > edge.x - cubesize ))  dir.x *= -1;
+    if ((pos.y < cubesize ) || (pos.y > edge.y - cubesize ))  dir.y *= -1;
 }
