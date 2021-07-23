@@ -116,7 +116,6 @@ jobs:
       if: matrix.name == 'Emscripten'
       run: embuilder.py build sdl2 sdl2-image-jpg sdl2-net
 
-
     # Set up the cmake build environment
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/main/build
@@ -125,7 +124,7 @@ jobs:
     - name: Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}/main/build
-      run: cmake $GITHUB_WORKSPACE/main -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_PACKAGE_FILE_NAME=${{env.RELEASE_FILE}} ${{matrix.cmake-args}}
+      run: ${{matrix.cmake-prefix}} cmake $GITHUB_WORKSPACE/main -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCPACK_PACKAGE_FILE_NAME=${{env.RELEASE_FILE}} ${{matrix.cmake-args}}
 
     # And then run the build itself
     - name: Build
