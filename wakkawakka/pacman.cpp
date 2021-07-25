@@ -6,10 +6,13 @@ using namespace blit;
 Surface *level;
 
 int dead,dotseaten,ghostkiller;
-Vec2 player,fruitpos;
-Vec2 dir;
 
-Vec2 ghosts[4];
+typedef struct spriteobj {
+	Vec2 pos;
+	Vec2 dir;
+} spriteobj;
+
+spriteobj player,fruit,ghosts[4];
 
 #define WALL     0
 #define BISCUIT  1
@@ -45,15 +48,13 @@ int map[22][19] = {
 int xscale = 18;
 int yscale = 11;
 
-std::string status;
-
 //costumes
 Rect pac = Rect(57,0,2,2);
 Rect deadpac = Rect(61,0,2,2);
 Rect redghost = Rect(57,8,2,2);
 Rect scaredghost = Rect(73,8,2,2);
 Rect whiteghost = Rect(79,8,2,2);
-Rect fruit = Rect(61,6,2,2);
+Rect cherry = Rect(61,6,2,2);
 
 // Static wave config
 static const uint8_t *wavSample;
@@ -83,16 +84,17 @@ void play_wav(const uint8_t *wav,uint32_t wav_len ) {
 }
 
 int collide (Vec2 target) { 
-  Vec2 diff = player - target; 
+  Vec2 diff = player.pos - target; 
   int distance = diff.x * diff.x + diff.y * diff.y;
   return ( distance < 1.5 );
 }
 
 void reset() {
-  player = Vec2(6,11);
-  dir = Vec2(0,1);
+  player.pos = Vec2(6,11);
+  player.dir = Vec2(0,1);
   for (auto &ghost:ghosts) {
-  	ghost = Vec2(8 + rand() % 2,8);
+  	ghost.pos = Vec2(8,8);
+  	ghost.dir = Vec2(1 - rand() % 3,1 - rand() % 3);
   }
 }
 
@@ -117,19 +119,28 @@ int blockedmove(Vec2 pos,Vec2 dir){
   return (map[(int)next.y][(int)next.x] == WALL) ;
 }
 
+Vec2 randomdir() {
+	Vec2 dir;
+	int random = (rand() % 2) ? -1 : 1 ;
+	// don't do diagonals
+	if (rand() % 2) dir.x = random;
+	else dir.y = random;
+
+	return (dir);
+}
 void init() {
   set_screen_mode(ScreenMode::hires);
 
   channels[0].waveforms = Waveform::WAVE;
   channels[0].wave_buffer_callback = &buffCallBack;
 
-  level = SpriteSheet::load(pacman);
-  screen.sprites = SpriteSheet::load(pacman);
+  level = Surface::load(pacman);
+  screen.sprites = Surface::load(pacman);
 
   //make black transparent
   screen.sprites->palette[0] = Pen(0,0,0,0); 
   reset();
-  fruitpos = Vec2(10,15);
+  fruit.pos = Vec2(10,15);
   play_wav(intromusic,intromusic_length);
 }
 
@@ -166,9 +177,9 @@ Rect costume;
   if (!dead) {
 	// face right direction
   	costume = pac;
-  	if (dir.x == -1) costume.y += 2;
-  	if (dir.y == -1) costume.y += 4;
-  	if (dir.y ==  1) costume.y += 6;
+  	if (player.dir.x == -1) costume.y += 2;
+  	if (player.dir.y == -1) costume.y += 4;
+  	if (player.dir.y ==  1) costume.y += 6;
 
 	// chomp animation
   	if (frame++ % 9 == 0)  anim = !anim;
@@ -180,7 +191,7 @@ Rect costume;
   	// timer for death anim
   	if (dead > 0) dead--;
   }
-  screen.sprite(costume,grid(player) - spritecenter);
+  screen.sprite(costume,grid(player.pos) - spritecenter);
 
   //ghosts
   costume = redghost;
@@ -190,21 +201,21 @@ Rect costume;
 	  ghostkiller--;
   }
   for (auto ghost:ghosts) {
-  	screen.sprite(costume,grid(ghost) + spritecenter);
+  	screen.sprite(costume,grid(ghost.pos) );//+ spritecenter);
 	if (!ghostkiller) costume.y += 2; // change colour
   }
 
-  costume = fruit;
-  //if (dotseaten % 100 == 0) fruitpos = Vec2(rand() % 300, rand() % 200);
-  if (fruitpos != Vec2(0,0)) screen.sprite(costume,grid(fruitpos));
-  if (collide(fruitpos)) fruitpos = Vec2(0,0);
-
+  //if (dotseaten % 100 == 0) fruit.pos = Vec2(rand() % 300, rand() % 200);
+  if (fruit.pos != Vec2(0,0)) screen.sprite(cherry,grid(fruit.pos));
+  if (collide(fruit.pos)) fruit.pos = Vec2(0,0);
   if (dotseaten == 178) newlevel();
-  //if ((frame % 20) == 0) play_wav(wakkawakka,wakkawakka_length);
-  screen.pen = Pen(255,255,255);
-  status = "SCORE: " + std::to_string(dotseaten);
+
+  if (wavPos == 0 && frame > 200) play_wav(siren,siren_length);
+
+  std::string status = "SCORE: " + std::to_string(dotseaten);
   screen.text(status,minimal_font,Vec2(10,230));
   status = "TIME: " + std::to_string(frame /50);
+  screen.pen = Pen(255,255,255);
   screen.text(status,minimal_font,Vec2(150,230));
 }
 
@@ -213,49 +224,50 @@ void update(uint32_t time) {
  Vec2 move = joystick;
  if (!dead) {
 	Vec2 newdir;
-	int x = round(player.x);
-	int y = round(player.y);
+	int x = round(player.pos.x);
+	int y = round(player.pos.y);
 
  	if (pressed(Button::DPAD_LEFT)  || move.x < 0) {
 		newdir = Vec2(-1,0);
-		if (ongridline(player.x) && !blockedmove(player,newdir)) {
-			player.y = round(player.y);
-			dir = newdir;
+		if (ongridline(player.pos.x) && !blockedmove(player.pos,newdir)) {
+			player.pos.y = round(player.pos.y);
+			player.dir = newdir;
 		}
 	}
  	if (pressed(Button::DPAD_RIGHT) || move.x > 0) {
 		newdir = Vec2(1,0);
-		if (ongridline(player.x) && !blockedmove(player,newdir)) {
-			player.y = round(player.y);
-			dir = newdir;
+		if (ongridline(player.pos.x) && !blockedmove(player.pos,newdir)) {
+			player.pos.y = round(player.pos.y);
+			player.dir = newdir;
 		}
 	}
  	if (pressed(Button::DPAD_UP) || move.y < 0) {
 		newdir = Vec2(0,-1);
-		if (ongridline(player.y) && !blockedmove(player,newdir)) {
-			player.x = round(player.x);
-			dir = newdir;
+		if (ongridline(player.pos.y) && !blockedmove(player.pos,newdir)) {
+			player.pos.x = round(player.pos.x);
+			player.dir = newdir;
 		}
 	}
  	if (pressed(Button::DPAD_DOWN) || move.y > 0) {
 		newdir = Vec2(0,1);
-		if (ongridline(player.y) && !blockedmove(player,newdir)) {
-			player.x = round(player.x);
-			dir = newdir;
+		if (ongridline(player.pos.y) && !blockedmove(player.pos,newdir)) {
+			player.pos.x = round(player.pos.x);
+			player.dir = newdir;
 		}
 	}
 
-	if (!blockedmove(player,dir))
- 	player += dir / 15.0;
+	if (!blockedmove(player.pos,player.dir))
+ 	player.pos += player.dir / 15.0;
 
 	//wrap around left/right
-	if (x > 18) player.x = 0;
-	if (x < 0) player.x = 18;
-	if (y > 21) player.y = 0;
-	if (y < 0) player.y = 21;
+	if (x > 18) player.pos.x = 0;
+	if (x < 0) player.pos.x = 18;
+	if (y > 21) player.pos.y = 0;
+	if (y < 0) player.pos.y = 21;
 
 	if (map[y][x] == BISCUIT) {
 		dotseaten++;
+  		play_wav(wakkawakka,wakkawakka_length);
 		map[y][x] = EMPTY;
 	}
 	if (map[y][x] == PILL) {
@@ -266,21 +278,19 @@ void update(uint32_t time) {
  	
  // ghosts
  for (auto &ghost:ghosts) {
-  	Vec2 ghostdir;
-	ghostdir = (player - ghost) / 10.0f;
-       	ghostdir += Vec2(-1 + rand() % 3,-1 + rand() % 3);
-  	if (ghostkiller) ghostdir = -ghostdir;
-	if (!blockedmove(ghost,ghostdir))
-		ghost += ghostdir / 20.0;
+  	//if (ghostkiller) ghostdir = -ghostdir;
+	if (blockedmove(ghost.pos,ghost.dir))
+		ghost.dir = randomdir();
+	ghost.pos += ghost.dir / 50.0f;
  }
  for (auto &ghost:ghosts) {
-	if (collide(ghost)) {
+	if (collide(ghost.pos)) {
 		if (!ghostkiller) {
   			dead = 50; // dead for 1 second (50 frames)
   			play_wav(deathmusic,deathmusic_length);
 			reset();
 		} else {
-			ghost = Vec2(8,8);
+			ghost.pos = Vec2(8,8);
 			}
 		}
  }
