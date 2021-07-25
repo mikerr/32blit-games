@@ -11,7 +11,7 @@ else()
   add_compile_options("-Wall" "-Wextra" "-Wdouble-promotion" "-Wno-unused-parameter")
 endif()
 
-find_package (32BLIT CONFIG REQUIRED PATHS ../32blit-sdk)
+find_package (32BLIT CONFIG REQUIRED PATHS ../32blit-sdk $ENV{PATH_32BLIT_SDK})
 
 add_subdirectory (3dcube)
 add_subdirectory (bitmapstuff)
