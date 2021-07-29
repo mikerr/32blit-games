@@ -13,7 +13,7 @@ shape cube,texcube;
 typedef std::vector<Point> pointlist;
 
 bool low_res,showall;
-int filled, tex;
+int filled, tex,pixelsize;
 float texWidth;
 float zoom,spin;
 Vec2 pos,dir,center;
@@ -103,7 +103,7 @@ void texline ( Point p1,Point p2,int y) {
     // scale non-repeating texture to face width
     float step = texWidth / allthepoints.size(); 
     for (auto p:allthepoints) {
-        screen.blit(texture[tex],Rect(x,y,1,1),p);
+        screen.blit(texture[tex],Rect(x,y,pixelsize,pixelsize),p);
 	x += step;
     }
 }
@@ -123,7 +123,8 @@ void texquad(Point t1,Point t2,Point t3,Point t4) {
 		   float step = texWidth / sblen;
 		   int sb = 0;
 		   for (auto p:sideApoints){
-			texline(p,sideBpoints[sb],y);
+			Point p1 = sideBpoints[sb];
+			texline(p,p1,y);
 			if (++sb >= sblen) break;
 			y += step;
 		   }
@@ -231,15 +232,16 @@ void init() {
     spin = 0.01f;
     filled = 2;
     zoom = 5;
+    pixelsize = 2;
 
     pos = center;
     dir = Vec2 (1,1);
 
     texture[tex] = Surface::load(bricksimg);
     texture[++tex] = Surface::load(stonesimg);
-    texture[++tex] = Surface::load(crateimg);
     texture[++tex] = Surface::load(baboonimg);
     texture[++tex] = Surface::load(lenaimg);
+    texture[++tex] = Surface::load(crateimg);
 }
 
 void render(uint32_t time) {
@@ -275,6 +277,8 @@ void update(uint32_t time) {
     if (buttons.released & Button::Y)  { filled++; if (filled > 2) filled = 0;}
     if (buttons.released & Button::B)  { showall = 0; tex++; if (tex > 4) tex = 0;}
     if (buttons.released & Button::A)  { showall = !showall;} 
+
+    if (buttons.released & Button::JOYSTICK)  { pixelsize = 3 - pixelsize;} 
 
     Vec2 edge = center * 2;
     int cubesize = zoom * 10;
