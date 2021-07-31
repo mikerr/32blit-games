@@ -7,3 +7,5 @@ assets.hpp:
     name: deathmusic
   wakkawakka.wav:
     name: wakkawakka
+  siren_1.wav:
+    name: siren

@@ -56,6 +56,9 @@ Rect scaredghost = Rect(73,8,2,2);
 Rect whiteghost = Rect(79,8,2,2);
 Rect cherry = Rect(61,6,2,2);
 
+// player and ghosts are 16x16 sprites
+Vec2 spritecenter = Vec2(8,8); 
+
 // Static wave config
 static const uint8_t *wavSample;
 static uint32_t wavSize = 0;
@@ -64,17 +67,11 @@ static uint16_t wavPos = 0;
 // Called everytime audio buffer ends
 void buffCallBack(AudioChannel &channel) {
   for (int x = 0; x < 64; x++) {
-    // Note: The sample used here has an offset, so we adjust by 0x7f. 
     channel.wave_buffer[x] = (wavPos < wavSize) ? (wavSample[wavPos]  - 0x7f) << 8 : 0;
-
     // As the engine is 22050Hz, timestretch to match 
     if (x % 2) wavPos++;
   }
-  
-  if (wavPos >= wavSize) {
-    channel.off();        
-    wavPos = 0;
-  }
+  if (wavPos >= wavSize) { channel.off();wavPos = 0;}
 }
 
 void play_wav(const uint8_t *wav,uint32_t wav_len ) {
@@ -115,7 +112,7 @@ int ongridline(float x) {
 }
 
 int blockedmove(Vec2 pos,Vec2 dir){
-  Vec2 next = pos + dir  + Vec2(0.5f,0.5f);
+  Vec2 next = pos + dir + Vec2(0.5f,0.5f);
   return (map[(int)next.y][(int)next.x] == WALL) ;
 }
 
@@ -148,8 +145,6 @@ void render(uint32_t time) {
 static int anim,frame;
 Rect costume;
 
-  // player and ghosts are 16x16 sprites
-  Vec2 spritecenter = Vec2(8,8); 
   // copy background
   screen.pen = Pen(0,0,0);
   screen.clear();
@@ -159,10 +154,6 @@ Rect costume;
   for (int x = 0; x < 19; x ++)
   	for (int y = 0; y < 22; y++) {
 		 Vec2 pos = grid(Vec2(x,y));
-		 if (map[y][x] == WALL) { 
-  			screen.pen=Pen(0,0,255);
-			//screen.circle(pos,4);
-		 }
 		 if (map[y][x] == BISCUIT) { 
   			screen.pen=Pen(255,183,174);
 			screen.circle(pos,2);
@@ -175,7 +166,7 @@ Rect costume;
 
   //player
   if (!dead) {
-	// face right direction
+	// pacman faces direction of movement
   	costume = pac;
   	if (player.dir.x == -1) costume.y += 2;
   	if (player.dir.y == -1) costume.y += 4;
@@ -187,7 +178,8 @@ Rect costume;
   } else {
 	  //death animation
   	costume = deadpac;
-  	costume.x += 2 * ((28 - dead) / 2);
+  	costume.x += 22; 
+  	costume.x -= 2 * (dead / 4);
   	// timer for death anim
   	if (dead > 0) dead--;
   }
@@ -201,16 +193,15 @@ Rect costume;
 	  ghostkiller--;
   }
   for (auto ghost:ghosts) {
-  	screen.sprite(costume,grid(ghost.pos) );//+ spritecenter);
+  	screen.sprite(costume,grid(ghost.pos) );
 	if (!ghostkiller) costume.y += 2; // change colour
   }
 
-  //if (dotseaten % 100 == 0) fruit.pos = Vec2(rand() % 300, rand() % 200);
   if (fruit.pos != Vec2(0,0)) screen.sprite(cherry,grid(fruit.pos));
   if (collide(fruit.pos)) fruit.pos = Vec2(0,0);
   if (dotseaten == 178) newlevel();
 
-  if (wavPos == 0 && frame > 200) play_wav(siren,siren_length);
+  if (wavPos == 0 ) play_wav(siren,siren_length);
 
   std::string status = "SCORE: " + std::to_string(dotseaten);
   screen.text(status,minimal_font,Vec2(10,230));
@@ -221,49 +212,42 @@ Rect costume;
 
 void update(uint32_t time) {
 
- Vec2 move = joystick;
  if (!dead) {
 	Vec2 newdir;
 	int x = round(player.pos.x);
 	int y = round(player.pos.y);
 
- 	if (pressed(Button::DPAD_LEFT)  || move.x < 0) {
+ 	if (pressed(Button::DPAD_LEFT)  || joystick.x < 0) {
 		newdir = Vec2(-1,0);
 		if (ongridline(player.pos.x) && !blockedmove(player.pos,newdir)) {
-			player.pos.y = round(player.pos.y);
 			player.dir = newdir;
 		}
 	}
- 	if (pressed(Button::DPAD_RIGHT) || move.x > 0) {
+ 	if (pressed(Button::DPAD_RIGHT) || joystick.x > 0) {
 		newdir = Vec2(1,0);
 		if (ongridline(player.pos.x) && !blockedmove(player.pos,newdir)) {
-			player.pos.y = round(player.pos.y);
 			player.dir = newdir;
 		}
 	}
- 	if (pressed(Button::DPAD_UP) || move.y < 0) {
+ 	if (pressed(Button::DPAD_UP) || joystick.y < 0) {
 		newdir = Vec2(0,-1);
 		if (ongridline(player.pos.y) && !blockedmove(player.pos,newdir)) {
-			player.pos.x = round(player.pos.x);
 			player.dir = newdir;
 		}
 	}
- 	if (pressed(Button::DPAD_DOWN) || move.y > 0) {
+ 	if (pressed(Button::DPAD_DOWN) || joystick.y > 0) {
 		newdir = Vec2(0,1);
 		if (ongridline(player.pos.y) && !blockedmove(player.pos,newdir)) {
-			player.pos.x = round(player.pos.x);
 			player.dir = newdir;
 		}
 	}
 
 	if (!blockedmove(player.pos,player.dir))
- 	player.pos += player.dir / 15.0;
+ 	 	player.pos += player.dir / 15.0;
 
 	//wrap around left/right
-	if (x > 18) player.pos.x = 0;
-	if (x < 0) player.pos.x = 18;
-	if (y > 21) player.pos.y = 0;
-	if (y < 0) player.pos.y = 21;
+	if (x > 17) player.pos.x = 0;
+	if (x < 0) player.pos.x = 17;
 
 	if (map[y][x] == BISCUIT) {
 		dotseaten++;
@@ -279,19 +263,17 @@ void update(uint32_t time) {
  // ghosts
  for (auto &ghost:ghosts) {
   	//if (ghostkiller) ghostdir = -ghostdir;
+	ghost.pos += ghost.dir / 30.0f;
+
 	if (blockedmove(ghost.pos,ghost.dir))
 		ghost.dir = randomdir();
-	ghost.pos += ghost.dir / 50.0f;
- }
- for (auto &ghost:ghosts) {
 	if (collide(ghost.pos)) {
 		if (!ghostkiller) {
   			dead = 50; // dead for 1 second (50 frames)
   			play_wav(deathmusic,deathmusic_length);
 			reset();
-		} else {
-			ghost.pos = Vec2(8,8);
-			}
+			break;
 		}
+	}
  }
 }
