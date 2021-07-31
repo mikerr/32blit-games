@@ -86,9 +86,9 @@ void init() {
   set_screen_mode(ScreenMode::hires);
   origin = Vec2(0,0);
   player = Vec3(8,8,0);
-  backdrop = SpriteSheet::load(room);
-  sbsprites = SpriteSheet::load(sabreman);
-  itemsprites = SpriteSheet::load(sprites);
+  backdrop = Surface::load(room);
+  sbsprites = Surface::load(sabreman);
+  itemsprites = Surface::load(sprites);
   newroom();
 }
 

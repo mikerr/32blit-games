@@ -20,7 +20,7 @@ void init() {
     for (int i=0; i < 100; i++) 
     	snowflakes.points.push_back(Vec3(rand() % screen.bounds.w, rand() % screen.bounds.h, rand() % 100));
 
-    snow = SpriteSheet::load(snowflake);
+    snow = Surface::load(snowflake);
 }
 
 void render(uint32_t time) {

@@ -23,7 +23,7 @@ Vec2 rot;
 		    int y1 = y - (height / 2);
 		    rot.x = x1 * sin(angle) + y1 * cos(angle);
 		    rot.y = y1 * sin(angle) - x1 * cos(angle);
-
+		
 		    Vec2 pos = (rot * zoom ) + screenpos;
         	    screen.stretch_blit(sprite,Rect(src.x + x, src.y + y,1,1),Rect(pos.x, pos.y,blocks,blocks));
 	    }

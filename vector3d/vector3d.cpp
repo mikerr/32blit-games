@@ -12,9 +12,9 @@ shape cube;
 shape square;
 shape pyramid;
 
-int low_res;
+bool low_res;
 float zoom, zd;
-Vec2 joypos,pos,dir,center;
+Vec2 pos,dir,center;
 Vec3 rot,spin;
 
 typedef struct object {
@@ -170,8 +170,7 @@ void render(uint32_t time) {
 
 void update(uint32_t time) {
 
-    Vec2 move = blit::joystick;
-    zoom -= move.y /10.0f;
+    zoom -= joystick.y /10.0f;
 
     zoom += zd;
     if (( zoom > 6 ) || ( zoom < 1 )) zd = -zd;
