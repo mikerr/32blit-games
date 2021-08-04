@@ -149,25 +149,33 @@ void draw_shape(shape shape,Vec2 pos,float size){
 	// Only draw if facing camera (hidden surface removal)
 
 	Vec3 camera = {0,0,10};
-	if ( normal.dot(camera) > 0 ) {
+	int angle = normal.dot(camera);
+	if ( angle > 0 ) {
             Point t1 = pos + to2d(p1) * size;
             Point t2 = pos + to2d(p2) * size;
             Point t3 = pos + to2d(p3) * size;
 
 	    if (filled == 0) {
-	       // vector
+	       // vector lines
                screen.pen = white;
                screen.line(t1,t2);
                screen.line(t2,t3);
                screen.line(t3,t1);
 	       } 
 	    if (filled == 1) {
-	       // filled
+	       // filled with solid colour
                screen.pen = colours[i];
                screen.triangle(t1,t2,t3);
 	       }
 	    if (filled == 2) {
-		// textured
+	       // shaded by angle from light at front/top
+	       Vec3 light = {0,0,10};
+	       int brightness = normal.dot(light) / 25;
+               screen.pen = Pen(brightness,brightness,brightness);
+               screen.triangle(t1,t2,t3);
+	       }
+	    if (filled == 3) {
+		// texture filled
 	       static Point oldt2;
 
 	       if (i % 2) {
@@ -230,7 +238,7 @@ void init() {
 	    };
 
     spin = 0.01f;
-    filled = 2;
+    filled = 3;
     zoom = 5;
     pixelsize = 2;
 
@@ -274,7 +282,7 @@ void update(uint32_t time) {
         center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
         pos = center;
         }
-    if (buttons.released & Button::Y)  { filled++; if (filled > 2) filled = 0;}
+    if (buttons.released & Button::Y)  { filled++; if (filled >= 4) filled = 0;}
     if (buttons.released & Button::B)  { showall = 0; tex++; if (tex > 4) tex = 0;}
     if (buttons.released & Button::A)  { showall = !showall;} 
 
