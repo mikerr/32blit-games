@@ -3,7 +3,7 @@
 
 using namespace blit;
 
-int dead,jumping;
+int dead;
 Vec2 origin;
 
 Rect carN = Rect(0,0,64,48);
@@ -65,7 +65,6 @@ std::vector <Vec3> buildings = {
    	Vec3(1.6, 6.6, 70), Vec3(2.6, 6.6, 70), Vec3(3.6, 6.6, 70),
    	Vec3(6, 6.5, 100),  Vec3(7, 6.5, 120)
    };
-
 bool near(Vec2 point,Vec2 target, float howfar){
 	return ( (abs(point.x - target.x) < howfar ) && (abs(point.y - target.y) < howfar));
 }
@@ -108,21 +107,23 @@ void render_track() {
 void ai_cars () {
    for (auto &car : aicars) {
       car.pos -= dirs[car.rot] * (car.speed / 100);
-
       Rect tile = track[(int)car.pos.x][(int)car.pos.y];
-      if (tile == cornerbr) car.rot = 5;
+
+      if (tile == cornerbr && car.pos.x > 8.5f) car.rot = 5;
       if (tile == cornerbl) car.rot = 7;
       if (tile == cornertl) car.rot = 1;
-      if (tile == cornertr) car.rot = 3;
+      if (tile == cornertr && car.pos.y < 0) car.rot = 3;
 
       Vec2 grid = isometric(car.pos.x,car.pos.y);
       Rect costume = costumes[car.rot];
       costume.y += 48 * (car.num - 1);
       screen.blit(vehicles,costume,grid);
-      //screen.text(std::to_string(car.num),minimal_font,grid);
-      //screen.text(std::to_string(x) + " " + std::to_string(y),minimal_font,grid);
+      screen.text(std::to_string(car.num),minimal_font,grid);
 
-      //if (near(car.pos,player.pos,0.001)) screen.text(std::to_string(x) + " " + std::to_string(y),minimal_font,grid);
+      if (near(grid,Vec2(120,120),30)) {
+	      player.vel *= 0.3;
+	      player.costume = costume.y;
+      }
    }
 }
 
