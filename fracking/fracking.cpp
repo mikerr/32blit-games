@@ -103,7 +103,7 @@ static int stopped = 0;
 
     if (demo) {
 	    if (scale < (double) 0.01) {
-		    scale *= 1.03;
+		    scale *= (double) 1.03;
 	    	    changed = 1;
 	    } 
     }
