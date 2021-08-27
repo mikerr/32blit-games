@@ -78,7 +78,7 @@ void init() {
 	// zoom in to begin with 
         cx = -0.860554;
         cy = -0.209741;
-        scale /= 2000;
+        scale /= 100;
 }
 
 void render(uint32_t time) {
@@ -102,10 +102,10 @@ static int stopped = 0;
     }
 
     if (demo) {
-	    if (scale < 0.01) {
-		    scale *= 1.02;
+	    if (scale < (double) 0.01) {
+		    scale *= 1.03;
 	    	    changed = 1;
-	    }
+	    } 
     }
     screen.pen = Pen(255,255,255);
     status = std::to_string(cx) + " , " + std::to_string(cy) + "   " + "zoom: " + std::to_string(scale); 
@@ -131,7 +131,10 @@ void update(uint32_t time) {
         if (buttons.released & Button::Y) invert = !invert; 
         if (buttons.released & Button::X) saturation = !saturation; 
 	// ANY button pressed
-        if (buttons) changed = 1;
+        if (buttons) {
+		demo = 0;
+		changed = 1;
+	}
 }
 
 
