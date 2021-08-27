@@ -1,10 +1,9 @@
 #include "32blit.hpp"
 using namespace blit;
 
-std::string status;
-int changed;
-double scale = 1./128;
-double cx = -.6, cy = 0;
+int changed, demo = 1;
+double scale;
+double cx,cy;
 int color_rotate, invert;
 int saturation = 1;
 
@@ -68,9 +67,22 @@ void mandel(int skip) {
 	}
 }
 
-void init() { set_screen_mode(ScreenMode::hires); }
+void init() { 
+	set_screen_mode(ScreenMode::hires); 
+
+	// zoomed out gingerbread
+        scale = 1./128;
+        cx = -.6;
+	cy = 0;
+
+	// zoom in to begin with 
+        cx = -0.860554;
+        cy = -0.209741;
+        scale /= 2000;
+}
 
 void render(uint32_t time) {
+std::string status;
 static int stopped = 0;
 
     screen.pen = Pen(0, 0, 0);
@@ -88,7 +100,15 @@ static int stopped = 0;
 	    mandel(1);
 	    }
     }
+
+    if (demo) {
+	    if (scale < 0.01) {
+		    scale *= 1.02;
+	    	    changed = 1;
+	    }
+    }
     screen.pen = Pen(255,255,255);
+    status = std::to_string(cx) + " , " + std::to_string(cy) + "   " + "zoom: " + std::to_string(scale); 
     screen.text(status,minimal_font,Point(0,screen.bounds.h - 10));
 }
 
