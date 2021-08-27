@@ -3,10 +3,9 @@
 
 using namespace blit;
 
-int lowres,pic;
+int lowres,pic,dir;
 float angle,speed,zoom;
 bool blur,demo,pan;
-std::string status;
 
 Surface *pictures[2];
 
@@ -17,12 +16,15 @@ Vec2 rot;
     if (blur) blocks = 2;
     int width = src.w;
     int height = src.h;
+
+    float sinangle = sin(angle);
+    float cosangle = cos(angle);
     for (int x=0;x<width;x++)
 	    for (int y=0;y<height;y++) {
 		    int x1 = x - (width / 2);
 		    int y1 = y - (height / 2);
-		    rot.x = x1 * sin(angle) + y1 * cos(angle);
-		    rot.y = y1 * sin(angle) - x1 * cos(angle);
+		    rot.x = x1 * sinangle + y1 * cosangle;
+		    rot.y = y1 * sinangle - x1 * cosangle;
 		
 		    Vec2 pos = (rot * zoom ) + screenpos;
         	    screen.stretch_blit(sprite,Rect(src.x + x, src.y + y,1,1),Rect(pos.x, pos.y,blocks,blocks));
@@ -36,10 +38,12 @@ void init() {
     blur = true;
     speed = 0.01;
     zoom = 1;
+    dir = 1;
     demo = true;
 }
 
 void render(uint32_t time) {
+std::string status;
 
     Vec2 center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
 
@@ -52,8 +56,12 @@ void render(uint32_t time) {
     screen.pen = Pen (0,0,0);
     screen.clear();
 
-    if (time % 1000 < 5 && demo) blur = !blur;
-    if (time % 2000 < 5) pic = 1 - pic;
+    if (demo) {
+	    zoom += 0.02f * dir;
+	    if (zoom > 3.0f || zoom < 0.1f) dir *= -1 ;
+	    if (zoom < 0.1f) pic = 1 - pic;
+            if (time % 3000 < 5) blur = !blur;
+    }
 
     // Draw bitmap
     blit_rotate_sprite(pictures[pic],Rect(0,0,256,256),angle,blur,center);
@@ -82,9 +90,9 @@ void update(uint32_t time) {
     if (pressed(Button::DPAD_DOWN) || joystick.y > 0.2f) zoom -= 0.01f;
 
     if (pressed(Button::A)) speed = 0;
+    if (buttons.released) demo = false;
     if (buttons.released & Button::B) {
 	    blur = !blur;
-	    demo = false;
     }
     if (buttons.released & Button::Y) {
 		    pan = !pan;
