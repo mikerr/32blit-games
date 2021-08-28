@@ -3,3 +3,5 @@ assets.hpp:
     name: baboonimg
   lena.png:
     name: lenaimg
+  bricks.png:
+    name: bricksimg
