@@ -6,7 +6,7 @@ if(PICO_SDK_PATH)
   include(${32BLIT_DIR}/32blit-pico/pico_sdk_import.cmake)
   include(${32BLIT_DIR}/32blit-pico/pico_extras_import.cmake)
 endif()
-enable_language( C CXX ASM )
+enable_language( CXX ASM )
 
 set(PROJECT_DISTRIBS LICENSE README.md)
 
