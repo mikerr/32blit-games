@@ -8,11 +8,11 @@ typedef struct shape {
     std::vector<Vec3> faces;
 } shape;
 
-shape cube,texcube;
+shape cube;
 
 typedef std::vector<Point> pointlist;
 
-bool low_res,showall;
+bool low_res,showall,demo=1;
 int filled, tex,pixelsize;
 float texWidth;
 float zoom,spin;
@@ -238,7 +238,6 @@ void init() {
 	    };
 
     spin = 0.01f;
-    filled = 3;
     zoom = 5;
     pixelsize = 2;
 
@@ -267,9 +266,12 @@ void render(uint32_t time) {
 }
 
 void update(uint32_t time) {
+static int frames;
+static int delay = 200;
 
     pos += joystick;
 
+    if (buttons.released) demo = 0;
     if (pressed(DPAD_UP)) zoom += 0.1f;
     if (pressed(DPAD_DOWN)) zoom -= 0.1f;
     if (pressed(DPAD_LEFT))  { spin -= 0.001f;}
@@ -292,4 +294,16 @@ void update(uint32_t time) {
     int cubesize = zoom * 10;
     if ((pos.x < cubesize ) || (pos.x > edge.x - cubesize ))  dir.x *= -1;
     if ((pos.y < cubesize ) || (pos.y > edge.y - cubesize ))  dir.y *= -1;
+
+    if (demo && frames % delay == 0)  { 
+	    delay *= 2;
+	    filled++; 
+	    if (filled >= 4) {
+		    filled = 0;
+		    delay = 200;
+	    }
+    }
+    if (demo && frames % 200 == 0)  { tex++; if (tex >= 4) tex = 0;}
+    frames++;
+
 }
