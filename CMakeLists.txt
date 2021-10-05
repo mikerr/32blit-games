@@ -2,6 +2,11 @@
 cmake_minimum_required(VERSION 3.9)
 project(32blit-games)
 
+if(PICO_SDK_PATH)
+  include(${32BLIT_DIR}/32blit-pico/pico_sdk_import.cmake)
+  include(${32BLIT_DIR}/32blit-pico/pico_extras_import.cmake)
+endif()
+
 set(PROJECT_DISTRIBS LICENSE README.md)
 
 # Build configuration; approach this with caution!
