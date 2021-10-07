@@ -1,0 +1,8 @@
+git clone https://github.com/raspberrypi/pico-sdk
+git clone https://github.com/raspberrypi/pico-extras
+
+mkdir build.pico
+cd build.pico
+
+cmake .. -D32BLIT_DIR=~/32blit-sdk/ -DPICO_SDK_PATH=~/pico-sdk -DPICO_EXTRAS=~/pico-extras -DPICO_BOARD=pimoroni_picosystem
+make
