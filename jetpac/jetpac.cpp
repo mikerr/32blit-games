@@ -12,11 +12,12 @@ Surface *backdrop;
 int screenbottom,dir,fire;
 int fuelled,fuelgrabbed,gem;
 int delay,rocketsmade;
+int playerdied, takeoff = -10;
 
 Point player,fuelpos,gempos;
 Vec2 speed;
 
-#define NUMALIENS 6
+#define NUMALIENS 4
 Vec2 alienpos[NUMALIENS], aliendir[NUMALIENS];
 Pen aliencolor[NUMALIENS];
 
@@ -32,7 +33,7 @@ Rect gems [] = { Rect(30,0,2,2), Rect(30,2,2,2), Rect(30,7,2,2), Rect(30,4,2,2),
 Rect fuel = Rect(0,8,3,2);
 
 Rect rocketparts[3] = { Rect(5,11,2,2), Rect(5,9,2,3), Rect(5,6,2,3) };
-Point rocketpos[3] = { Point(0,0), Point(160,97) , Point(60,67)};
+Point rocketpos[3] ;
 int rocketgrabbed[3];
 
 // platform format: x y length
@@ -81,8 +82,7 @@ void playerhitplatform (Vec3 platform){
 
 int hitplatform(Point pos){
   for (Vec3 plat : platforms) 
-  	if ((pos.x > plat.x) && (pos.x < plat.z) && abs(plat.y - pos.y) < 20) 
-		return 1;
+  	if ((pos.x > plat.x) && (pos.x < plat.z) && abs(plat.y - pos.y) < 20) return 1;
   return 0;
 }
 
@@ -107,7 +107,10 @@ void newalien (int n) {
 
 void colorsprites(Pen color) { screen.sprites->palette[1] = color; } 
 
-int dropzone ( int x ) { return (x > 205 && x < 210); }
+bool indropzone ( int x ) { 
+	int zone = screen.bounds.w * 0.62;
+	return (x > zone && x < zone + 10); 
+}
 
 void splat ( int n ) {
   channels[2].waveforms = Waveform::NOISE;
@@ -115,6 +118,7 @@ void splat ( int n ) {
   screen.sprite(explode[0],alienpos[n]);
   newalien(n);
 }
+
 void init() {
   set_screen_mode(ScreenMode::hires);
   screenbottom = screen.bounds.h - 35;
@@ -126,7 +130,7 @@ void init() {
   screen.sprites->palette[0] = Pen(0,0,0,0); 
 
   rocketsmade = 1;
-  player = Point(150,150);
+  player = Point(screen.bounds.w / 2, screen.bounds.h - 50);
   fuelpos = Point(RND(screen.bounds.w),10);
   gempos = Point(RND(screen.bounds.w),10);
   gem = RND(5);
@@ -138,10 +142,18 @@ void init() {
   channels[2].decay_ms    = 3;
   channels[2].sustain     = 1;
   channels[2].release_ms  = 10;
+
+  //scale to different screen sizes
+  for (Vec3 &plat : platforms) {
+	  plat.x = plat.x  / (320.0f / screen.bounds.w);
+	  plat.y = plat.y  / (240.0f / screen.bounds.h);
+	  plat.z = plat.z  / (320.0f / screen.bounds.w);
+  }
+  rocketpos[2] = Point (platforms[0].x + 20 ,20);
+  rocketpos[1] = Point (platforms[1].x + 20 ,20);
 }
 
 void gameloop() {
-  static int playerdied, takeoff = -10;
   Rect costume;
 
   playerdied = 0;
@@ -173,7 +185,7 @@ void gameloop() {
   }
  
   // Rocket
-  Point pos = Point(205,screenbottom - takeoff);
+  Point pos = Point( screen.bounds.w * 0.65, screenbottom - takeoff); // - takeoff);
   // assembled rocketparts
   for (int i=0; i < rocketsmade ; i++) {
         colorsprites(white);
@@ -185,25 +197,8 @@ void gameloop() {
   // handle grabbing & dropping rocketparts
   for (int i=rocketsmade; i < 3 ; i++) {
         colorsprites(white);
-        if ((i == rocketsmade) && collide(rocketpos[i],player)) rocketgrabbed[i] = 1;
-        if (rocketgrabbed[i]) {
-                rocketpos[i] = Point(player.x,player.y + 10);
-                if (dropzone(rocketpos[i].x)) {
-                        rocketpos[i].y +=20;
-                        rocketgrabbed[i] = 0;}
-                }
-        if (!hitplatform(rocketpos[i] + Point(0,10)) ) {
-                rocketpos[i].y++;
-                // stack rocketpart on top of last one
-                if (dropzone(rocketpos[i].x) && (rocketpos[i].y > rocketpos[i-1].y - 16)) { rocketsmade++; }
-                }
         screen.sprite(rocketparts[i],rocketpos[i]);
         }
-  if (fuelled > 3) { takeoff++; delay=50; }
-  if (takeoff > screen.bounds.h) {
-          fuelled = 0; takeoff = -10;
-          player = Point(150,150); }
-
 
   // Gems
   colorsprites(colors[gem+3]);
@@ -215,28 +210,15 @@ void gameloop() {
 	gempos = Point(RND(screen.bounds.w),10); 
 	gem = RND(5); 
 	}
-
   // Fuel pod
   if (rocketsmade == 3) {
     colorsprites(magenta);
     screen.sprite(fuel,fuelpos);
-    if (!hitplatform(fuelpos)) fuelpos.y++;
-    if (dropzone(fuelpos.x)) {
-	fuelgrabbed = 0; 
-  	if (fuelpos.y > screenbottom) {
-		fuelled++;
-		fuelpos = Point(RND(screen.bounds.w),10);
-		}
-	}
-    if (collide(fuelpos,player)) fuelgrabbed = 1; 
-    if (fuelgrabbed) fuelpos = player + Point(0,20);  
-    }
-
+  }
   // Aliens
   for (int n=0; n < NUMALIENS; n++) {
   	costume = meteor[RND(2)];
   	colorsprites(aliencolor[n]);
-  	alienpos[n] += aliendir[n];
 	Point pos = alienpos[n];
   	if (pos.x < 0 || pos.x > screen.bounds.w )  { newalien(n);}
 
@@ -283,10 +265,8 @@ Vec2 move = joystick;
  if (pressed(Button::DPAD_RIGHT) || move.x > 0) {
 	speed.x++;
 	dir = RIGHT; }
- if (pressed(Button::DPAD_UP) || pressed(Button::X) || move.y < 0) 
-	speed.y--;
- if (pressed(Button::B) || pressed(Button::A)) 
-	fire = 1;
+ if (pressed(Button::DPAD_UP) || pressed(Button::A) || move.y < 0) speed.y--;
+ if (pressed(Button::B) || pressed(Button::Y)) fire = 1;
 }
 
 void update(uint32_t time) {
@@ -296,4 +276,44 @@ if (!delay) {
   	player.x += (150 - player.x) / 20;
   	delay--;
 	}
+  //aliens
+if (time % 4 <2) {
+  for (int n=0; n < NUMALIENS; n++) {
+  	alienpos[n] += aliendir[n];
+  }
+  //fuelpods
+  if (rocketsmade == 3) {
+    if (!hitplatform(fuelpos)) fuelpos.y++;
+    if (indropzone(fuelpos.x)) {
+	fuelgrabbed = 0; 
+  	if (fuelpos.y > screenbottom) {
+		fuelled++;
+		fuelpos = Point(RND(screen.bounds.w),10);
+		}
+	}
+    if (collide(fuelpos,player)) fuelgrabbed = 1; 
+    if (fuelgrabbed) fuelpos = player + Point(0,20);  
+    }
+  //rocket
+  for (int i=rocketsmade; i < 3 ; i++) {
+        colorsprites(white);
+        if ((i == rocketsmade) && collide(rocketpos[i],player)) rocketgrabbed[i] = 1;
+        if (rocketgrabbed[i]) {
+                rocketpos[i] = Point(player.x,player.y + 10);
+                if (indropzone(rocketpos[i].x)) {
+                        rocketpos[i].y +=20;
+                        rocketgrabbed[i] = 0;}
+                }
+        if (!hitplatform(rocketpos[i] + Point(0,10)) ) {
+                rocketpos[i].y++;
+                // stack rocketpart on top of last one
+                if (indropzone(rocketpos[i].x) && (rocketpos[i].y > rocketpos[i-1].y - 16)) { rocketsmade++; }
+                }
+  }
+  if (fuelled > 3) { takeoff++; delay=50; }
+  if (takeoff > screen.bounds.h) {
+          fuelled = 0; takeoff = -10;
+  	  player = Point(screen.bounds.w / 2, screen.bounds.h - 30);
+          }
+}
 }
