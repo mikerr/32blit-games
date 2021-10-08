@@ -13,7 +13,7 @@ shape cube;
 typedef std::vector<Point> pointlist;
 
 bool low_res,showall,demo=1;
-int filled, tex,pixelsize;
+int filled, tex,maxtex,pixelsize;
 float texWidth;
 float zoom,spin;
 Vec2 pos,dir,center;
@@ -180,8 +180,8 @@ void draw_shape(shape shape,Vec2 pos,float size){
 
 	       if (i % 2) {
 		       if (showall) {
-		       		tex = i/2;
-		       		if (tex > 4) tex = 4;
+		       		tex = i/4;
+		       		if (tex > maxtex) tex = maxtex;
 		       }
     	       	       texWidth = texture[tex]->bounds.w;
 		       texquad(t2,oldt2,t1,t3);
@@ -245,10 +245,11 @@ void init() {
     dir = Vec2 (1,1);
 
     texture[tex] = Surface::load(bricksimg);
-    texture[++tex] = Surface::load(stonesimg);
+    //texture[++tex] = Surface::load(stonesimg);
     texture[++tex] = Surface::load(baboonimg);
-    texture[++tex] = Surface::load(lenaimg);
     texture[++tex] = Surface::load(crateimg);
+    //texture[++tex] = Surface::load(lenaimg);
+    maxtex =2;
 }
 
 void render(uint32_t time) {
@@ -285,7 +286,7 @@ static int delay = 200;
         pos = center;
         }
     if (buttons.released & Button::Y)  { filled++; if (filled >= 4) filled = 0;}
-    if (buttons.released & Button::B)  { showall = 0; tex++; if (tex > 4) tex = 0;}
+    if (buttons.released & Button::B)  { showall = 0; tex++; if (tex > maxtex) tex = 0;}
     if (buttons.released & Button::A)  { showall = !showall;} 
 
     if (buttons.released & Button::JOYSTICK)  { pixelsize = 3 - pixelsize;} 
@@ -303,7 +304,6 @@ static int delay = 200;
 		    delay = 200;
 	    }
     }
-    if (demo && frames % 200 == 0)  { tex++; if (tex >= 4) tex = 0;}
     frames++;
 
 }
