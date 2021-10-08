@@ -135,13 +135,16 @@ void init() {
     set_screen_mode(ScreenMode::hires);
 
     depthimg = Surface::load(depthpic); // black = far, colours = near
-    tileimg = Surface::load(tilepic);
 
-    fullscreenimg = make_surface(screen.bounds.w,screen.bounds.h,tileimg);
+    bool PICO = screen.bounds.w < 320 ? true : false;
+    if (!PICO) {
+    	tileimg = Surface::load(tilepic);
+    	fullscreenimg = make_surface(screen.bounds.w,screen.bounds.h,tileimg);
+    }
+    dots = 1;
 }
 
 void render(uint32_t time) {
-
     if (!dots) { // image stereogram
     	int x = (tilenum % 2);
     	int y = (tilenum >= 2);
