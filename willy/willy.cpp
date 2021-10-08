@@ -11,7 +11,8 @@ using namespace blit;
 
 Surface *backdrop,*sprites,*characters;
 Surface *levels[2];
-MP3Stream stream;
+//MP3Stream stream;
+bool PICO;
 
 bool grounded,jumping; // grounded, jumping or falling
 int framecount,level,lives = 3;
@@ -162,14 +163,18 @@ static int score,dir,monsterdir = LEFT;
 
 void init() {
   set_screen_mode(ScreenMode::hires);
+  if (screen.bounds.w <320) PICO = true;
+
   levels[0] = Surface::load(level1);
-  levels[1] = Surface::load(level2);
+  //levels[1] = Surface::load(level2);
   sprites = Surface::load(manic_sprites);
   characters = Surface::load(character_sprites);
 
-  File::add_buffer_file("music.mp3", music, music_length);
-  stream.load("music.mp3", false);
-  stream.play(0);
+ if (!PICO) {
+  //File::add_buffer_file("music.mp3", music, music_length);
+  //stream.load("music.mp3", false);
+  //stream.play(0);
+  }
 
   setup_level(level);
 }
@@ -235,5 +240,5 @@ static int jumpheight = 0;
  // slow down player movement
  if (time % 3 > 0) player += speed;
  //play music
- stream.update();
+ //if (!PICO) stream.update();
 }
