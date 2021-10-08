@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.1)
-project (willy)
+cmake_minimum_required(VERSION 3.9)
+project (willy C ASM)
 find_package(32BLIT CONFIG REQUIRED $32BLIT_DIR)
 blit_executable (willy willy.cpp)
 blit_assets_yaml(willy assets.yml)

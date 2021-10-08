@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.9)
 project (isocars)
 find_package(32BLIT CONFIG REQUIRED $32BLIT_DIR)
 blit_executable (isocars isocars.cpp)
