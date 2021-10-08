@@ -42,8 +42,12 @@ void tilescreen(Surface *tile,Point pos){
 void init() {
     set_screen_mode(ScreenMode::hires);
     pictures[0] = Surface::load(baboonimg);
-    pictures[1] = Surface::load(lenaimg);
-    bricks = Surface::load(bricksimg);
+
+    if (screen.bounds.w >= 320) {
+	  //on 32blit-sonsole, not reduced RAM picosyation 
+    	pictures[1] = Surface::load(lenaimg);
+    	bricks = Surface::load(bricksimg);
+    }
 
     speed = 0.01;
     zoom = 1;
@@ -68,13 +72,17 @@ static int x,y=0;
     if (demo) {
 	    zoom += 0.02f * dir;
 	    if (zoom > 3.0f || zoom < 0.1f) dir *= -1 ;
-	    if (zoom < 0.1f) pic = 1 - pic;
+    	    if (screen.bounds.w < 320) {
+	   	 // on picosystem, so reduced RAM
+	   	 if (zoom < 0.1f) pic = 1 - pic;
+	    }
     }
 
     if (speed >0) x += 3;
     else x -= 3;
 
-    tilescreen(bricks,Point(x,y));
+    	    if (screen.bounds.w >= 320) // on 32blit-console
+    			tilescreen(bricks,Point(x,y));
 
     // Draw bitmap
     int blur = 1 + zoom;
