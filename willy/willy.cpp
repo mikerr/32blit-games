@@ -13,6 +13,7 @@ Surface *backdrop,*sprites,*characters;
 Surface *levels[2];
 //MP3Stream stream;
 bool PICO;
+int OFFSET;
 
 bool grounded,jumping; // grounded, jumping or falling
 int framecount,level,lives = 3;
@@ -87,23 +88,23 @@ static int score,dir,monsterdir = LEFT;
   screen.clear();
   // copy background
   backdrop = levels[level];
-  screen.blit(backdrop,Rect (0,0,256,192),Point(30,40));
+  screen.blit(backdrop,Rect (0,0,256,192),Point(30-OFFSET,40));
   // score
   screen.pen = yellow;
-  screen.line(Point(30,39),Point(285,39));
-  screen.text("00000" + std::to_string(score),minimal_font,Point(120,193));
-  screen.text("00000" + std::to_string(score),minimal_font,Point(240,193));
+  screen.line(Point(30-OFFSET,39),Point(285,39));
+  screen.text("00000" + std::to_string(score),minimal_font,Point(120-OFFSET,193));
+  screen.text("00000" + std::to_string(score),minimal_font,Point(240-OFFSET,193));
   // air supply bar
   o2 = o2 - 0.05f;
   if (o2 < 0 ) lives = 0;
   screen.pen = white;
-  screen.line(Point(60,180),Point(60+o2,180));
+  screen.line(Point(60-OFFSET,180),Point(60+o2-OFFSET,180));
   // debug - show platform bounds
   if (pressed(Button::MENU)) for (Vec3 plat : platforms) screen.line(Point(plat.x,plat.y), Point(plat.z,plat.y));
   // Monster walk
   if (framecount % 2) monsterpos.x += monsterdir;
-  if (monsterpos.x > 155) monsterdir = LEFT;
-  if (monsterpos.x < 90)  monsterdir = RIGHT;
+  if (monsterpos.x > 155-OFFSET) monsterdir = LEFT;
+  if (monsterpos.x < 90-OFFSET)  monsterdir = RIGHT;
   Rect costume = monsters[level];
   costume.x += 18 * ((framecount / 6 ) % 3);
   bool flip = monsterdir < 0;
@@ -131,12 +132,12 @@ static int score,dir,monsterdir = LEFT;
   costume = willywalk [(framecount / 30 )% 4]; 
   for (int i=0; i<lives; i++){
   	  colorsprites(characters,colors[i+1]);
-	  screen.blit(characters,costume,Point(35 + i*16,205));
+	  screen.blit(characters,costume,Point(35-OFFSET + i*16,205));
   }
   // level complete - flashing exit
   if (!gemsleft && (framecount % 2)) {
-	  screen.rectangle(Rect(262,143,16,16));
-  	  if (collide(player,Point(262,143))) {
+	  screen.rectangle(Rect(262-OFFSET,143,16,16));
+  	  if (collide(player,Point(262-OFFSET,143))) {
 	  	level = !level;
 	  	setup_level(level);
 	  }
@@ -164,6 +165,7 @@ static int score,dir,monsterdir = LEFT;
 void init() {
   set_screen_mode(ScreenMode::hires);
   if (screen.bounds.w <320) PICO = true;
+  if (PICO) OFFSET = 38;
 
   levels[0] = Surface::load(level1);
   //levels[1] = Surface::load(level2);
@@ -177,6 +179,14 @@ void init() {
   }
 
   setup_level(level);
+  
+  for (Vec3 &plat : platforms) {
+	  plat.x -= OFFSET;
+	  plat.z -= OFFSET;
+  }
+  for (Point &p : gempos) p.x -= OFFSET;
+  for (Point &p : spikes) p.x -= OFFSET;
+
 }
 
 void bootscene(){ // monty python boot - death scene
@@ -185,10 +195,10 @@ Rect leg = Rect(8,0,16,3), boot = Rect(8,3,16,13), plinth = Rect(8,16,16,16);
 	screen.pen = colors[rand() % 6];
 	screen.rectangle(Rect(0,0,320,175));
   	colorsprites(sprites,white);
-	screen.blit(characters,willywalk[0],Point(153,145));
-	for (int i=0;i<y;i+=3) screen.blit(sprites,leg,Point(150,i));
-	screen.blit(sprites,boot,Point(150,y));
-	screen.blit(sprites,plinth,Point(150,160));
+	screen.blit(characters,willywalk[0],Point(153-OFFSET,145));
+	for (int i=0;i<y;i+=3) screen.blit(sprites,leg,Point(150-OFFSET,i));
+	screen.blit(sprites,boot,Point(150-OFFSET,y));
+	screen.blit(sprites,plinth,Point(150-OFFSET,160));
 	y += 2;
 	if (y > 145) {
 		y = 0;
@@ -216,7 +226,7 @@ static int jumpheight = 0;
  else speed.y = DOWN; // gravity
 
  // keep on screen
- player.x = std::clamp((int)player.x,40,265);
+ player.x = std::clamp((int)player.x,40-OFFSET,265-OFFSET);
  // fall onto platforms
  for (Vec3 plat : platforms) 
 	if (playerhitplatform(plat)) {
