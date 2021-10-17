@@ -1,7 +1,7 @@
 #include "32blit.hpp"
 using namespace blit;
 
-int changed, demo = 1;
+int changed;
 double scale;
 double cx,cy;
 int color_rotate, invert;
@@ -34,13 +34,14 @@ Pen hsv_to_rgb(int hue)
 	}
 }
 
-void mandel(int skip) {
+void mandel(int skip,int i) {
 	int width = screen.bounds.w;
 	int height = screen.bounds.h;
 
 	int iter, max_iter = 256;
 	double x, y, zx, zy, zx2, zy2;
-	for (int i = 0; i < height; i += skip) {
+	//for (int i = 0; i < height; i += skip) {
+	if (1) {
 		y = (i - height/2) * scale + cy;
 		for (int j = 0; j  < width; j += skip) {
 			x = (j - width/2) * scale + cx;
@@ -55,14 +56,10 @@ void mandel(int skip) {
 				zx2 = zx * zx;
 				zy2 = zy * zy;
 			}
-			if (iter < max_iter) {
-			     screen.pen = hsv_to_rgb(iter);
-			     if (skip == 1) {
-				     screen.pixel(Point(j,i));
-				     if (changed) break;
-			             } 
-			     else screen.rectangle(Rect(j,i,skip,skip));
-			}
+			if (iter < max_iter)  screen.pen = hsv_to_rgb(iter); 
+			else screen.pen = Pen(0,0,0);
+		        if (skip == 1) screen.pixel(Point(j,i));
+		        else screen.rectangle(Rect(j,i,skip,skip));
 		}
 	}
 }
@@ -74,39 +71,30 @@ void init() {
         scale = 1./128;
         cx = -.6;
 	cy = 0;
-
-	// zoom in to begin with 
-        cx = -0.860554;
-        cy = -0.209741;
-        scale /= 100;
 }
 
 void render(uint32_t time) {
 std::string status;
-static int stopped = 0;
+static int y,res=8;
+uint32_t ms_start;
 
     screen.pen = Pen(0, 0, 0);
-    if (changed) { 
-	    // do a quick render if scrolling / zooming around ( ~ 1 frame)
+    if (changed) {
+	    screen.clear();
+	    y = 0;
+	    res = 8;
 	    changed = 0;
-    	    screen.clear();
-    	    mandel(3);
-	    stopped = 0;
-    } else { 
-            if (!stopped) {
-	    // do a longer, more detailed render when stopped ( ~ 1 second)
-	    stopped = 1;
-    	    screen.clear();
-	    mandel(1);
-	    }
+    }
+    ms_start = now();
+    for (;y<screen.bounds.h;y += res) {
+    	mandel(res,y);
+    	if (now() - ms_start > 300) break;
+    }
+    if (y >= screen.bounds.h && res > 1) {
+	    y = 0;
+	    res = res / 2;
     }
 
-    if (demo) {
-	    if (scale < (double) 0.01) {
-		    scale *= (double) 1.03;
-	    	    changed = 1;
-	    } 
-    }
     screen.pen = Pen(255,255,255);
     status = std::to_string(cx) + " , " + std::to_string(cy) + "   " + "zoom: " + std::to_string(scale); 
     screen.text(status,minimal_font,Point(0,screen.bounds.h - 10));
@@ -131,10 +119,7 @@ void update(uint32_t time) {
         if (buttons.released & Button::Y) invert = !invert; 
         if (buttons.released & Button::X) saturation = !saturation; 
 	// ANY button pressed
-        if (buttons) {
-		demo = 0;
-		changed = 1;
-	}
+        if (buttons) changed = 1;
 }
 
 
