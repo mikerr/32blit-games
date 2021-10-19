@@ -41,6 +41,13 @@ Pen yellow = Pen(255,255,0);
 Pen white = Pen(255,255,255);
 Pen colors[] = { black, blue, red, magenta, green, cyan, yellow, white };
 
+void free_surface (Surface *surface) {
+	if (surface) {
+		delete[] surface->data;
+		delete[] surface->palette;
+		delete surface;
+	}
+}
 void colorsprites(Surface *sprites,Pen color) { sprites->palette[1] = color; } 
 
 int collide (Point a, Point b) { return (abs(a.x - b.x) < 8  && abs(a.y - b.y) < 8 ); } 
@@ -55,7 +62,7 @@ void player_die(){
 
 void setup_level(int level) {
  o2 = 200;
- playerstart = Point(60 - OFFSET,130);
+ playerstart = Point(40 - OFFSET,140);
  player = playerstart;
  for (auto& c : collapsed) c = 0;
  for (auto& c : collectedgems) c = false;
@@ -67,6 +74,7 @@ void setup_level(int level) {
  	gempos = { Point(102,40), Point(157,50), Point(260,40), Point(270,90), Point(225,70)};
 	monsterpos = Point(155,95);
 	backcolor = black;
+	free_surface (background);
 	background = Surface::load(level1);
  }
  if (level == 1) {
@@ -77,6 +85,7 @@ void setup_level(int level) {
  	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
 	monsterpos = Point(155,65);
 	backcolor = Pen(0,0,200);
+	free_surface (background);
 	background = Surface::load(level2);
  }
 
@@ -97,12 +106,12 @@ static int dir,monsterdir = LEFT;
   // score
   screen.pen = yellow;
   screen.line(Point(30-OFFSET,39),Point(285,39));
-  screen.text("00000" + std::to_string(score),minimal_font,Point(120-OFFSET,193));
+  screen.text("High Score 00000" + std::to_string(score),minimal_font,Point(40-OFFSET,193));
   screen.text("00000" + std::to_string(score),minimal_font,Point(240-OFFSET,193));
   // air supply bar
+  screen.pen = white;
   o2 = o2 - 0.05f;
   if (o2 < 0 ) lives = 0;
-  screen.pen = white;
   screen.line(Point(60-OFFSET,180),Point(60+o2-OFFSET,180));
   // Monster walk
   if (framecount % 2) monsterpos.x += monsterdir;
@@ -130,7 +139,7 @@ static int dir,monsterdir = LEFT;
   costume = willywalk [(framecount / 30 )% 4]; 
   for (int i=0; i<lives; i++){
   	  colorsprites(characters,colors[i+1]);
-	  screen.blit(characters,costume,Point(35-OFFSET + i*16,205));
+	  screen.blit(characters,costume,Point(40-OFFSET + i*16,205));
   }
   // level complete - flashing exit
   if (!gemsleft && (framecount % 2)) {
