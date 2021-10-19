@@ -6,25 +6,50 @@ using namespace blit;
 int x,y,sindex;
 Vec2 size;
 
-Surface *sheets[7];
+Surface *sheet=nullptr;;
 std::string names[] = {"dingbads","pirate_characters","pirate_tilemap","platformer","space_shooter_backdrop","space_shooter_ships","top_down_shooter"};
+
+Surface *load_sheet(int ssindex) {
+  if (sheet) { // delete to free up memory
+	  delete[] sheet->data;
+	  delete[] sheet->palette;
+	  delete sheet;
+  }
+  switch (ssindex) {
+	  case 0: 
+		sheet = Surface::load(dingbads);
+		break;
+	  case 1: 
+  		sheet =  Surface::load(pirate_characters);
+		break;
+	  case 2: 
+  		sheet =  Surface::load(pirate_tilemap);
+		break;
+	  case 3: 
+  		sheet =  Surface::load(platformer);
+		break;
+	  case 4: 
+  		sheet =  Surface::load(space_shooter_backdrop);
+		break;
+	  case 5: 
+  		sheet =  Surface::load(space_shooter_ships);
+		break;
+	  case 6: 
+  		sheet =  Surface::load(top_down_shooter);
+		break;
+  }
+  return(sheet);
+}
 
 void init() {
   set_screen_mode(ScreenMode::hires);
-
-  sheets[0] = Surface::load(dingbads);
-  sheets[1] = Surface::load(pirate_characters);
-  sheets[2] = Surface::load(pirate_tilemap);
-  sheets[3] = Surface::load(platformer);
-  sheets[4] = Surface::load(space_shooter_backdrop);
-  sheets[5] = Surface::load(space_shooter_ships);
-  sheets[6] = Surface::load(top_down_shooter);
 
   x = 0;
   y = 0;
   sindex = 0;
   size = Vec2(1,1);
-  screen.sprites = sheets[sindex];
+
+  screen.sprites = load_sheet(sindex);
 }
 
 void render(uint32_t time_ms) {
@@ -62,7 +87,11 @@ void render(uint32_t time_ms) {
   screen.rectangle(Rect(xpos+8,ypos+24,14 * size.x,14 * size.y));
 
   int rightside = screen.bounds.w - 80;
+  if (screen.bounds.w < 320) 
+	  rightside = 205;
+
   // Draw sprite at normal size
+  screen.alpha = 255;
   //screen.sprite(Point(x, y), Point(rightside , 24));
   screen.stretch_blit( screen.sprites, Rect(xx, yy, 8 * size.x, 8 * size.y), Rect(rightside, 24, 8 * size.x, 8 * size.y));
 
@@ -102,14 +131,14 @@ if (now() - last_time > 200) {
 	if (pressed(Button::Y)) {
 		sindex--;
 		if (sindex < 0) sindex = 6;
-  		screen.sprites = sheets[sindex];
+  		screen.sprites = load_sheet(sindex);
 		}
 
 	// change spritesheet to next one
 	if (pressed(Button::A)) {
 		sindex++;
 		if (sindex > 6) sindex = 0;
-  		screen.sprites = sheets[sindex];
+  		screen.sprites = load_sheet(sindex);
 		}
 	// change sprite size up - 1x1 1x2 2x2
 	if (pressed(Button::X)) {
