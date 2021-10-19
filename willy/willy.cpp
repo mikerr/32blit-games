@@ -9,17 +9,16 @@ using namespace blit;
 #define UP -1
 #define DOWN 1
 
-Surface *backdrop,*sprites,*characters;
-Surface *levels[2];
+Surface *background,*sprites,*characters;
 //MP3Stream stream;
 bool PICO;
 int OFFSET;
 
 bool grounded,jumping; // grounded, jumping or falling
-int framecount,level,lives = 3;
+int framecount,level,score,lives = 3;
 float o2;
 
-Point player,speed,monsterpos,playerstart = Point(50,130);
+Point player,speed,monsterpos,playerstart;
 //costumes
 Rect willywalk[] = { Rect(0,0,8,16), Rect(18,0,8,16), Rect(36,0,8,16), Rect(52,0,11,16) };
 Rect monsters[] = { Rect(128,0,12,16), Rect(0,16,12,16)};
@@ -27,7 +26,7 @@ Rect monsters[] = { Rect(128,0,12,16), Rect(0,16,12,16)};
 std::vector<Vec3> platforms,collapsing;
 std::vector<Point> spikes,gempos;
 Vec3 conveyor;
-Pen background;
+Pen backcolor;
 bool collectedgems[5];
 int collapsed[300];
 
@@ -56,10 +55,10 @@ void player_die(){
 
 void setup_level(int level) {
  o2 = 200;
+ playerstart = Point(60 - OFFSET,130);
  player = playerstart;
  for (auto& c : collapsed) c = 0;
  for (auto& c : collectedgems) c = false;
-
  if (level == 0) { // platform format: start.x start.y endpoint.x
  	platforms = { Vec3(39,160,280), Vec3(70,145,190), Vec3(190,135,280), Vec3(260,120,280), Vec3(95,112,255), Vec3(39,110,70), Vec3(39,95,60), Vec3(39,80,280), Vec3(165,103,190) }; 
  	conveyor = platforms[4];
@@ -67,7 +66,8 @@ void setup_level(int level) {
  	spikes = { Point(120,40), Point(160,40), Point(215,65), Point(250,65), Point(200,100), Point(130,130)};
  	gempos = { Point(102,40), Point(157,50), Point(260,40), Point(270,90), Point(225,70)};
 	monsterpos = Point(155,95);
-	background = black;
+	backcolor = black;
+	background = Surface::load(level1);
  }
  if (level == 1) {
  	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
@@ -76,19 +76,24 @@ void setup_level(int level) {
  	spikes = { };
  	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
 	monsterpos = Point(155,65);
-	background = Pen (0,0,200);
+	backcolor = Pen(0,0,200);
+	background = Surface::load(level2);
  }
 
+  // PICO / smaller screen support /
+  for (Vec3 &plat : platforms) { plat.x -= OFFSET; plat.z -= OFFSET; }
+  for (Vec3 &plat : collapsing) { plat.x -= OFFSET; plat.z -= OFFSET; }
+  for (Point &p : gempos) p.x = p.x - OFFSET;
+  for (Point &p : spikes) p.x = p.x - OFFSET;
 }
 void gameloop(){
-static int score,dir,monsterdir = LEFT;
+static int dir,monsterdir = LEFT;
 
   framecount++;
   screen.pen = black;
   screen.clear();
   // copy background
-  backdrop = levels[level];
-  screen.blit(backdrop,Rect (0,0,256,192),Point(30-OFFSET,40));
+  screen.blit(background,Rect (0,0,256,192),Point(30-OFFSET,40));
   // score
   screen.pen = yellow;
   screen.line(Point(30-OFFSET,39),Point(285,39));
@@ -99,8 +104,6 @@ static int score,dir,monsterdir = LEFT;
   if (o2 < 0 ) lives = 0;
   screen.pen = white;
   screen.line(Point(60-OFFSET,180),Point(60+o2-OFFSET,180));
-  // debug - show platform bounds
-  if (pressed(Button::MENU)) for (Vec3 plat : platforms) screen.line(Point(plat.x,plat.y), Point(plat.z,plat.y));
   // Monster walk
   if (framecount % 2) monsterpos.x += monsterdir;
   if (monsterpos.x > 155-OFFSET) monsterdir = LEFT;
@@ -110,11 +113,6 @@ static int score,dir,monsterdir = LEFT;
   bool flip = monsterdir < 0;
   screen.blit(characters,costume,monsterpos,flip);
 
-  if (collide(player,monsterpos) || collide(player,monsterpos + Point(0,8))) 
-	  player_die();
-  // Spikes
-  for (auto spike : spikes) 
-	  if (collide(player,spike)) player_die();
   // Gems
   int gemsleft=0;
   for (int i=0;i<5;i++) {
@@ -143,7 +141,7 @@ static int score,dir,monsterdir = LEFT;
 	  }
   }
   // Draw Collapsed platforms
-  screen.pen = background;
+  screen.pen = backcolor;
   for (Vec3 plat : collapsing)  
       for (int x=plat.x;x<plat.z;x++ )
 	         for (int y=0;y < collapsed[x];y++)
@@ -154,12 +152,6 @@ static int score,dir,monsterdir = LEFT;
   if (speed.x != 0) dir = speed.x < 0;
   colorsprites(characters,white);
   screen.blit(characters,costume,player,dir);
-
-  // lost all lives
-  if (!lives) {
-	  score = 0;
-  	  setup_level(level);
-  }
 }
 
 void init() {
@@ -167,38 +159,28 @@ void init() {
   if (screen.bounds.w <320) PICO = true;
   if (PICO) OFFSET = 38;
 
-  levels[0] = Surface::load(level1);
-  //levels[1] = Surface::load(level2);
   sprites = Surface::load(manic_sprites);
   characters = Surface::load(character_sprites);
 
- if (!PICO) {
-  //File::add_buffer_file("music.mp3", music, music_length);
-  //stream.load("music.mp3", false);
-  //stream.play(0);
-  }
-
   setup_level(level);
-  
-  for (Vec3 &plat : platforms) {
-	  plat.x -= OFFSET;
-	  plat.z -= OFFSET;
+  if (!PICO) {
+  	//File::add_buffer_file("music.mp3", music, music_length);
+  	//stream.load("music.mp3", false);
+  	//stream.play(0);
   }
-  for (Point &p : gempos) p.x -= OFFSET;
-  for (Point &p : spikes) p.x -= OFFSET;
-
 }
 
 void bootscene(){ // monty python boot - death scene
 static int y;
 Rect leg = Rect(8,0,16,3), boot = Rect(8,3,16,13), plinth = Rect(8,16,16,16);
+        int xcenter = screen.bounds.w / 2;
 	screen.pen = colors[rand() % 6];
-	screen.rectangle(Rect(0,0,320,175));
+	screen.rectangle(Rect(0,0,screen.bounds.w,175));
   	colorsprites(sprites,white);
-	screen.blit(characters,willywalk[0],Point(153-OFFSET,145));
-	for (int i=0;i<y;i+=3) screen.blit(sprites,leg,Point(150-OFFSET,i));
-	screen.blit(sprites,boot,Point(150-OFFSET,y));
-	screen.blit(sprites,plinth,Point(150-OFFSET,160));
+	screen.blit(characters,willywalk[0],Point(xcenter+5,145));
+	for (int i=0;i<y;i+=3) screen.blit(sprites,leg,Point(xcenter,i));
+	screen.blit(sprites,boot,Point(xcenter,y));
+	screen.blit(sprites,plinth,Point(xcenter,160));
 	y += 2;
 	if (y > 145) {
 		y = 0;
@@ -228,7 +210,7 @@ static int jumpheight = 0;
  // keep on screen
  player.x = std::clamp((int)player.x,40-OFFSET,265-OFFSET);
  // fall onto platforms
- for (Vec3 plat : platforms) 
+ for (Vec3 plat : platforms)  {
 	if (playerhitplatform(plat)) {
     		// if on top, land
     		if (speed.y == DOWN) { 
@@ -237,7 +219,8 @@ static int jumpheight = 0;
         		grounded = 1;
 		}
     	} 
- //special platforms
+ }
+ //platforms
  if (playerhitplatform(conveyor) && grounded) speed.x = LEFT;
 
  for (Vec3 plat : collapsing)  
@@ -247,8 +230,18 @@ static int jumpheight = 0;
 			 for (int i=0; i<8; i++) collapsed[player.x + i]++;
 	      	else player.y += 8;
 	      }
+  // hazards - spikes & monsters
+  if (collide(player,monsterpos)) player_die();
+  for (auto spike : spikes) if (collide(player,spike)) player_die();
  // slow down player movement
  if (time % 3 > 0) player += speed;
+
  //play music
  //if (!PICO) stream.update();
+ 
+  // lost all lives
+  if (!lives) {
+	  score = 0;
+  	  setup_level(level);
+  }
 }
