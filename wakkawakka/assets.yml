@@ -1,6 +1,9 @@
+
 assets.hpp:
   pacman.png:
     name: pacman
+  level.png:
+    name: levelpic
   pacman_beginning.wav:
     name: intromusic
   pacman_death.wav:

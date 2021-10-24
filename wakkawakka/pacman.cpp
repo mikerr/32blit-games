@@ -128,10 +128,13 @@ Vec2 randomdir() {
 void init() {
   set_screen_mode(ScreenMode::hires);
 
+  xscale = screen.bounds.w / 18;
+  yscale = screen.bounds.h / 21;
+
   channels[0].waveforms = Waveform::WAVE;
   channels[0].wave_buffer_callback = &buffCallBack;
 
-  level = Surface::load(pacman);
+  level = Surface::load(levelpic);
   screen.sprites = Surface::load(pacman);
 
   //make black transparent
