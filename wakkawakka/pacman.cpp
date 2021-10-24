@@ -2,6 +2,7 @@
 #include "assets.hpp"
 
 using namespace blit;
+int PICO,ANIMSPEED;
 
 Surface *level;
 
@@ -45,16 +46,16 @@ int map[22][19] = {
 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
-int xscale = 18;
-int yscale = 11;
+int xscale;
+int yscale;
 
 //costumes
-Rect pac = Rect(57,0,2,2);
+Rect pac = Rect(0,0,2,2);
 Rect deadpac = Rect(61,0,2,2);
-Rect redghost = Rect(57,8,2,2);
+Rect redghost = Rect(0,8,2,2);
 Rect scaredghost = Rect(73,8,2,2);
 Rect whiteghost = Rect(79,8,2,2);
-Rect cherry = Rect(61,6,2,2);
+Rect cherry = Rect(4,6,2,2);
 
 // player and ghosts are 16x16 sprites
 Vec2 spritecenter = Vec2(8,8); 
@@ -87,8 +88,8 @@ int collide (Vec2 target) {
 }
 
 void reset() {
-  player.pos = Vec2(6,11);
-  player.dir = Vec2(0,1);
+  player.pos = Vec2(0,10);
+  player.dir = Vec2(1,0);
   for (auto &ghost:ghosts) {
   	ghost.pos = Vec2(8,8);
   	ghost.dir = Vec2(1 - rand() % 3,1 - rand() % 3);
@@ -112,7 +113,7 @@ int ongridline(float x) {
 }
 
 int blockedmove(Vec2 pos,Vec2 dir){
-  Vec2 next = pos + dir + Vec2(0.5f,0.5f);
+  Vec2 next = pos + dir;// + Vec2(0.5f,0.5f);
   return (map[(int)next.y][(int)next.x] == WALL) ;
 }
 
@@ -127,6 +128,10 @@ Vec2 randomdir() {
 }
 void init() {
   set_screen_mode(ScreenMode::hires);
+
+  if (screen.bounds.w < 320) PICO = 1;
+  if (PICO) ANIMSPEED = 4 ;
+  else ANIMSPEED = 9;
 
   xscale = screen.bounds.w / 18;
   yscale = screen.bounds.h / 21;
@@ -148,7 +153,6 @@ void render(uint32_t time) {
 static int anim,frame;
 Rect costume;
 
-  // copy background
   screen.pen = Pen(0,0,0);
   screen.clear();
   screen.stretch_blit(level,Rect(228,0,225,249),Rect(0,0,screen.bounds.w,screen.bounds.h-7));
@@ -163,9 +167,13 @@ Rect costume;
 		 }
 		 if (map[y][x] == PILL) { 
 			screen.pen=Pen(255,255,255);
-  			if (frame % 5 > 3) screen.circle(pos,4);
+  			if (frame % ANIMSPEED) screen.circle(pos,4);
 		 	}
+		 if (map[y][x] == WALL) { 
+  			screen.pen=Pen(0,0,128);
+			//screen.circle(pos,7);
 		 }
+	}
 
   //player
   if (!dead) {
@@ -176,7 +184,7 @@ Rect costume;
   	if (player.dir.y ==  1) costume.y += 6;
 
 	// chomp animation
-  	if (frame++ % 9 == 0)  anim = !anim;
+  	if (frame++ % ANIMSPEED == 0)  anim = !anim;
   	costume.x += anim * 2;
   } else {
 	  //death animation
@@ -196,7 +204,7 @@ Rect costume;
 	  ghostkiller--;
   }
   for (auto ghost:ghosts) {
-  	screen.sprite(costume,grid(ghost.pos) );
+  	screen.sprite(costume,grid(ghost.pos) - spritecenter);
 	if (!ghostkiller) costume.y += 2; // change colour
   }
 
@@ -224,24 +232,28 @@ void update(uint32_t time) {
 		newdir = Vec2(-1,0);
 		if (ongridline(player.pos.x) && !blockedmove(player.pos,newdir)) {
 			player.dir = newdir;
+			player.pos.y = (int)player.pos.y;
 		}
 	}
  	if (pressed(Button::DPAD_RIGHT) || joystick.x > 0) {
 		newdir = Vec2(1,0);
 		if (ongridline(player.pos.x) && !blockedmove(player.pos,newdir)) {
 			player.dir = newdir;
+			player.pos.y = (int)player.pos.y;
 		}
 	}
  	if (pressed(Button::DPAD_UP) || joystick.y < 0) {
 		newdir = Vec2(0,-1);
 		if (ongridline(player.pos.y) && !blockedmove(player.pos,newdir)) {
 			player.dir = newdir;
+			player.pos.x = (int)player.pos.x;
 		}
 	}
  	if (pressed(Button::DPAD_DOWN) || joystick.y > 0) {
 		newdir = Vec2(0,1);
 		if (ongridline(player.pos.y) && !blockedmove(player.pos,newdir)) {
 			player.dir = newdir;
+			player.pos.x = (int)player.pos.x;
 		}
 	}
 
@@ -249,8 +261,8 @@ void update(uint32_t time) {
  	 	player.pos += player.dir / 15.0;
 
 	//wrap around left/right
-	if (x > 17) player.pos.x = 0;
-	if (x < 0) player.pos.x = 17;
+	if (x > 17) player.pos.x = 1;
+	if (x < 1) player.pos.x = 17;
 
 	if (map[y][x] == BISCUIT) {
 		dotseaten++;
@@ -270,13 +282,11 @@ void update(uint32_t time) {
 
 	if (blockedmove(ghost.pos,ghost.dir))
 		ghost.dir = randomdir();
-	if (collide(ghost.pos)) {
-		if (!ghostkiller) {
+	if (collide(ghost.pos) && !ghostkiller) {
   			dead = 50; // dead for 1 second (50 frames)
   			play_wav(deathmusic,deathmusic_length);
 			reset();
 			break;
 		}
 	}
- }
 }
