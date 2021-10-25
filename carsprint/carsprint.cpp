@@ -42,8 +42,11 @@ void set_tracklimits() {
 		      Vec2(133,12), Vec2(106,31), Vec2(48,34), Vec2(19,62), Vec2(22,88),
 		      Vec2(52,114), Vec2(169,116), Vec2(181,128), Vec2(169,139), Vec2(51,139),
 		      Vec2(23,164), Vec2(23,200), Vec2(35,214), Vec2(61,222)};
-}
 
+	float scale = screen.bounds.w / 320.0f;
+		for ( auto &p : innerarea) p.x = (float)p.x * scale;
+		for ( auto &p : outerarea) p.x = (float)p.x * scale;
+}
 void set_waypoints(){
 int i=1;
 	for (auto &inner: innerarea) {
