@@ -92,28 +92,16 @@ void init() {
     ground = screen.bounds.h - 1;
     int city = ground - 10;
 
-    cities[0].points.push_back(Vec2(0,ground));
-    cities[0].points.push_back(Vec2(10,ground));
-    cities[0].points.push_back(Vec2(20,city));
-    cities[0].points.push_back(Vec2(30,city));
-    cities[0].points.push_back(Vec2(40,ground));
-    cities[0].points.push_back(Vec2(50,ground));
+    cities[0].points = { Vec2(0,ground),Vec2(10,ground),Vec2(20,city),Vec2(30,city),Vec2(40,ground),Vec2(50,ground)};
+    cities[1].points = cities[2].points = cities[0].points;
 
-    cities[1].points.push_back(Vec2(50,ground));
-    cities[1].points.push_back(Vec2(60,ground));
-    cities[1].points.push_back(Vec2(70,city));
-    cities[1].points.push_back(Vec2(80,city));
-    cities[1].points.push_back(Vec2(90,ground));
-    cities[1].points.push_back(Vec2(100,ground));
-
-    cities[2].points.push_back(Vec2(100,ground));
-    cities[2].points.push_back(Vec2(110,ground));
-    cities[2].points.push_back(Vec2(120,city));
-    cities[2].points.push_back(Vec2(130,city));
-    cities[2].points.push_back(Vec2(140,ground));
-    cities[2].points.push_back(Vec2(150,ground));
+    for (int c = 0; c < 3; c++)
+      for ( auto &p : cities[c].points) {
+	    static int x;
+	    p.x = x;
+	    x = x + screen.bounds.w / 16;
+    }
 }
-
 void render(uint32_t time) {
 static int heat,health;
 
