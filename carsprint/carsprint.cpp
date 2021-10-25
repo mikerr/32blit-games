@@ -94,12 +94,14 @@ void blit_rotate_sprite (Surface *sprite,Rect src, float angle, Vec2 screenpos) 
 Vec2 rot;
     int width = src.w;
     int height = src.h;
+    float sinangle = sin(angle);
+    float cosangle = cos(angle);
     for (int x=0;x<width;x++)
 	    for (int y=0;y<height;y++) {
 		    int x1 = x - (width / 2);
 		    int y1 = y - (height / 2);
-		    rot.x = x1 * sin(angle) + y1 * cos(angle);
-		    rot.y = y1 * sin(angle) - x1 * cos(angle);
+		    rot.x = x1 * sinangle + y1 * cosangle;
+		    rot.y = y1 * sinangle - x1 * cosangle;
 		    Vec2 pos = rot + screenpos;
         	    screen.stretch_blit(sprite,Rect(src.x + x, src.y + y,1,1),Rect(pos.x, pos.y,2,2));
 	    }
