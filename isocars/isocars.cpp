@@ -3,7 +3,7 @@
 
 using namespace blit;
 
-int dead;
+int PICO,dead;
 Vec2 origin;
 
 Rect carN = Rect(0,0,64,48);
@@ -70,9 +70,15 @@ bool near(Vec2 point,Vec2 target, float howfar){
 }
 void init() {
     set_screen_mode(ScreenMode::hires);
+    if (screen.bounds.w < 320) PICO = 1;
 
-    tiles = Surface::load(tilesimg);
-    vehicles = Surface::load(vehiclesimg);
+    if (PICO) {
+       tiles = Surface::load(tilespico);
+       vehicles = Surface::load(vehiclespico);
+    } else {
+       tiles = Surface::load(tilesimg);
+       vehicles = Surface::load(vehiclesimg);
+    }
 
     player.pos = Vec2(2,0.5);
     player.rot = 3;
@@ -100,6 +106,12 @@ void render_track() {
    	for (int y=0; y < MAPSIZE; y++) {
 		Vec2 grid = isometric(x,y);
 		Rect tile = track[x][y];
+		if (PICO) {
+		   tile.x /= 2;
+		   tile.y /= 2;
+		   tile.w /= 2;
+		   tile.h /= 2;
+		}
    		screen.stretch_blit(tiles,tile,Rect(grid.x,grid.y,256,188));
 		}
 }
@@ -117,12 +129,18 @@ void ai_cars () {
       Vec2 grid = isometric(car.pos.x,car.pos.y);
       Rect costume = costumes[car.rot];
       costume.y += 48 * (car.num - 1);
-      screen.blit(vehicles,costume,grid);
+      if (PICO) {
+         costume.x /= 2;
+         costume.y /= 2;
+         costume.w /= 2;
+         costume.h /= 2;
+      }
+      screen.stretch_blit(vehicles,costume,Rect(grid.x,grid.y,64,48));
       screen.text(std::to_string(car.num),minimal_font,grid);
 
       if (near(grid,Vec2(120,120),30)) {
 	      player.vel *= 0.3;
-	      player.costume = costume.y;
+	      //player.costume = costume.y;
       }
    }
 }
@@ -168,10 +186,18 @@ void render(uint32_t time) {
 
    Rect costume = costumes[player.rot];
    costume.y = player.costume;
-   screen.blit(vehicles,costume,Point(120,120));
+   if (PICO) {
+      costume.x /= 2;
+      costume.y /= 2;
+      costume.w /= 2;
+      costume.h /= 2;
+   }
+   screen.stretch_blit(vehicles,costume,Rect(120,120,64,48));
 
    for (auto tower :  buildings) 
    	render_building(tower);
+   screen.pen = Pen(255,255,255);
+   screen.text("test",minimal_font,Point(0,0));
 }
 
 void update(uint32_t time) {

@@ -3,4 +3,7 @@ assets.hpp:
     name: tilesimg
   vehicles.png:
     name: vehiclesimg
-
+  tiles-pico.png:
+    name: tilespico
+  vehicles-pico.png:
+    name: vehiclespico
