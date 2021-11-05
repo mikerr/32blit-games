@@ -113,7 +113,6 @@ bool indropzone ( int x ) {
 }
 
 void splat ( int n ) {
-  channels[2].waveforms = Waveform::NOISE;
   channels[2].trigger_attack();
   screen.sprite(explode[0],alienpos[n]);
   newalien(n);
@@ -137,11 +136,20 @@ void init() {
   for (int n=0;n<NUMALIENS;n++) { newalien(n); }
   for (int n=0;n<3;n++) { rocketgrabbed[n] = 0; }
 
+  //explosion noise
   channels[2].waveforms   = Waveform::NOISE;
   channels[2].attack_ms   = 3;
   channels[2].decay_ms    = 3;
   channels[2].sustain     = 1;
   channels[2].release_ms  = 10;
+
+  // short chirp - item pickup
+  channels[6].waveforms = Waveform::TRIANGLE;
+  channels[6].frequency = 1200;
+  channels[6].attack_ms = 5;
+  channels[6].decay_ms = 5;
+  channels[6].sustain = 0;
+  channels[6].release_ms = 5;
 
   //scale to different screen sizes
   for (Vec3 &plat : platforms) {
@@ -207,6 +215,7 @@ void gameloop() {
   screen.sprite(gems[gem],gempos);
   if (!hitplatform(gempos)) gempos.y++;
   if (collide(gempos,player)) { 
+  	channels[6].trigger_attack();
 	gempos = Point(RND(screen.bounds.w),10); 
 	gem = RND(5); 
 	}
@@ -287,17 +296,26 @@ if (time % 4 <2) {
     if (indropzone(fuelpos.x)) {
 	fuelgrabbed = 0; 
   	if (fuelpos.y > screenbottom) {
+  		channels[6].trigger_attack();
 		fuelled++;
 		fuelpos = Point(RND(screen.bounds.w),10);
 		}
 	}
-    if (collide(fuelpos,player)) fuelgrabbed = 1; 
     if (fuelgrabbed) fuelpos = player + Point(0,20);  
+    else {
+	    if (collide(fuelpos,player)) {
+  		    channels[6].trigger_attack();
+		    fuelgrabbed = 1; 
+    	    }
+         }
     }
   //rocket
   for (int i=rocketsmade; i < 3 ; i++) {
         colorsprites(white);
-        if ((i == rocketsmade) && collide(rocketpos[i],player)) rocketgrabbed[i] = 1;
+        if ((i == rocketsmade) && collide(rocketpos[i],player) && !rocketgrabbed[i]) {
+  		channels[6].trigger_attack();
+		rocketgrabbed[i] = 1;
+	}
         if (rocketgrabbed[i]) {
                 rocketpos[i] = Point(player.x,player.y + 10);
                 if (indropzone(rocketpos[i].x)) {
@@ -307,7 +325,10 @@ if (time % 4 <2) {
         if (!hitplatform(rocketpos[i] + Point(0,10)) ) {
                 rocketpos[i].y++;
                 // stack rocketpart on top of last one
-                if (indropzone(rocketpos[i].x) && (rocketpos[i].y > rocketpos[i-1].y - 16)) { rocketsmade++; }
+                if (indropzone(rocketpos[i].x) && (rocketpos[i].y > rocketpos[i-1].y - 16)) { 
+  			channels[6].trigger_attack();
+			rocketsmade++;
+			}
                 }
   }
   if (fuelled > 3) { takeoff++; delay=50; }
