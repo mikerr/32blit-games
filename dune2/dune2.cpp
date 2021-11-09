@@ -5,7 +5,7 @@ using namespace blit;
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
-int x,y,lowres,clicked,credits;
+int x,y,lowres,clicked,credits,options;
 Vec2 center,cursorpos;
 
 struct unit {
@@ -117,34 +117,27 @@ void init() {
 }
 
 void render(uint32_t time) {
-static int commanding,place_building;
+static int commanding,place_building,wind;
 int selected = -1;
 
 std::string status;
-static std::vector<Vec2> windtraps;
+static std::vector<Vec2> windtraps, refineries;
+static int building_type;
 
     // Draw map
     screen.stretch_blit(backdrop,Rect(x/2,y/2,screen.bounds.w /2,screen.bounds.h /2),Rect(0,0,screen.bounds.w,screen.bounds.h));
-
+    screen.pen = Pen(255,255,255);
 
     if ( time < 4000) {
-    	screen.pen = Pen(255,255,255);
-	status = "X : toggle resolution";
-    	screen.text(status, minimal_font, Vec2(50,screen.bounds.h /2) );
-	status = "Y : show mini map";
-    	screen.text(status, minimal_font, Vec2(50,20 + screen.bounds.h /2) );
-	status = "A : comand unit";
-    	screen.text(status, minimal_font, Vec2(50,30 + screen.bounds.h /2) );
+	screen.text ("X : toggle resolution", minimal_font, Vec2(50,screen.bounds.h /2) );
+	screen.text ("Y : show mini map", minimal_font, Vec2(50,20 + screen.bounds.h /2) );
+	screen.text ("A : comand unit", minimal_font, Vec2(50,30 + screen.bounds.h /2) );
     }
     status = "";
 
     // Draw quads
     int i = 0;
     for (auto &quad : quads) {
-	if (near(cursorpos,quad.pos)) {
-		status = "Harkonnen quad unit";
-		selected = i;
-	}
 
 	// move units to their destination, one step at a time
 	Vec2 dir = quad.dest - quad.pos;
@@ -155,6 +148,10 @@ static std::vector<Vec2> windtraps;
 
 	quad.pos += dir;
 
+	if (near(cursorpos,quad.pos)) {
+		status = "Harkonnen quad unit";
+		selected = i;
+	}
 	// don't draw offscreen
 	if (quad.pos.x - x > 0 && quad.pos.y > 0 && quad.pos.x -x < screen.bounds.w && quad.pos.y - y < screen.bounds.h) {
 	   Rect quadsprite = Rect(0,0,16,16);
@@ -170,14 +167,29 @@ static std::vector<Vec2> windtraps;
     screen.blit(dunesprites,yard,yardpos - Vec2(x,y));
     if (near (cursorpos,yardpos)) {
 	    status = "Construction yard";
+		    Rect windtrap_pic = Rect (33,18,41,32);
+		    Rect refinery_pic = Rect (44,49,41,32);
+	            screen.blit(dunesprites,windtrap_pic,Vec2(screen.bounds.w-44,0));
+	            screen.text ("Windtrap", minimal_font,Vec2(screen.bounds.w-44,32));
+	            screen.blit(dunesprites,refinery_pic,Vec2(screen.bounds.w-44,42));
+	            screen.text ("Refinery", minimal_font,Vec2(screen.bounds.w-44,72));
+
+                    screen.pen = Pen(255,255,255);
+		    if (options) draw_box(screen.bounds.w-46,0,45,40);
+		    else draw_box(screen.bounds.w-46,38,45,40);
+
 	    if (clicked) {
 		    place_building = true;
 		    clicked = false;
+		    building_type = options;
 	    }
     }
     // Windtrap generators
     Rect windtrap = Rect(0,19,32,30);
-    if (place_building) {
+    Rect refinery = Rect(0,49,42,30);
+    if (place_building && pressed(Button::B)) place_building = false;
+
+    if (place_building && building_type == 1) {
 	            Vec2 grid ;
 		    grid.x = int (cursorpos.x / 32) * 32;
 		    grid.y = int (cursorpos.y / 32) * 32;
@@ -187,6 +199,24 @@ static std::vector<Vec2> windtraps;
 			    windtraps.push_back( grid + Vec2(x,y));
 		    }
     }
+    if (place_building && building_type == 0) {
+	            Vec2 grid ;
+		    grid.x = int (cursorpos.x / 32) * 32;
+		    grid.y = int (cursorpos.y / 32) * 32;
+		    screen.blit(dunesprites,refinery,grid);
+		    if (clicked) {
+			    place_building = false;
+			    refineries.push_back( grid + Vec2(x,y));
+		    }
+    }
+
+    for (auto r : refineries) {
+    	screen.blit(dunesprites,refinery,r - Vec2(x,y));
+    	if (near (cursorpos,r)) {
+		status = "Spice Refinery";
+	}
+    }
+
     for (auto w : windtraps) {
     	screen.blit(dunesprites,windtrap,w - Vec2(x,y));
     	if (near (cursorpos,w)) {
@@ -266,4 +296,5 @@ static Vec2 joypos;
 	    else set_screen_mode(ScreenMode::hires);
 	    lowres = !lowres;
 	    }
+    if (buttons.released & Button::B) options = !options;
 }
