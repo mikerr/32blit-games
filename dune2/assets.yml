@@ -1,8 +1,8 @@
 assets.hpp:
-  map1.png:
+  map1-256.png:
     name: map1
   sprites.png:
-    name: quad
+    name: spritesheet
   yessir.wav:
     name: yessir
   acknowledged.wav:

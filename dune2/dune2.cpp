@@ -5,20 +5,19 @@ using namespace blit;
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
-int x,y,fire,lowres,button_up,maps;
-std::string status;
-Vec2 center,move,joypos;
+int x,y,lowres,clicked,credits;
+Vec2 center,cursorpos;
 
 struct unit {
 	Vec2 pos;
 	Vec2 dest;
 };
 
-unit quads[10];
+std::vector<unit> quads;
 
-Surface *backdrop,*quadsprite;
+Surface *backdrop,*dunesprites;
 
-#define MAPSIZE 568
+#define MAPSIZE 256
 
 // Static wave config
 static uint32_t wavSize = 0;
@@ -64,16 +63,19 @@ void blit_rotate_sprite (Surface *sprite,Rect src, float angle, Vec2 screenpos) 
 Vec2 rot;
     int width = src.w;
     int height = src.h;
+    float sinangle = sin(angle);
+    float cosangle = cos(angle);
     for (int x=0;x<width;x++)
 	    for (int y=0;y<height;y++) {
 		    int x1 = x - (width / 2);
 		    int y1 = y - (height / 2);
-		    rot.x = x1 * sin(angle) + y1 * cos(angle);
-		    rot.y = y1 * sin(angle) - x1 * cos(angle);
+		    rot.x = x1 * sinangle + y1 * cosangle;
+		    rot.y = y1 * sinangle - x1 * cosangle;
 		    Vec2 pos = rot + screenpos;
         	    screen.stretch_blit(sprite,Rect(src.x + x, src.y + y,1,1),Rect(pos.x, pos.y,2,2));
 	    }
 }
+
 void draw_cursor(Vec2 pos) {
     screen.pen = Pen(255,255,255);
     screen.line(pos + Vec2 (-5, -5), pos + Vec2 (5, 5) );
@@ -81,139 +83,185 @@ void draw_cursor(Vec2 pos) {
 }
 
 void draw_box(int x, int y, int w, int h){
-    screen.pen = Pen(25,25,25);
-    screen.line(Vec2(x,y),Vec2(x,h));
-    screen.line(Vec2(x,h),Vec2(w,h));
-    screen.line(Vec2(w,h),Vec2(w,y));
-    screen.line(Vec2(w,y),Vec2(x,y));
+   screen.line(Vec2(x,y),Vec2(x, y+ h));
+   screen.line(Vec2(x,y + h),Vec2(x + w, y + h));
+   screen.line(Vec2(x + w, y + h),Vec2(x + w,y));
+   screen.line(Vec2(x + w,y),Vec2(x,y));
+}
+
+bool near (Vec2 cursor, Vec2 object) {
+    int distance = abs(x + cursor.x - object.x - 2) + abs(y + cursor.y - object.y - 2);
+    return (distance < 20);
 }
 
 void init() {
     set_screen_mode(ScreenMode::hires);
-    fire = button_up = 0;
+    clicked = 0;
+    credits = 500;
 
     channels[0].waveforms = Waveform::WAVE;
     channels[0].wave_buffer_callback = &buffCallBack;  
 
     backdrop = Surface::load(map1);
-    quadsprite = Surface::load(quad);
 
-    //spawn 10 quads at random locations
-    for (int i=0;i<10;i++) {
-	    quads[i].pos = Vec2(rand() % MAPSIZE, rand() % MAPSIZE);
-	    quads[i].dest = Vec2(rand() % MAPSIZE, rand() % MAPSIZE);
+    dunesprites = Surface::load(spritesheet);
+
+    //spawn quads at random locations
+    for (int i=0;i<5;i++) {
+	    unit quad;
+	    int size = MAPSIZE * 2;
+	    quad.pos = Vec2(rand() % size, rand() % size);
+	    quad.dest = Vec2(rand() % size, rand() % size);
+	    quads.push_back(quad);
     }
 }
 
 void render(uint32_t time) {
-static int commanding = 0;
-int selected = 0;
+static int commanding,place_building;
+int selected = -1;
+
+std::string status;
+static std::vector<Vec2> windtraps;
 
     // Draw map
-    screen.stretch_blit(backdrop,Rect(x,y,screen.bounds.w,screen.bounds.h),Rect(0,0,screen.bounds.w,screen.bounds.h));
+    screen.stretch_blit(backdrop,Rect(x/2,y/2,screen.bounds.w /2,screen.bounds.h /2),Rect(0,0,screen.bounds.w,screen.bounds.h));
+
+
+    if ( time < 4000) {
+    	screen.pen = Pen(255,255,255);
+	status = "X : toggle resolution";
+    	screen.text(status, minimal_font, Vec2(50,screen.bounds.h /2) );
+	status = "Y : show mini map";
+    	screen.text(status, minimal_font, Vec2(50,20 + screen.bounds.h /2) );
+	status = "A : comand unit";
+    	screen.text(status, minimal_font, Vec2(50,30 + screen.bounds.h /2) );
+    }
+    status = "";
 
     // Draw quads
-    for (int i=1;i<10;i++) {
-	int size = 15;
-	Vec2 unitpos = quads[i].pos;
-
-	int distance = abs(x + joypos.x - unitpos.x - 10) + abs(y + joypos.y - unitpos.y - 10);
-	if (distance < 20) {
-		if (status == "") status = "Harkonnen quad unit";
+    int i = 0;
+    for (auto &quad : quads) {
+	if (near(cursorpos,quad.pos)) {
+		status = "Harkonnen quad unit";
 		selected = i;
 	}
 
 	// move units to their destination, one step at a time
-	Vec2 dir = quads[i].dest - unitpos;
+	Vec2 dir = quad.dest - quad.pos;
 	float angle = atan2(dir.y,dir.x);
 	//normalize
 	dir.x = dir.x / MAX(1,abs(dir.x));
 	dir.y = dir.y / MAX(1,abs(dir.y));
 
-	quads[i].pos += dir;
+	quad.pos += dir;
 
-        if (i == selected) size = 20;
-
-	blit_rotate_sprite(quadsprite,Rect(0,0,16,16),angle,Vec2(unitpos.x - x, unitpos.y - y));
+	// don't draw offscreen
+	if (quad.pos.x - x > 0 && quad.pos.y > 0 && quad.pos.x -x < screen.bounds.w && quad.pos.y - y < screen.bounds.h) {
+	   Rect quadsprite = Rect(0,0,16,16);
+	   blit_rotate_sprite(dunesprites,quadsprite,angle,Vec2(quad.pos.x - x, quad.pos.y - y));
+           if (i == selected) { draw_box(quad.pos.x - x - 8,quad.pos.y - y - 8,18,18); }
 	}
-
-    Vec2 yard = Vec2(200,166);
-    int distance = abs(x + joypos.x - yard.x - 10) + abs(y + joypos.y - yard.y - 10);
-    if (distance < 20) {
-	    status = "Construction yard";
+	i++;
     }
 
-    draw_cursor(joypos);
-
-    if (time % 50 == 0) status = "";
+    // construction yard
+    Vec2 yardpos = Vec2(160,160);
+    Rect yard = Rect(72,19,32,30);
+    screen.blit(dunesprites,yard,yardpos - Vec2(x,y));
+    if (near (cursorpos,yardpos)) {
+	    status = "Construction yard";
+	    if (clicked) {
+		    place_building = true;
+		    clicked = false;
+	    }
+    }
+    // Windtrap generators
+    Rect windtrap = Rect(0,19,32,30);
+    if (place_building) {
+	            Vec2 grid ;
+		    grid.x = int (cursorpos.x / 32) * 32;
+		    grid.y = int (cursorpos.y / 32) * 32;
+		    screen.blit(dunesprites,windtrap,grid);
+		    if (clicked) {
+			    place_building = false;
+			    windtraps.push_back( grid + Vec2(x,y));
+		    }
+    }
+    for (auto w : windtraps) {
+    	screen.blit(dunesprites,windtrap,w - Vec2(x,y));
+    	if (near (cursorpos,w)) {
+		status = "Windtrap generator";
+	}
+    }
 
     if (time % 2000 == 0) { 
 	    	    status = "Warning, Enemy unit approaching";
 		    //play_wav(enemyunit,enemyunit_length);
 		    }
 
-    if (button_up) {
-		button_up = 0;
+    if (clicked) {
+		clicked = 0;
 
-		if (commanding) {
+		if (commanding != -1) {
 			status = "Acknowledged !";
 			play_wav(ack,ack_length);
-			quads[commanding].dest = Vec2(x,y) + joypos;
-			commanding = 0;
+			quads[commanding].dest = Vec2(x,y) + cursorpos;
+			commanding = -1;
 		}
-		if (selected) {
+		if (selected != -1) {
 			status = "Yes, sir !";
 			play_wav(yessir,yessir_length);
 			commanding = selected;
 			}
     }
+
+    draw_cursor(cursorpos);
+    // status text
     screen.pen = Pen(255,255,255);
     Vec2 screenbottom = Vec2(0,screen.bounds.h - 10);
     screen.text(status, minimal_font, screenbottom);
 
     // Draw mini map
-    if (pressed(Button::MENU)) 
-	    screen.stretch_blit(backdrop,Rect(1,0,MAPSIZE,MAPSIZE),Rect(screen.bounds.w-100,screen.bounds.h-100,100,100));
+    if (pressed(Button::Y))  {
+	    int mmsize = screen.bounds.w / 2.5;
+	    screen.stretch_blit(backdrop,Rect(1,0,MAPSIZE,MAPSIZE),Rect(screen.bounds.w-mmsize,screen.bounds.h-mmsize,mmsize,mmsize));
+    }
 }
 
 void update(uint32_t time) {
+static Vec2 joypos;
 
     center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
 
-    // stretch joystick diagonals to reach corners
-    float diag = 1;
-    if ( (fabs((float)joystick.x) > (double)0.5f) && (fabs((float)joystick.y) > (double)0.5f) ) diag = 1.5;
+    int cspeed = screen.bounds.w / 120;
+    if (pressed(Button::DPAD_LEFT))  joypos.x -= cspeed;
+    if (pressed(Button::DPAD_RIGHT)) joypos.x += cspeed;
+    if (pressed(Button::DPAD_UP))    joypos.y -= cspeed;
+    if (pressed(Button::DPAD_DOWN))  joypos.y += cspeed;
 
-    joypos.x =  joystick.x * center.x * diag;
-    joypos.y =  joystick.y * center.y * diag;
+    joypos.x = std::min(joypos.x,center.x);
+    joypos.y = std::min(joypos.y,center.y);
+    joypos.x = std::max(joypos.x,-center.x);
+    joypos.y = std::max(joypos.y,-center.y);
 
-    joypos = joypos + center;
+    cursorpos = joypos + center;
 
     int SCROLLSPEED = 1;
-    if ( joypos.x < 10 || pressed(Button::DPAD_LEFT)) x -= SCROLLSPEED;
-    if ( joypos.x > screen.bounds.w - 10 || pressed(Button::DPAD_RIGHT)) x += SCROLLSPEED;
+    if ( cursorpos.x < 10 ) x -= SCROLLSPEED;
+    if ( cursorpos.x > screen.bounds.w - 10 ) x += SCROLLSPEED;
+    if ( cursorpos.y < 10 ) y -= SCROLLSPEED;
+    if ( cursorpos.y > screen.bounds.h - 10) y += SCROLLSPEED;
 
-    if ( joypos.y < 10 || pressed(Button::DPAD_UP)) y -= SCROLLSPEED;
-    if ( joypos.y > screen.bounds.h - 10|| pressed(Button::DPAD_DOWN)) y += SCROLLSPEED;
-
-    int width  = MAPSIZE - screen.bounds.w; 
-    int height = MAPSIZE - screen.bounds.h; 
-
-    if ( x < 0 || x > width)  draw_box(0,0,screen.bounds.w-1,screen.bounds.h-1);
-    if ( y < 0 || y > height) draw_box(0,0,screen.bounds.w-1,screen.bounds.h-1);
+    int width  = MAPSIZE * 2 - screen.bounds.w; 
+    int height = MAPSIZE * 2 - screen.bounds.h; 
 
     x = std::min(x,width);
     y = std::min(y,height);
     x = std::max(0,x);
     y = std::max(0,y);
 
-    if (pressed(Button::A)) fire = 1; 
-    if (!pressed(Button::A) && fire == 1 ) {
-		 // button released
-		button_up = 1; 
-		fire = 0;
-		}
-    if (pressed(Button::X)) {
+    if (buttons.released & Button::A) { clicked = 1; }
+    if (buttons.released & Button::X) {
 	    if (lowres) set_screen_mode(ScreenMode::lores);
 	    else set_screen_mode(ScreenMode::hires);
 	    lowres = !lowres;
