@@ -11,9 +11,11 @@ Vec2 center,mappos,cursorpos;
 struct unit {
 	Vec2 pos;
 	Vec2 dest;
+	float angle;
 	int health;
+	bool enemy;
 };
-std::vector<unit> quads, windtraps, refineries;
+std::vector<unit> quads, harvesters, windtraps, refineries;
 
 Surface *backdrop,*dunesprites;
 
@@ -110,6 +112,20 @@ Vec2 grid;
     return (true);
 }
 
+void move_units( std::vector<unit> &units ) {
+
+    for (auto &vehicle : units) {
+
+	// move units to their destination, one step at a time
+	Vec2 dir = vehicle.dest - vehicle.pos;
+	//normalize
+	dir.x = dir.x / MAX(1,abs(dir.x));
+	dir.y = dir.y / MAX(1,abs(dir.y));
+
+	vehicle.angle = atan2(dir.y,dir.x);
+	vehicle.pos += dir;
+    }
+}
 void init() {
     set_screen_mode(ScreenMode::hires);
     credits = 500;
@@ -121,11 +137,12 @@ void init() {
     dunesprites = Surface::load(spritesheet);
 
     //spawn quads at random locations
-    for (int i=0;i<5;i++) {
+    for (int i=0;i<25;i++) {
 	    unit quad;
 	    int size = MAPSIZE * 2;
 	    quad.pos = Vec2(rand() % size, rand() % size);
 	    quad.dest = Vec2(rand() % size, rand() % size);
+	    quad.enemy = rand() % 2;
 	    quads.push_back(quad);
     }
 }
@@ -142,6 +159,9 @@ Rect refinery_pic = Rect (44,49,41,32);
 Rect quadsprite = Rect(0,0,16,16);
 Rect yardsprite = Rect(72,19,32,30);
 
+Rect harvestersprite = Rect(68,81,40,30);
+Rect harvestingsprite = Rect(68,81,60,30);
+
     // Draw map
     screen.stretch_blit(backdrop,Rect(mappos.x/2,mappos.y/2,screen.bounds.w/2,screen.bounds.h/2),Rect(0,0,screen.bounds.w,screen.bounds.h));
     screen.pen = Pen(255,255,255);
@@ -152,18 +172,11 @@ Rect yardsprite = Rect(72,19,32,30);
 	screen.text ("A : comand unit", minimal_font, Vec2(50,30 + screen.bounds.h /2) );
     }
 
+    // move units ( quads  and harvesters
+    move_units( quads); 
     // Draw quads
     int thisquad = 0;
     for (auto &quad : quads) {
-
-	// move units to their destination, one step at a time
-	Vec2 dir = quad.dest - quad.pos;
-	//normalize
-	dir.x = dir.x / MAX(1,abs(dir.x));
-	dir.y = dir.y / MAX(1,abs(dir.y));
-
-	float angle = atan2(dir.y,dir.x);
-	quad.pos += dir;
 
 	if (near(cursorpos,quad.pos)) {
 		status = "Harkonnen quad unit";
@@ -178,7 +191,13 @@ Rect yardsprite = Rect(72,19,32,30);
 	// don't draw offscreen
 	Vec2 screenpos = quad.pos - mappos;
 	if (screenpos.x > 0 && screenpos.y > 0 && screenpos.x < screen.bounds.w && screenpos.y < screen.bounds.h) {
-	   blit_rotate_sprite(dunesprites,quadsprite,angle,screenpos);
+	   if (quad.enemy == 1) {
+		  dunesprites->palette[4] = Pen(0,255,0);
+	   } else {
+		  dunesprites->palette[4] = Pen(255,0,0);
+	   }
+
+	   blit_rotate_sprite(dunesprites,quadsprite,quad.angle,screenpos);
            if (thisquad == commanding) { draw_box(screenpos.x - 8,screenpos.y - 8,18,18); }
 	}
 	thisquad++;
@@ -238,7 +257,26 @@ Rect yardsprite = Rect(72,19,32,30);
     	screen.blit(dunesprites,windtrap, w.pos - mappos);
     	if (near (cursorpos,w.pos)) { status = "Windtrap generator"; }
     }
+    // harvesters
+    if (refineries.size() > 0  && harvesters.size() == 0) {
+		    unit harvester;
+		    harvester.pos = refineries[0].pos;
+		    harvester.dest = Vec2(300,120);
+		    harvesters.push_back(harvester);
+	    }
+    if (refineries.size() > 0 )  {
+    	    move_units( harvesters ); 
+	    unit harvester = harvesters[0];
+	    if (harvesters[0].pos != harvester.dest)
+	    	blit_rotate_sprite(dunesprites,harvestersprite,harvester.angle - (3.14 / 2 ),harvester.pos - mappos);
+	    else {
+		Rect sprite;
+		if (time % 3) sprite = harvestersprite;
+		else  sprite = harvestingsprite;
+		screen.blit(dunesprites,sprite,harvester.pos - mappos);
+	    }
 
+    }
     draw_cursor(cursorpos);
 
     // status text
