@@ -5,21 +5,17 @@ using namespace blit;
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
-int x,y,lowres,clicked,credits,options;
-Vec2 center,cursorpos;
+int lowres,clicked,credits,options;
+Vec2 center,mappos,cursorpos;
 
 struct unit {
 	Vec2 pos;
 	Vec2 dest;
 	int health;
 };
-
 std::vector<unit> quads, windtraps, refineries;
 
 Surface *backdrop,*dunesprites;
-
-Rect windtrap = Rect(0,19,32,30);
-Rect refinery = Rect(0,49,42,30);
 
 #define MAPSIZE 256
 
@@ -87,14 +83,15 @@ void draw_cursor(Vec2 pos) {
 }
 
 void draw_box(int x, int y, int w, int h){
-   screen.line(Vec2(x,y),Vec2(x, y+ h));
-   screen.line(Vec2(x,y + h),Vec2(x + w, y + h));
-   screen.line(Vec2(x + w, y + h),Vec2(x + w,y));
-   screen.line(Vec2(x + w,y),Vec2(x,y));
+Vec2 a = Vec2(x,y);
+   screen.line(a, a + Vec2(0, h));
+   screen.line(a + Vec2(0,h), a + Vec2(w,h));
+   screen.line(a + Vec2(w, h),a + Vec2(w,0));
+   screen.line(a + Vec2(w,0),a);
 }
 
 bool near (Vec2 cursor, Vec2 object) {
-    int distance = abs(x + cursor.x - object.x - 2) + abs(y + cursor.y - object.y - 2);
+    int distance = abs(mappos.x + cursor.x - object.x - 2) + abs(mappos.y + cursor.y - object.y - 2);
     return (distance < 20);
 }
 
@@ -106,7 +103,7 @@ Vec2 grid;
 	if (clicked) {
 		clicked = false;
 		unit new_build;
-		new_build.pos = grid + Vec2(x,y);
+		new_build.pos = grid + mappos;
 		buildings.push_back( new_build );
 		return (false);
 		}
@@ -136,11 +133,17 @@ void render(uint32_t time) {
 static int commanding=-1, placing_building, building_type;
 
 static std::string status;
+Rect windtrap = Rect(0,19,32,30);
+Rect refinery = Rect(0,49,42,30);
+
 Rect windtrap_pic = Rect (33,18,41,32);
 Rect refinery_pic = Rect (44,49,41,32);
 
+Rect quadsprite = Rect(0,0,16,16);
+Rect yardsprite = Rect(72,19,32,30);
+
     // Draw map
-    screen.stretch_blit(backdrop,Rect(x/2,y/2,screen.bounds.w /2,screen.bounds.h /2),Rect(0,0,screen.bounds.w,screen.bounds.h));
+    screen.stretch_blit(backdrop,Rect(mappos.x/2,mappos.y/2,screen.bounds.w/2,screen.bounds.h/2),Rect(0,0,screen.bounds.w,screen.bounds.h));
     screen.pen = Pen(255,255,255);
 
     if ( time < 4000) {
@@ -155,11 +158,11 @@ Rect refinery_pic = Rect (44,49,41,32);
 
 	// move units to their destination, one step at a time
 	Vec2 dir = quad.dest - quad.pos;
-	float angle = atan2(dir.y,dir.x);
 	//normalize
 	dir.x = dir.x / MAX(1,abs(dir.x));
 	dir.y = dir.y / MAX(1,abs(dir.y));
 
+	float angle = atan2(dir.y,dir.x);
 	quad.pos += dir;
 
 	if (near(cursorpos,quad.pos)) {
@@ -173,10 +176,10 @@ Rect refinery_pic = Rect (44,49,41,32);
 		}
 	}
 	// don't draw offscreen
-	if (quad.pos.x - x > 0 && quad.pos.y > 0 && quad.pos.x - x < screen.bounds.w && quad.pos.y - y < screen.bounds.h) {
-	   Rect quadsprite = Rect(0,0,16,16);
-	   blit_rotate_sprite(dunesprites,quadsprite,angle,Vec2(quad.pos.x - x, quad.pos.y - y));
-           if (thisquad == commanding) { draw_box(quad.pos.x - x - 8,quad.pos.y - y - 8,18,18); }
+	Vec2 screenpos = quad.pos - mappos;
+	if (screenpos.x > 0 && screenpos.y > 0 && screenpos.x < screen.bounds.w && screenpos.y < screen.bounds.h) {
+	   blit_rotate_sprite(dunesprites,quadsprite,angle,screenpos);
+           if (thisquad == commanding) { draw_box(screenpos.x - 8,screenpos.y - 8,18,18); }
 	}
 	thisquad++;
     }
@@ -186,14 +189,13 @@ Rect refinery_pic = Rect (44,49,41,32);
 	    		clicked = 0;
 			status = "Acknowledged !";
 			play_wav(ack,ack_length);
-			quads[commanding].dest = Vec2(x,y) + cursorpos;
+			quads[commanding].dest = mappos + cursorpos;
 			commanding = -1;
 		}
 
     // construction yard
     Vec2 yardpos = Vec2(160,160);
-    Rect yard = Rect(72,19,32,30);
-    screen.blit(dunesprites,yard,yardpos - Vec2(x,y));
+    screen.blit(dunesprites,yardsprite,yardpos - mappos);
     if (near (cursorpos,yardpos)) {
 	    status = "Construction yard";
 	            screen.blit(dunesprites,windtrap_pic,Vec2(screen.bounds.w-44,0));
@@ -228,21 +230,20 @@ Rect refinery_pic = Rect (44,49,41,32);
     }
 
     for (auto r : refineries) {
-    	screen.blit(dunesprites,refinery, r.pos - Vec2(x,y));
+    	screen.blit(dunesprites,refinery, r.pos - mappos);
     	if (near (cursorpos,r.pos)) { status = "Spice Refinery"; }
     }
 
     for (auto w : windtraps) {
-    	screen.blit(dunesprites,windtrap, w.pos - Vec2(x,y));
+    	screen.blit(dunesprites,windtrap, w.pos - mappos);
     	if (near (cursorpos,w.pos)) { status = "Windtrap generator"; }
     }
 
     draw_cursor(cursorpos);
 
     // status text
-    Vec2 screenbottom = Vec2(0,screen.bounds.h - 10);
     screen.text ("Credits: " + std::to_string(credits), minimal_font,Vec2(0,0));
-    screen.text(status, minimal_font, screenbottom);
+    screen.text(status, minimal_font, Vec2(0,screen.bounds.h - 10));
 
     // Draw mini map
     if (pressed(Button::Y))  {
@@ -268,13 +269,13 @@ static Vec2 joypos;
 
     cursorpos = joypos + center;
 
-    if ( cursorpos.x < 10 ) x--;
-    if ( cursorpos.y < 10 ) y--;
-    if ( cursorpos.x > screen.bounds.w - 10 ) x++;
-    if ( cursorpos.y > screen.bounds.h - 10 ) y++;
+    if ( cursorpos.x < 10 ) mappos.x--;
+    if ( cursorpos.y < 10 ) mappos.y--;
+    if ( cursorpos.x > screen.bounds.w - 10 ) mappos.x++;
+    if ( cursorpos.y > screen.bounds.h - 10 ) mappos.y++;
 
-    x = std::clamp(x,0,(int)(MAPSIZE * 2 - screen.bounds.w));
-    y = std::clamp(y,0,(int)(MAPSIZE * 2 - screen.bounds.h));
+    mappos.x = std::clamp((int)mappos.x,0,(int)(MAPSIZE * 2 - screen.bounds.w));
+    mappos.y = std::clamp((int)mappos.y,0,(int)(MAPSIZE * 2 - screen.bounds.h));
 
     if (buttons.released & Button::A) { clicked = 1; }
     if (buttons.released & Button::X) {
