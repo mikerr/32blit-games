@@ -240,6 +240,16 @@ void gameloop() {
   	if (aliendir[n].x < 0) screen.sprite(costume,pos,SpriteTransform::HORIZONTAL); 
   	else screen.sprite(costume,pos); 
   }
+
+  Rect truck = Rect(7,10,6,3);
+  Rect trailer = Rect(7,13,6,3);
+  static int truckx = 50;
+  if (truckx > - 90){ 
+      screen.sprite(truck,Vec2(truckx,210));
+      screen.sprite(trailer,Vec2(truckx + 44,210));
+      truckx -=2;
+  }
+
   // player
   if (playerdied) {
                 if (fuelgrabbed) { 
