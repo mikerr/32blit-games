@@ -157,6 +157,7 @@ Rect windtrap_pic = Rect (33,18,41,32);
 Rect refinery_pic = Rect (44,49,41,32);
 
 Rect quadsprite = Rect(0,0,16,16);
+Rect trikesprite = Rect(40,0,16,16);
 Rect yardsprite = Rect(72,19,32,30);
 
 Rect harvestersprite = Rect(68,81,40,30);
@@ -179,7 +180,9 @@ Rect harvestingsprite = Rect(68,81,60,30);
     for (auto &quad : quads) {
 
 	if (near(cursorpos,quad.pos)) {
-		status = "Harkonnen quad unit";
+		if (!quad.enemy) status = "Harkonnen Quad";
+		else status = "Atredies Trike";
+
     		if (clicked) {
 			quad.dest = quad.pos;
 			commanding = thisquad;
@@ -191,13 +194,11 @@ Rect harvestingsprite = Rect(68,81,60,30);
 	// don't draw offscreen
 	Vec2 screenpos = quad.pos - mappos;
 	if (screenpos.x > 0 && screenpos.y > 0 && screenpos.x < screen.bounds.w && screenpos.y < screen.bounds.h) {
-	   if (quad.enemy == 1) {
-		  dunesprites->palette[4] = Pen(0,255,0);
-	   } else {
-		  dunesprites->palette[4] = Pen(255,0,0);
-	   }
+           Rect unitsprite;
+	   if (quad.enemy == 1)  unitsprite = trikesprite;  
+	   else unitsprite = quadsprite; 
 
-	   blit_rotate_sprite(dunesprites,quadsprite,quad.angle,screenpos);
+	   blit_rotate_sprite(dunesprites,unitsprite,quad.angle,screenpos);
            if (thisquad == commanding) { draw_box(screenpos.x - 8,screenpos.y - 8,18,18); }
 	}
 	thisquad++;
