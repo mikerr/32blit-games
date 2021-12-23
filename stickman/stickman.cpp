@@ -3,76 +3,71 @@
 using namespace blit;
 
 int speed;
-float dustx,count;
+float dustx,count,rotate,roll;
 
 Vec2 center,neck,hip;
+
+struct bone { Vec2 joint1; Vec2 joint2; };
+
+std::vector<bone> bones;
 
 Pen black = Pen(0,0,0);
 Pen white = Pen(255,255,255);
 
-float deg2rad( float deg){
-	return ( (deg / 180.0f) * 3.142);
-}
+float deg2rad( float deg){ return ( (deg / 180.0f) * 3.142); }
 
-void drawjoint (Vec2 start, Vec2 end) {
-    start += center;
-    end += center;
-    screen.line (start,end);
-    if (pressed(Y)) {
-	    screen.circle(start,5);
-	    screen.circle(end,5);
-    }
-}
-
-void drawleg(int phase) {
-float sinc;
+void add_leg(int side) {
+float angle;
 Vec2 knee,ankle;
 
-    sinc = sin(count + phase) * 30;
-    sinc = deg2rad(sinc +170);
+    angle = sin(count + side) * 30;
+    angle = deg2rad(angle +170);
 
-    knee = Vec2 (sin (sinc), -cos (sinc)) * 50;
+    knee = Vec2 (sin (angle), -cos (angle)) * 50;
     knee += hip;
-    drawjoint (hip,knee);
+    bones.push_back( {hip,knee} );
 
-    sinc = sin (count + phase - 0.873f) * 45;
-    sinc = deg2rad(sinc + 225);
+    angle = sin (count + side - 0.873f) * 45;
+    angle = deg2rad(angle + 225);
 
-    ankle = Vec2 (sin (sinc), -cos (sinc)) * 50;
+    ankle = Vec2 (sin (angle), -cos (angle)) * 50;
     ankle += knee;
-    drawjoint (knee,ankle);
+    bones.push_back ( {knee,ankle} );
 }
 
-void drawarm(int phase) {
-float sinc,cosc;
+void add_arm(int side) {
+float angle;
 Vec2 shoulder,elbow,wrist;
 
     shoulder = neck + Vec2(0,10);
 
-    drawjoint (shoulder,neck);
+    bones.push_back ( {shoulder,neck} );
 
-    sinc = deg2rad(sin(count + phase) * 60);
+    angle = deg2rad(sin(count + side) * 60);
 
-    elbow = Vec2 (sin (sinc), cos (sinc)) * 30;
+    elbow = Vec2 (sin (angle), cos (angle)) * 30;
     elbow += shoulder;
-    drawjoint (shoulder,elbow);
+    bones.push_back ( {shoulder,elbow} );
 
-    sinc = sin(count + phase) * 60;
-    sinc = deg2rad(sinc + 50);
+    angle = sin(count + side) * 60;
+    angle = deg2rad(angle + 50);
 
-    wrist = Vec2 (sin (sinc), cos (sinc)) * 30;
+    wrist = Vec2 (sin (angle), cos (angle)) * 30;
     wrist += elbow;
-    drawjoint (elbow,wrist);
+    bones.push_back ( {elbow,wrist} );
 }
 
-void drawtorso(void) {
+void add_torso(void) {
 
     neck = Vec2(0,-70);
     neck += Vec2(sin(count)*3,cos(count)*3);
     //neck += Vec2(rot / 10.0f, rot / 20.0f);
     neck += hip;
-    drawjoint (hip,neck);
+    bones.push_back ( {hip,neck} );
 
+}
+
+void draw_head(void) {
     Vec2 head = center + neck - Vec2(0,20);
     screen.circle(head,15);
     screen.pen = black; 
@@ -91,6 +86,7 @@ void drawground ( void) {
 	    screen.pixel (Vec2(dustx/4 + dust,180));
     }
 }
+
 void init() {
     set_screen_mode(ScreenMode::hires);
     center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
@@ -98,8 +94,7 @@ void init() {
 }
 
 void render(uint32_t time) {
-float left,right;
-    right = 3.142;
+float left,right = 3.142;
 
     screen.pen = black;
     screen.clear();
@@ -108,13 +103,19 @@ float left,right;
 
     screen.pen = white;
 
-    drawleg(left);
-    drawleg(right);
+    bones.clear();
 
-    drawtorso();
+    add_leg(left);
+    add_leg(right);
 
-    drawarm(left);
-    drawarm(right);
+    add_torso();
+
+    add_arm(left);
+    add_arm(right);
+
+    for (auto bone:bones) 
+	    screen.line(bone.joint1 + center, bone.joint2 + center);
+    draw_head();
 }
 
 void update(uint32_t time) {
@@ -123,6 +124,12 @@ void update(uint32_t time) {
     dustx -= speed / 50.0f;
     if (dustx < -160) dustx = 0;
 
-    if (pressed(DPAD_LEFT) && speed > 20) speed--;
-    if (pressed(DPAD_RIGHT) && speed < 900) speed++;
+    if (pressed(Button::Y) && speed > 20) speed--;
+    if (pressed(Button::A) && speed < 900) speed++;
+
+    if (pressed(DPAD_LEFT)) rotate--;
+    if (pressed(DPAD_RIGHT)) rotate++;
+
+    if (pressed(DPAD_UP)) roll--;
+    if (pressed(DPAD_DOWN)) roll++;
 }
