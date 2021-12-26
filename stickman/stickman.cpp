@@ -75,6 +75,16 @@ void draw_head(void) {
     screen.pen = white;
 }
 
+void draw_hat(void) { // santa hat
+    Vec2 head = center + neck - Vec2(0,20);
+    float sinc = sin(count) * 3;
+    Vec2 bobble = head + Vec2(-30 - sinc,-30 + sinc);
+    screen.pen = Pen(255,0,0); 
+    screen.triangle(head + Vec2(20,-10),head + Vec2(-20,10),bobble);
+    screen.pen = white;
+    screen.circle(bobble,10);
+}
+
 void drawground ( void) {
 
     for(int dust=0; dust < screen.bounds.w + 200; dust += 40) {
@@ -116,6 +126,8 @@ float left,right = 3.142;
     for (auto bone:bones) 
 	    screen.line(bone.joint1 + center, bone.joint2 + center);
     draw_head();
+
+    draw_hat();
 }
 
 void update(uint32_t time) {
