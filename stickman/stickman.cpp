@@ -3,94 +3,146 @@
 using namespace blit;
 
 int speed;
-float dustx,count,rotate,roll;
+float dustx,count,rotate,roll,spin;
 
-Vec2 center,neck,hip;
+Vec2 center;
+Vec3 neck,hip;
+Vec3 rot3d;
 
-struct bone { Vec2 joint1; Vec2 joint2; };
+struct bone { Vec3 joint1; Vec3 joint2; };
 
 std::vector<bone> bones;
 
 Pen black = Pen(0,0,0);
 Pen white = Pen(255,255,255);
+Pen green = Pen(0,255,0);
 
 float deg2rad( float deg){ return ( (deg / 180.0f) * 3.142); }
 
+Vec3 rotate3d (Vec3 point3d,Vec3 rot) {
+	static Vec2 point;
+
+	    //rotate 3d point about X
+	    point = Vec2(point3d.y,point3d.z);
+	    point *= Mat3::rotation(rot.x);
+	    
+	    point3d.y = point.x;
+	    point3d.z = point.y;
+	   
+	    // rotate 3d point about Y
+	    point = Vec2(point3d.z,point3d.x);
+	    point *= Mat3::rotation(rot.y);
+	    
+	    point3d.z = point.x;
+	    point3d.x = point.y;
+	    
+	    // rotate 3d point about Z
+	    point = Vec2(point3d.x,point3d.y);
+	    point *= Mat3::rotation(rot.z);
+	    
+	    point3d.x = point.x;
+	    point3d.y = point.y;
+	    
+	    return (point3d);
+}
+	    
+	    
+Vec2 to2d (Vec3 point3d) {
+	    Vec2 point;
+	    
+	    // project to screen
+	    int z = point3d.z - 500;
+	    point.x = point3d.x * 500 / z;
+	    point.y = point3d.y * 500 / z;
+	    
+	    return (point);
+}
+	    
 void add_leg(int side) {
 float angle;
-Vec2 knee,ankle;
+Vec3 knee,ankle;
 
     angle = sin(count + side) * 30;
     angle = deg2rad(angle +170);
 
-    knee = Vec2 (sin (angle), -cos (angle)) * 50;
+    knee = Vec3 (sin (angle), -cos (angle),0) * 50;
     knee += hip;
     bones.push_back( {hip,knee} );
 
     angle = sin (count + side - 0.873f) * 45;
     angle = deg2rad(angle + 225);
 
-    ankle = Vec2 (sin (angle), -cos (angle)) * 50;
+    ankle = Vec3 (sin (angle), -cos (angle),0) * 50;
     ankle += knee;
     bones.push_back ( {knee,ankle} );
 }
 
 void add_arm(int side) {
 float angle;
-Vec2 shoulder,elbow,wrist;
+Vec3 shoulder,elbow,wrist;
 
-    shoulder = neck + Vec2(0,10);
+    shoulder = neck + Vec3(0,10,0);
 
     bones.push_back ( {shoulder,neck} );
 
     angle = deg2rad(sin(count + side) * 60);
 
-    elbow = Vec2 (sin (angle), cos (angle)) * 30;
+    elbow = Vec3 (sin (angle), cos (angle),0) * 30;
     elbow += shoulder;
     bones.push_back ( {shoulder,elbow} );
 
     angle = sin(count + side) * 60;
     angle = deg2rad(angle + 50);
 
-    wrist = Vec2 (sin (angle), cos (angle)) * 30;
+    wrist = Vec3 (sin (angle), cos (angle),0) * 30;
     wrist += elbow;
     bones.push_back ( {elbow,wrist} );
 }
 
 void add_torso(void) {
 
-    neck = Vec2(0,-70);
-    neck += Vec2(sin(count)*3,cos(count)*3);
-    //neck += Vec2(rot / 10.0f, rot / 20.0f);
+    neck = Vec3(0,-70,0);
     neck += hip;
     bones.push_back ( {hip,neck} );
 
 }
 
-void draw_head(void) {
-    Vec2 head = center + neck - Vec2(0,20);
+void draw_head( Vec2 head) {
+ 
+    head += center;
     screen.circle(head,15);
     screen.pen = black; 
     screen.circle(head,14);
-    screen.pen = white;
 }
 
-void drawground ( void) {
+void draw_stickman(void) {
 
-    for(int dust=0; dust < screen.bounds.w + 200; dust += 40) {
-            screen.pen = Pen(225,225,225);
-	    screen.pixel (Vec2(dustx + dust,220));
-            screen.pen = Pen(200,200,200);
-	    screen.pixel (Vec2(dustx/2 + dust,200));
-            screen.pen = Pen(160,160,160);
-	    screen.pixel (Vec2(dustx/4 + dust,180));
+    for (auto bone:bones)  {
+	    screen.line(to2d(bone.joint1) + center, to2d(bone.joint2) + center);
     }
 }
 
+void draw_ground(void) {
+    dustx -= speed / 20.0f;
+    if (dustx < 0) dustx = 100;
+
+    // make a grid of dots
+    for (int x=0; x < 10; x++) 
+    	    for (int y=0; y < 10 ; y++) {
+	    	Vec3 dust = Vec3(x-5,0,y-5) * 50;
+	        dust.x += dustx;
+		// rotate
+		dust = rotate3d(dust,rot3d);
+		screen.pixel(to2d(dust) + center);
+	    }
+
+}
 void init() {
     set_screen_mode(ScreenMode::hires);
     center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
     speed = 100;
+    rotate = 200;
+    roll = 200;
 }
 
 void render(uint32_t time) {
@@ -98,10 +150,6 @@ float left,right = 3.142;
 
     screen.pen = black;
     screen.clear();
-
-    drawground();
-
-    screen.pen = white;
 
     bones.clear();
 
@@ -113,16 +161,26 @@ float left,right = 3.142;
     add_arm(left);
     add_arm(right);
 
-    for (auto bone:bones) 
-	    screen.line(bone.joint1 + center, bone.joint2 + center);
-    draw_head();
+    //stickman
+    for (auto &bone:bones) {
+		bone.joint1 = rotate3d(bone.joint1, rot3d);
+		bone.joint2 = rotate3d(bone.joint2, rot3d);
+    }
+
+    Vec3 head = neck - Vec3(0,20,0);
+    head = rotate3d(head,rot3d);
+
+    screen.pen = green;
+    draw_ground();
+
+    screen.pen = white;
+    draw_stickman();
+    draw_head(to2d(head));
 }
 
 void update(uint32_t time) {
+static int demo=true;
     count += speed / 2000.0f;
-
-    dustx -= speed / 50.0f;
-    if (dustx < -160) dustx = 0;
 
     if (pressed(Button::Y) && speed > 20) speed--;
     if (pressed(Button::A) && speed < 900) speed++;
@@ -132,4 +190,12 @@ void update(uint32_t time) {
 
     if (pressed(DPAD_UP)) roll--;
     if (pressed(DPAD_DOWN)) roll++;
-}
+
+    if (pressed(Button::X) ) spin++;
+    if (pressed(Button::B) ) spin--;
+
+    if (buttons.released) demo = false;
+    if (demo) rotate--; 
+
+    rot3d = Vec3(roll/100,rotate/100,spin/100);
+    }
