@@ -3,11 +3,11 @@
 using namespace blit;
 
 int speed;
-float dustx,count,rotate,roll,spin;
+float count, rotate, roll, spin;
 
 Vec2 center;
-Vec3 neck,hip;
-Vec3 rot3d;
+Vec3 neck, hip;
+Vec3 rot3d, pos;
 
 struct bone { Vec3 joint1; Vec3 joint2; };
 
@@ -117,12 +117,13 @@ void draw_head( Vec2 head) {
 
 void draw_stickman(void) {
 
-    for (auto bone:bones)  {
+    for (auto bone:bones) 
 	    screen.line(to2d(bone.joint1) + center, to2d(bone.joint2) + center);
-    }
 }
 
 void draw_ground(void) {
+static float dustx;
+
     dustx -= speed / 20.0f;
     if (dustx < 0) dustx = 100;
 
@@ -131,8 +132,9 @@ void draw_ground(void) {
     	    for (int y=0; y < 10 ; y++) {
 	    	Vec3 dust = Vec3(x-5,0,y-5) * 50;
 	        dust.x += dustx;
-		// rotate
+		
 		dust = rotate3d(dust,rot3d);
+		dust.y -= 100;
 		screen.pixel(to2d(dust) + center);
 	    }
 
@@ -141,8 +143,7 @@ void init() {
     set_screen_mode(ScreenMode::hires);
     center = Vec2(screen.bounds.w / 2, screen.bounds.h / 2);
     speed = 100;
-    rotate = 200;
-    roll = 200;
+    roll = 300;
 }
 
 void render(uint32_t time) {
@@ -150,6 +151,11 @@ float left,right = 3.142;
 
     screen.pen = black;
     screen.clear();
+
+    screen.pen = green;
+    draw_ground();
+
+    screen.pen = white;
 
     bones.clear();
 
@@ -161,19 +167,21 @@ float left,right = 3.142;
     add_arm(left);
     add_arm(right);
 
+    Vec3 head = neck - Vec3(0,20,0);
+
+    for (auto &bone:bones) {
+	    bone.joint1 += pos;
+	    bone.joint2 += pos;
+    }
+    head += pos;
+
     //stickman
     for (auto &bone:bones) {
 		bone.joint1 = rotate3d(bone.joint1, rot3d);
 		bone.joint2 = rotate3d(bone.joint2, rot3d);
     }
-
-    Vec3 head = neck - Vec3(0,20,0);
     head = rotate3d(head,rot3d);
 
-    screen.pen = green;
-    draw_ground();
-
-    screen.pen = white;
     draw_stickman();
     draw_head(to2d(head));
 }
@@ -181,6 +189,9 @@ float left,right = 3.142;
 void update(uint32_t time) {
 static int demo=true;
     count += speed / 2000.0f;
+
+    pos.x += blit::joystick.x;
+    pos.z += blit::joystick.y;
 
     if (pressed(Button::Y) && speed > 20) speed--;
     if (pressed(Button::A) && speed < 900) speed++;
