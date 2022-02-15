@@ -19,9 +19,15 @@ int framecount,level,score,lives = 3;
 float o2;
 
 Point player,speed,monsterpos,playerstart;
+const uint8_t  *levels[] = { level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
+	                     level11,level12,level13,level14,level15,level16,level17,level18,level19 };
 //costumes
+Rect monster;
+Rect monsters[] = { Rect(128,0,12,16), Rect(0,16,12,16), Rect(128,16,12,16), Rect(0,32,12,16), Rect(0,16,12,14), 
+	            Rect(0,48,12,16), Rect(128,48,12,16), Rect(128,16,12,16), Rect(128,64,12,16), Rect(0,80,12,14), 
+	            Rect(128,48,12,16), Rect(128,80,12,16), Rect(0,96,12,16), Rect(128,96,12,16), Rect(0,112,12,14), 
+	            Rect(0,48,12,16), Rect(0,16,12,16), Rect(128,16,12,16), Rect(0,32,12,16), Rect(0,16,12,14) };
 Rect willywalk[] = { Rect(0,0,8,16), Rect(18,0,8,16), Rect(36,0,8,16), Rect(52,0,11,16) };
-Rect monsters[] = { Rect(128,0,12,16), Rect(0,16,12,16)};
 
 std::vector<Vec3> platforms,collapsing;
 std::vector<Point> spikes,gempos;
@@ -66,7 +72,9 @@ void setup_level(int level) {
  player = playerstart;
  for (auto& c : collapsed) c = 0;
  for (auto& c : collectedgems) c = false;
- if (level == 0) { // platform format: start.x start.y endpoint.x
+
+ switch (level) {
+	case 0:
  	platforms = { Vec3(39,160,280), Vec3(70,145,190), Vec3(190,135,280), Vec3(260,120,280), Vec3(95,112,255), Vec3(39,110,70), Vec3(39,95,60), Vec3(39,80,280), Vec3(165,103,190) }; 
  	conveyor = platforms[4];
  	collapsing = { Vec3(215,135,260), Vec3(140,80,175), Vec3(180,80,215)};
@@ -74,10 +82,9 @@ void setup_level(int level) {
  	gempos = { Point(102,40), Point(157,50), Point(260,40), Point(270,90), Point(225,70)};
 	monsterpos = Point(155,95);
 	backcolor = black;
-	free_surface (background);
-	background = Surface::load(level1);
- }
- if (level == 1) {
+	break;
+
+ 	case 1:
  	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
  	conveyor = platforms[1];
  	collapsing = { platforms[2], platforms[4],platforms[6],platforms[8],Vec3(236,88,255) };
@@ -85,9 +92,50 @@ void setup_level(int level) {
  	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
 	monsterpos = Point(155,65);
 	backcolor = Pen(0,0,200);
-	free_surface (background);
-	background = Surface::load(level2);
+	break;
+
+	case 2:
+ 	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
+ 	conveyor = platforms[1];
+ 	collapsing = { platforms[2], platforms[4],platforms[6],platforms[8],Vec3(236,88,255) };
+ 	spikes = { };
+ 	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
+	monsterpos = Point(155,65);
+	backcolor = Pen(0,0,200);
+	break;
+ 
+	case 4:
+ 	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
+ 	conveyor = platforms[1];
+ 	collapsing = { platforms[2], platforms[4],platforms[6],platforms[8],Vec3(236,88,255) };
+ 	spikes = { };
+ 	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
+	monsterpos = Point(155,65);
+	backcolor = Pen(0,0,200);
+	break;
+
+	case 5:
+ 	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
+ 	conveyor = platforms[1];
+ 	collapsing = { platforms[2], platforms[4],platforms[6],platforms[8],Vec3(236,88,255) };
+ 	spikes = { };
+ 	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
+	monsterpos = Point(155,65);
+	backcolor = Pen(0,0,200);
+	break;
+
+	default:
+ 	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
+ 	conveyor = platforms[1];
+ 	collapsing = { platforms[2], platforms[4],platforms[6],platforms[8],Vec3(236,88,255) };
+ 	spikes = { };
+ 	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
  }
+
+  monster = monsters[level];
+  free_surface (background);
+  background = Surface::load(levels[level]);
+
 
   // PICO / smaller screen support /
   for (Vec3 &plat : platforms) { plat.x -= OFFSET; plat.z -= OFFSET; }
@@ -103,21 +151,28 @@ static int dir,monsterdir = LEFT;
   screen.clear();
   // copy background
   screen.blit(background,Rect (0,0,256,192),Point(30-OFFSET,40));
+  screen.rectangle(Rect(0,185,320,240));
   // score
   screen.pen = yellow;
   screen.line(Point(30-OFFSET,39),Point(285,39));
   screen.text("High Score 00000" + std::to_string(score),minimal_font,Point(40-OFFSET,193));
-  screen.text("00000" + std::to_string(score),minimal_font,Point(240-OFFSET,193));
+  screen.text("Score 00000" + std::to_string(score),minimal_font,Point(200-OFFSET,193));
   // air supply bar
+  screen.pen = red;
+  screen.rectangle(Rect(0,175,80,10));
+  screen.pen = green;
+  screen.rectangle(Rect(80,175,320,10));
   screen.pen = white;
+  screen.text("AIR",minimal_font,Point(40-OFFSET,175));
   o2 = o2 - 0.05f;
   if (o2 < 0 ) lives = 0;
   screen.line(Point(60-OFFSET,180),Point(60+o2-OFFSET,180));
+  screen.line(Point(60-OFFSET,181),Point(60+o2-OFFSET,181));
   // Monster walk
   if (framecount % 2) monsterpos.x += monsterdir;
   if (monsterpos.x > 155-OFFSET) monsterdir = LEFT;
   if (monsterpos.x < 90-OFFSET)  monsterdir = RIGHT;
-  Rect costume = monsters[level];
+  Rect costume = monster;
   costume.x += 18 * ((framecount / 6 ) % 3);
   bool flip = monsterdir < 0;
   screen.blit(characters,costume,monsterpos,flip);
@@ -145,7 +200,8 @@ static int dir,monsterdir = LEFT;
   if (!gemsleft && (framecount % 2)) {
 	  screen.rectangle(Rect(262-OFFSET,143,16,16));
   	  if (collide(player,Point(262-OFFSET,143))) {
-	  	level = !level;
+	  	level++;
+		if (level == 19) level  = 0;
 	  	setup_level(level);
 	  }
   }
@@ -218,9 +274,9 @@ static int jumpheight = 0;
 
  // CHEAT mode
  if (pressed(Button::B)) {
-	 for (int i=0; i<5; i++)
+	 for (int i=0;i<5;i++)
 		 collectedgems[i] = true;
- }
+	}
 
  // keep on screen
  player.x = std::clamp((int)player.x,40-OFFSET,265-OFFSET);
