@@ -216,6 +216,12 @@ static int jumpheight = 0;
  if (jumping && !grounded) speed.y = UP;
  else speed.y = DOWN; // gravity
 
+ // CHEAT mode
+ if (pressed(Button::B)) {
+	 for (int i=0; i<5; i++)
+		 collectedgems[i] = true;
+ }
+
  // keep on screen
  player.x = std::clamp((int)player.x,40-OFFSET,265-OFFSET);
  // fall onto platforms
