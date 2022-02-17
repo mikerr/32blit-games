@@ -73,6 +73,7 @@ void setup_level(int level) {
  for (auto& c : collapsed) c = 0;
  for (auto& c : collectedgems) c = false;
 
+ backcolor = black;
  switch (level) {
 	case 0:
  	platforms = { Vec3(39,160,280), Vec3(70,145,190), Vec3(190,135,280), Vec3(260,120,280), Vec3(95,112,255), Vec3(39,110,70), Vec3(39,95,60), Vec3(39,80,280), Vec3(165,103,190) }; 
@@ -81,7 +82,6 @@ void setup_level(int level) {
  	spikes = { Point(120,40), Point(160,40), Point(215,65), Point(250,65), Point(200,100), Point(130,130)};
  	gempos = { Point(102,40), Point(157,50), Point(260,40), Point(270,90), Point(225,70)};
 	monsterpos = Point(155,95);
-	backcolor = black;
 	break;
 
  	case 1:
@@ -95,47 +95,25 @@ void setup_level(int level) {
 	break;
 
 	case 2:
- 	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
- 	conveyor = platforms[1];
- 	collapsing = { platforms[2], platforms[4],platforms[6],platforms[8],Vec3(236,88,255) };
- 	spikes = { };
- 	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
+ 	platforms = { Vec3(39,160,280), Vec3(66,135,115), Vec3(143,125,180), Vec3(194,145,320), Vec3(74,110,120), Vec3(227,118,320), Vec3(40,95,83), Vec3(39,80,320), Vec3(240,96,320)};
+ 	conveyor = {platforms[4]};
+ 	collapsing = {Vec3(60,80,320)};
+ 	spikes = { Point(40,120),Point(175,55),Point(117,40), Point(252,40)};
+ 	gempos = { Point(195,90), Point(265,90), Point(75,40), Point(150,40), Point(212,40)};
 	monsterpos = Point(155,65);
-	backcolor = Pen(0,0,200);
 	break;
  
-	case 4:
- 	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
- 	conveyor = platforms[1];
- 	collapsing = { platforms[2], platforms[4],platforms[6],platforms[8],Vec3(236,88,255) };
- 	spikes = { };
- 	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
-	monsterpos = Point(155,65);
-	backcolor = Pen(0,0,200);
-	break;
-
-	case 5:
- 	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
- 	conveyor = platforms[1];
- 	collapsing = { platforms[2], platforms[4],platforms[6],platforms[8],Vec3(236,88,255) };
- 	spikes = { };
- 	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
-	monsterpos = Point(155,65);
-	backcolor = Pen(0,0,200);
-	break;
-
 	default:
  	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
- 	conveyor = platforms[1];
- 	collapsing = { platforms[2], platforms[4],platforms[6],platforms[8],Vec3(236,88,255) };
- 	spikes = { };
+ 	conveyor = {};
+ 	collapsing = {};
+ 	spikes = {};
  	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
  }
 
   monster = monsters[level];
   free_surface (background);
   background = Surface::load(levels[level]);
-
 
   // PICO / smaller screen support /
   for (Vec3 &plat : platforms) { plat.x -= OFFSET; plat.z -= OFFSET; }
@@ -159,11 +137,11 @@ static int dir,monsterdir = LEFT;
   screen.text("Score 00000" + std::to_string(score),minimal_font,Point(200-OFFSET,193));
   // air supply bar
   screen.pen = red;
-  screen.rectangle(Rect(0,175,80,10));
+  screen.rectangle(Rect(30-OFFSET,175,80,10));
   screen.pen = green;
-  screen.rectangle(Rect(80,175,320,10));
+  screen.rectangle(Rect(80,175,205-OFFSET,10));
   screen.pen = white;
-  screen.text("AIR",minimal_font,Point(40-OFFSET,175));
+  screen.text("AIR",minimal_font,Point(40-OFFSET,177));
   o2 = o2 - 0.05f;
   if (o2 < 0 ) lives = 0;
   screen.line(Point(60-OFFSET,180),Point(60+o2-OFFSET,180));
@@ -217,6 +195,16 @@ static int dir,monsterdir = LEFT;
   if (speed.x != 0) dir = speed.x < 0;
   colorsprites(characters,white);
   screen.blit(characters,costume,player,dir);
+
+ // DEBUG platform placement
+ screen.pen = white;
+ if (pressed(Button::Y)) {
+	 for (auto p : platforms) 
+		 screen.line(Point(p.x,p.y), Point(p.z,p.y));
+	 for (auto s : spikes) 
+		 screen.pixel(Point(s.x,s.y));
+	 screen.text(std::to_string(player.x + OFFSET) + "," + std::to_string(player.y),minimal_font,Point( 200,220));
+ 	}
 }
 
 void init() {
@@ -227,6 +215,7 @@ void init() {
   sprites = Surface::load(manic_sprites);
   characters = Surface::load(character_sprites);
 
+  level = 2;
   setup_level(level);
   if (!PICO) {
   	//File::add_buffer_file("music.mp3", music, music_length);
@@ -273,10 +262,7 @@ static int jumpheight = 0;
  else speed.y = DOWN; // gravity
 
  // CHEAT mode
- if (pressed(Button::B)) {
-	 for (int i=0;i<5;i++)
-		 collectedgems[i] = true;
-	}
+ if (pressed(Button::B)) for (auto& c : collectedgems) c = true;
 
  // keep on screen
  player.x = std::clamp((int)player.x,40-OFFSET,265-OFFSET);
