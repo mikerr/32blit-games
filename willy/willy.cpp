@@ -22,6 +22,7 @@ Point player,speed,monsterpos,playerstart;
 const uint8_t  *levels[] = { level1, level2, level3, level4, level5, level6, level7, level8, level9, level10,
 	                     level11,level12,level13,level14,level15,level16,level17,level18,level19 };
 //costumes
+Rect gem = Rect(0,0,8,8);
 Rect monster;
 Rect monsters[] = { Rect(128,0,12,16), Rect(0,16,12,16), Rect(128,16,12,16), Rect(0,32,12,16), Rect(0,16,12,14), 
 	            Rect(0,48,12,16), Rect(128,48,12,16), Rect(128,16,12,16), Rect(128,64,12,16), Rect(0,80,12,14), 
@@ -34,7 +35,7 @@ std::vector<Point> spikes,gempos;
 Vec3 conveyor;
 Pen backcolor;
 bool collectedgems[5];
-int collapsed[300];
+int collapsed[320];
 
 // ZX spectrum colors
 Pen black = Pen(0,0,0);
@@ -84,7 +85,7 @@ void setup_level(int level) {
 	monsterpos = Point(155,95);
 	break;
 
- 	case 1:
+ 	case 1: 
  	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
  	conveyor = platforms[1];
  	collapsing = { platforms[2], platforms[4],platforms[6],platforms[8],Vec3(236,88,255) };
@@ -103,16 +104,25 @@ void setup_level(int level) {
 	monsterpos = Point(155,65);
 	break;
  
-	default:
- 	platforms = { Vec3(39,160,280), Vec3(55,128,85), Vec3(95,144,125), Vec3(142,135,173), Vec3(183,120,210), Vec3(103,113,157), Vec3(40,95,85), Vec3(40,80,188), Vec3(198,64,230), Vec3(198,89,255), Vec3(236,105,255), Vec3(236,112,255), Vec3(236,120,255), Vec3(236,128,255), Vec3(236,136,255) }; 
+	case 3:
+ 	platforms = { Vec3(39,160,280), Vec3(72,135,96), Vec3(170,143,185), Vec3(250,134,320), Vec3(126,125,149), Vec3(206,125,229), Vec3(39,120,70), Vec3(165,102,199), Vec3(260,120,320), Vec3(83,108,97), Vec3(235,104,265)};
  	conveyor = {};
  	collapsing = {};
  	spikes = {};
- 	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
+ 	gempos = {};
+	monsterpos = Point(155,142);
+	break;
+  
+	default:
+ 	platforms = { Vec3(39,160,280)};
+ 	conveyor = {};
+ 	collapsing = {};
+ 	spikes = {};
+ 	gempos = {};
  }
 
   monster = monsters[level];
-  free_surface (background);
+  if (background) free_surface (background);
   background = Surface::load(levels[level]);
 
   // PICO / smaller screen support /
@@ -127,25 +137,29 @@ static int dir,monsterdir = LEFT;
   framecount++;
   screen.pen = black;
   screen.clear();
+
   // copy background
   screen.blit(background,Rect (0,0,256,192),Point(30-OFFSET,40));
   screen.rectangle(Rect(0,185,320,240));
+
   // score
   screen.pen = yellow;
   screen.line(Point(30-OFFSET,39),Point(285,39));
   screen.text("High Score 00000" + std::to_string(score),minimal_font,Point(40-OFFSET,193));
   screen.text("Score 00000" + std::to_string(score),minimal_font,Point(200-OFFSET,193));
+
   // air supply bar
   screen.pen = red;
   screen.rectangle(Rect(30-OFFSET,175,80,10));
   screen.pen = green;
-  screen.rectangle(Rect(80,175,205-OFFSET,10));
+  screen.rectangle(Rect(110-OFFSET,175,205-OFFSET,10));
   screen.pen = white;
   screen.text("AIR",minimal_font,Point(40-OFFSET,177));
   o2 = o2 - 0.05f;
   if (o2 < 0 ) lives = 0;
   screen.line(Point(60-OFFSET,180),Point(60+o2-OFFSET,180));
   screen.line(Point(60-OFFSET,181),Point(60+o2-OFFSET,181));
+
   // Monster walk
   if (framecount % 2) monsterpos.x += monsterdir;
   if (monsterpos.x > 155-OFFSET) monsterdir = LEFT;
@@ -161,7 +175,7 @@ static int dir,monsterdir = LEFT;
 	       if (!collectedgems[i]) {
 		       gemsleft++;
   	       	       colorsprites(sprites,colors[rand() % 6]); // sparkle 
-		       screen.blit(sprites,Rect(0,level*8,8,8),gempos[i]);
+		       screen.blit(sprites,gem,gempos[i]);
 	       	       if (collide(player,gempos[i])) {
 		       		collectedgems[i] = true;
 		       		score += 100;
@@ -215,7 +229,7 @@ void init() {
   sprites = Surface::load(manic_sprites);
   characters = Surface::load(character_sprites);
 
-  level = 2;
+  level = 0;
   setup_level(level);
   if (!PICO) {
   	//File::add_buffer_file("music.mp3", music, music_length);
