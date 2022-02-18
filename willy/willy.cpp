@@ -31,7 +31,7 @@ Rect monsters[] = { Rect(128,0,12,16), Rect(0,16,12,16), Rect(128,16,12,16), Rec
 Rect willywalk[] = { Rect(0,0,8,16), Rect(18,0,8,16), Rect(36,0,8,16), Rect(52,0,11,16) };
 
 std::vector<Vec3> platforms,collapsing;
-std::vector<Point> spikes,gempos;
+std::vector<Point> spikes,gems;
 Vec3 conveyor;
 Pen backcolor;
 bool collectedgems[5];
@@ -81,7 +81,7 @@ void setup_level(int level) {
  	conveyor = platforms[4];
  	collapsing = { Vec3(215,135,260), Vec3(140,80,175), Vec3(180,80,215)};
  	spikes = { Point(120,40), Point(160,40), Point(215,65), Point(250,65), Point(200,100), Point(130,130)};
- 	gempos = { Point(102,40), Point(157,50), Point(260,40), Point(270,90), Point(225,70)};
+ 	gems = { Point(102,40), Point(157,50), Point(260,40), Point(270,90), Point(225,70)};
 	monsterpos = Point(155,95);
 	break;
 
@@ -90,7 +90,7 @@ void setup_level(int level) {
  	conveyor = platforms[1];
  	collapsing = { platforms[2], platforms[4],platforms[6],platforms[8],Vec3(236,88,255) };
  	spikes = { };
- 	gempos = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
+ 	gems = { Point(88,50), Point(220,50), Point(55,110), Point(180,135), Point(237,95)};
 	monsterpos = Point(155,65);
 	backcolor = Pen(0,0,200);
 	break;
@@ -100,16 +100,12 @@ void setup_level(int level) {
  	conveyor = {platforms[4]};
  	collapsing = {Vec3(60,80,320)};
  	spikes = { Point(40,120),Point(175,55),Point(117,40), Point(252,40)};
- 	gempos = { Point(195,90), Point(265,90), Point(75,40), Point(150,40), Point(212,40)};
+ 	gems = { Point(195,90), Point(265,90), Point(75,40), Point(150,40), Point(212,40)};
 	monsterpos = Point(155,65);
 	break;
  
 	case 3:
- 	platforms = { Vec3(39,160,280), Vec3(72,135,96), Vec3(170,143,185), Vec3(250,134,320), Vec3(126,125,149), Vec3(206,125,229), Vec3(39,120,70), Vec3(165,102,199), Vec3(260,120,320), Vec3(83,108,97), Vec3(235,104,265)};
- 	conveyor = {};
- 	collapsing = {};
- 	spikes = {};
- 	gempos = {};
+ 	platforms = { Vec3(39,160,280), Vec3(72,135,96), Vec3(170,143,195), Vec3(250,134,320), Vec3(126,125,149), Vec3(206,125,229), Vec3(39,120,70), Vec3(165,112,199), Vec3(260,120,320), Vec3(83,104,97), Vec3(235,104,265)};
 	monsterpos = Point(155,142);
 	break;
   
@@ -118,7 +114,7 @@ void setup_level(int level) {
  	conveyor = {};
  	collapsing = {};
  	spikes = {};
- 	gempos = {};
+ 	gems = {};
  }
 
   monster = monsters[level];
@@ -128,7 +124,7 @@ void setup_level(int level) {
   // PICO / smaller screen support /
   for (Vec3 &plat : platforms) { plat.x -= OFFSET; plat.z -= OFFSET; }
   for (Vec3 &plat : collapsing) { plat.x -= OFFSET; plat.z -= OFFSET; }
-  for (Point &p : gempos) p.x = p.x - OFFSET;
+  for (Point &p : gems) p.x = p.x - OFFSET;
   for (Point &p : spikes) p.x = p.x - OFFSET;
 }
 void gameloop(){
@@ -170,18 +166,19 @@ static int dir,monsterdir = LEFT;
   screen.blit(characters,costume,monsterpos,flip);
 
   // Gems
-  int gemsleft=0;
-  for (int i=0;i<5;i++) {
+  int i,gemsleft=0;
+  for (auto gempos : gems) {
 	       if (!collectedgems[i]) {
 		       gemsleft++;
   	       	       colorsprites(sprites,colors[rand() % 6]); // sparkle 
-		       screen.blit(sprites,gem,gempos[i]);
-	       	       if (collide(player,gempos[i])) {
+		       screen.blit(sprites,gem,gempos);
+	       	       if (collide(player,gempos)) {
 		       		collectedgems[i] = true;
 		       		score += 100;
 				}
 	       }
-	}
+	       i++;
+  }
   // Dancing willies !
   costume = willywalk [(framecount / 30 )% 4]; 
   for (int i=0; i<lives; i++){
@@ -229,7 +226,7 @@ void init() {
   sprites = Surface::load(manic_sprites);
   characters = Surface::load(character_sprites);
 
-  level = 0;
+  level = 3;
   setup_level(level);
   if (!PICO) {
   	//File::add_buffer_file("music.mp3", music, music_length);
