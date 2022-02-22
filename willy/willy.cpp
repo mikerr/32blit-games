@@ -24,6 +24,7 @@ Rect gem, willywalk[] = { Rect(0,0,8,16), Rect(18,0,8,16), Rect(36,0,8,16), Rect
 std::vector<Vec3> platforms,collapsing,monsters;
 std::vector<Point> spikes,gems;
 Vec3 conveyor;
+int conveyordir;
 Pen backcolor;
 bool collectedgems[5];
 int collapsed[320];
@@ -64,6 +65,8 @@ void setup_level(int level) {
  Rect monstertypes[] = { Rect(128,0,12,16), Rect(128,0,12,16), Rect(0,16,12,16), Rect(128,16,12,16), Rect(0,32,12,16), Rect(0,16,12,14), Rect(0,48,12,16), Rect(128,48,12,16), Rect(128,16,12,16), Rect(128,64,12,16), Rect(0,80,12,14), Rect(128,48,12,16), Rect(128,80,12,16), Rect(0,96,12,16), Rect(128,96,12,16), Rect(0,112,12,14), Rect(0,48,12,16), Rect(0,16,12,16), Rect(128,16,12,16), Rect(0,32,12,16), Rect(0,16,12,14) };
 
  o2 = 200;
+ speed.x = 0;
+ conveyordir = LEFT;
  player = Point(40 - OFFSET,140);
  for (auto& c : collapsed) c = 0;
  for (auto& c : collectedgems) c = false;
@@ -105,8 +108,14 @@ void setup_level(int level) {
 	break;
  
 	case 4:
- 	platforms = { Vec3(39,160,280), Vec3(72,135,96), Vec3(170,143,195), Vec3(250,134,320), Vec3(126,125,149), Vec3(206,125,229), Vec3(39,120,70), Vec3(165,112,199), Vec3(260,120,320), Vec3(83,104,97), Vec3(235,104,265)};
+ 	platforms = { Vec3(39,160,280), Vec3(72,135,96), Vec3(170,143,195), Vec3(250,134,320), Vec3(126,125,149), Vec3(206,125,229), Vec3(39,120,70), Vec3(165,112,199), Vec3(260,120,320), Vec3(83,104,97), Vec3(235,104,265), Vec3(39,97,65), Vec3(39,80,50), Vec3(80,80,100), Vec3(165,80,180), Vec3(125,87,140), Vec3(198,87,230), Vec3(180,65,230), Vec3(240,71,280)};
+ 	conveyor = platforms[6];
+	conveyordir = RIGHT;
+ 	collapsing = {platforms[11]};
 	monsters = {Vec3(45,145,155), Vec3(96,144,195)};
+ 	gems = { Point(42,40), Point(127,50), Point(270,90), Point(230,50)};
+ 	spikes = { Point(215,125)};
+ 	player = Point(280 - OFFSET,125);
 	break;
   
 	default:
@@ -222,8 +231,8 @@ int i,gemsleft;
   }
  // DEBUG platform placement
  if (pressed(Button::Y)) {
-	 for (auto p : platforms) screen.line(Point(p.x,p.y), Point(p.z,p.y));
          screen.pen = white;
+	 for (auto p : platforms) screen.line(Point(p.x,p.y), Point(p.z,p.y));
 	 screen.text(std::to_string(player.x + OFFSET) + "," + std::to_string(player.y),minimal_font,Point( 200,220));
  	}
 }
@@ -236,6 +245,7 @@ void init() {
   characters = Surface::load(character_sprites);
 
   lives = 3;
+  level = 4;
   setup_level(level);
   if (!PICO) {
   	//File::add_buffer_file("music.mp3", music, music_length);
@@ -312,7 +322,7 @@ static int jumpheight = 0;
  }
 
  //platforms
- if (playerhitplatform(conveyor) && grounded) speed.x = LEFT;
+ if (playerhitplatform(conveyor) && grounded) speed.x = conveyordir;
 
  for (Vec3 plat : collapsing)  
       if (playerhitplatform(plat) && grounded)
