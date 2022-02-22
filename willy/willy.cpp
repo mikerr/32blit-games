@@ -1,7 +1,7 @@
 #include "32blit.hpp"
 #include "assets.hpp"
 #include "audio/mp3-stream.hpp"
-
+#include <cstring>
 using namespace blit;
 
 #define RIGHT 1
@@ -19,8 +19,7 @@ float o2;
 
 Point player,speed;
 //costumes
-Rect gem;
-Rect willywalk[] = { Rect(0,0,8,16), Rect(18,0,8,16), Rect(36,0,8,16), Rect(52,0,11,16) };
+Rect gem, willywalk[] = { Rect(0,0,8,16), Rect(18,0,8,16), Rect(36,0,8,16), Rect(52,0,11,16) };
 
 std::vector<Vec3> platforms,collapsing,monsters;
 std::vector<Point> spikes,gems;
@@ -62,17 +61,21 @@ bool playerhitplatform (Vec3 platform){ return (player.x > platform.x && player.
 
 void setup_level(int level) {
  const uint8_t  *levels[] = { titlescreen,level1, level2, level3, level4, level5, level6, level7, level8, level9, level10, level11, level12, level13, level14, level15, level16, level17, level18, level19 };
- Rect monstertypes[] = { Rect(0,0,0,0), Rect(128,0,12,16), Rect(0,16,12,16), Rect(128,16,12,16), Rect(0,32,12,16), Rect(0,16,12,14), Rect(0,48,12,16), Rect(128,48,12,16), Rect(128,16,12,16), Rect(128,64,12,16), Rect(0,80,12,14), Rect(128,48,12,16), Rect(128,80,12,16), Rect(0,96,12,16), Rect(128,96,12,16), Rect(0,112,12,14), Rect(0,48,12,16), Rect(0,16,12,16), Rect(128,16,12,16), Rect(0,32,12,16), Rect(0,16,12,14) };
+ Rect monstertypes[] = { Rect(128,0,12,16), Rect(128,0,12,16), Rect(0,16,12,16), Rect(128,16,12,16), Rect(0,32,12,16), Rect(0,16,12,14), Rect(0,48,12,16), Rect(128,48,12,16), Rect(128,16,12,16), Rect(128,64,12,16), Rect(0,80,12,14), Rect(128,48,12,16), Rect(128,80,12,16), Rect(0,96,12,16), Rect(128,96,12,16), Rect(0,112,12,14), Rect(0,48,12,16), Rect(0,16,12,16), Rect(128,16,12,16), Rect(0,32,12,16), Rect(0,16,12,14) };
 
- Point playerstart = Point(40 - OFFSET,140);
- player = playerstart;
  o2 = 200;
+ player = Point(40 - OFFSET,140);
  for (auto& c : collapsed) c = 0;
  for (auto& c : collectedgems) c = false;
 
  gem = Rect(0,0,8,8); 
  backcolor = black;
  switch (level) {
+	case 0:
+ 	platforms = {Vec3(262,130,265)};
+ 	player = Point(263 - OFFSET,110);
+	break;
+
 	case 1:
  	platforms = { Vec3(39,160,280), Vec3(70,145,190), Vec3(190,135,280), Vec3(260,120,280), Vec3(95,112,255), Vec3(39,110,70), Vec3(39,95,60), Vec3(39,80,280), Vec3(165,103,190) }; 
  	conveyor = platforms[4];
@@ -191,7 +194,7 @@ int i,gemsleft;
   }
   // level complete - flashing exit
   if (!gemsleft && (framecount % 2)) {
-	  screen.rectangle(Rect(262-OFFSET,143,16,16));
+	  if (level !=0) screen.rectangle(Rect(262-OFFSET,143,16,16));
   	  if (collide(player,Point(262-OFFSET,143))) {
 	  	level++;
 		if (level == 19) level  = 0;
@@ -227,8 +230,7 @@ int i,gemsleft;
 
 void init() {
   set_screen_mode(ScreenMode::hires);
-  if (screen.bounds.w <320) PICO = true;
-  if (PICO) OFFSET = 38;
+  if (screen.bounds.w <320) PICO = OFFSET = 38;
 
   sprites = Surface::load(manic_sprites);
   characters = Surface::load(character_sprites);
@@ -262,6 +264,16 @@ Rect leg = Rect(8,0,16,3), boot = Rect(8,3,16,13), plinth = Rect(8,16,16,16);
 void render(uint32_t time) {
 	if (lives > 0) gameloop();
 	else bootscene();
+
+	if (level == 0) { //piano
+		static int key,keycolor;
+		if (framecount % 20 == 0) {
+			keycolor = 1+ rand() % 5;
+			key = rand() % 100;
+		}
+		screen.pen = colors[keycolor];
+		screen.rectangle(Rect(key+120,160,8,8));
+	}
 }
 
 void update(uint32_t time) {
@@ -298,6 +310,7 @@ static int jumpheight = 0;
 		}
     	} 
  }
+
  //platforms
  if (playerhitplatform(conveyor) && grounded) speed.x = LEFT;
 
@@ -309,10 +322,10 @@ static int jumpheight = 0;
 	      	else player.y += 8;
 	      }
   // hazards - spikes & monsters
-  int i=0;
-  for (auto m : monsters) 
+ int i=0;
+ for (auto m : monsters) 
 	  if (collide(player,monster[i++].pos)) player_die();
-  for (auto spike : spikes) 
+ for (auto spike : spikes) 
 	  if (collide(player,spike)) player_die();
 
  // slow down player movement
@@ -322,7 +335,7 @@ static int jumpheight = 0;
  //if (!PICO) stream.update();
  
   // lost all lives
-  if (!lives) {
+ if (!lives) {
 	  score = 0;
   	  setup_level(level);
   }
