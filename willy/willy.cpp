@@ -118,6 +118,14 @@ void setup_level(int level) {
  	player = Point(280 - OFFSET,125);
 	break;
   
+	case 5:
+ 	platforms = { Vec3(39,160,280),Vec3(50,145,83), Vec3(206,145,224), Vec3(250,135,280), Vec3(82,120,236), Vec3(210,104,250), Vec3(255,90,280), Vec3(196,80,243)};
+ 	conveyor = platforms[1];
+ 	gems = { Point(52,110), Point(135,126), Point(150,90), Point(166,90), Point(270,95) };
+ 	spikes = { Point(53,135), Point(166,135), Point(198,60)};
+	monsters = {Vec3(85,145,200), Vec3(220,144,265), Vec3(86,105,120), Vec3(140,105,200)};
+	break;
+
 	default:
  	platforms = { Vec3(39,160,280)};
  }
@@ -245,7 +253,7 @@ void init() {
   characters = Surface::load(character_sprites);
 
   lives = 3;
-  level = 4;
+  level = 0;
   setup_level(level);
   if (!PICO) {
   	//File::add_buffer_file("music.mp3", music, music_length);
