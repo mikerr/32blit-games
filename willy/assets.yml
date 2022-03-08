@@ -1,44 +1,8 @@
 assets.hpp:
   titlescreen.png:
     name: titlescreen
-  level1.png:
-    name: level1
-  level2.png:
-    name: level2
-  level3.png:
-    name: level3
-  level4.png:
-    name: level4
-  level5.gif:
-    name: level5
-  level6.gif:
-    name: level6
-  level7.gif:
-    name: level7
-  level8.gif:
-    name: level8
-  level9.gif:
-    name: level9
-  level10.png:
-    name: level10
-  level11.png:
-    name: level11
-  level12.png:
-    name: level12
-  level13.png:
-    name: level13
-  level14.png:
-    name: level14
-  level15.png:
-    name: level15
-  level16.png:
-    name: level16
-  level17.png:
-    name: level17
-  level18.png:
-    name: level18
-  level19.png:
-    name: level19
+  levels/*:
+    name: "{filename}"
   characters.png:
     name: character_sprites
   manic_sprites.png:
