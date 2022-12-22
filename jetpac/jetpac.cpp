@@ -198,6 +198,7 @@ void gameloop() {
   for (int i=0; i < rocketsmade ; i++) {
         colorsprites(white);
         if (fuelled > i) colorsprites(magenta);
+        if ((fuelled >= 3) && RND(2)) colorsprites(white);
         screen.sprite(rocketparts[i],pos);
         rocketpos[i] = pos;
         pos.y -= 24;
@@ -341,10 +342,13 @@ if (time % 4 <2) {
 			}
                 }
   }
-  if (fuelled > 3) { takeoff++; delay=50; }
-  if (takeoff > screen.bounds.h) {
-          fuelled = 0; takeoff = -10;
-  	  player = Point(screen.bounds.w / 2, screen.bounds.h - 30);
+  if ((fuelled >= 3) && collide (rocketpos[0],player)) takeoff++;
+  if (takeoff > -10) {
+	  takeoff++;
+  	  if (takeoff > screen.bounds.h) {
+              fuelled = 0; takeoff = -10;
+  	      player = Point(screen.bounds.w / 2, screen.bounds.h - 30);
           }
+  }
 }
 }
