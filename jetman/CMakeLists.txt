@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.9)
+project (jetman)
+find_package(32BLIT CONFIG REQUIRED $32BLIT_DIR)
+blit_executable (jetman jetman.cpp)
+blit_assets_yaml(jetman assets.yml)
+blit_metadata(jetman metadata.yml)

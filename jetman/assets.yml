@@ -1,0 +1,5 @@
+assets.hpp:
+  jetman.png:
+    name: jetman
+  level.png:
+    name: level

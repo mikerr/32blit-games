@@ -1,0 +1,10 @@
+title: Jetman
+description: Drive the lunar rover to blow up the alien base
+author: mikered
+splash:
+  file: splash.png
+icon:
+  file: jetman-icon.png
+version: v1.0.0
+category: game
+url: https://github.com/mikerr/32blit-games/
