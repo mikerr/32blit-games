@@ -117,6 +117,7 @@ void splat ( int n ) {
   screen.sprite(explode[0],alienpos[n]);
   newalien(n);
 }
+void beep () { channels[6].trigger_attack();}
 
 void init() {
   set_screen_mode(ScreenMode::hires);
@@ -216,7 +217,7 @@ void gameloop() {
   screen.sprite(gems[gem],gempos);
   if (!hitplatform(gempos)) gempos.y++;
   if (collide(gempos,player)) { 
-  	channels[6].trigger_attack();
+  	beep();
 	gempos = Point(RND(screen.bounds.w),10); 
 	gem = RND(5); 
 	}
@@ -307,7 +308,7 @@ if (time % 4 <2) {
     if (indropzone(fuelpos.x)) {
 	fuelgrabbed = 0; 
   	if (fuelpos.y > screenbottom) {
-  		channels[6].trigger_attack();
+  		beep();
 		fuelled++;
 		fuelpos = Point(RND(screen.bounds.w),10);
 		}
@@ -315,7 +316,7 @@ if (time % 4 <2) {
     if (fuelgrabbed) fuelpos = player + Point(0,20);  
     else {
 	    if (collide(fuelpos,player)) {
-  		    channels[6].trigger_attack();
+  		    beep();
 		    fuelgrabbed = 1; 
     	    }
          }
@@ -324,7 +325,7 @@ if (time % 4 <2) {
   for (int i=rocketsmade; i < 3 ; i++) {
         colorsprites(white);
         if ((i == rocketsmade) && collide(rocketpos[i],player) && !rocketgrabbed[i]) {
-  		channels[6].trigger_attack();
+  		beep();
 		rocketgrabbed[i] = 1;
 	}
         if (rocketgrabbed[i]) {
@@ -337,7 +338,7 @@ if (time % 4 <2) {
                 rocketpos[i].y++;
                 // stack rocketpart on top of last one
                 if (indropzone(rocketpos[i].x) && (rocketpos[i].y > rocketpos[i-1].y - 16)) { 
-  			channels[6].trigger_attack();
+  			beep();
 			rocketsmade++;
 			}
                 }
