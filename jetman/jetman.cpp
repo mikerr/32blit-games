@@ -154,6 +154,7 @@ void gameloop() {
   Rect costume;
   static int truckx = 50;
   static int trailerx = 500;
+  static int trailerhookup; 
   static float time = 170;
   static float flytime = 170;
   int ground = 200;
@@ -199,6 +200,7 @@ void gameloop() {
 
   //bounce from top of screen
   if (player.y < 45) player.y = 50;
+  if (player.y > ground + 20) player.y = ground;
 
   // walk on ground
   int px = (int) screenx;
@@ -210,15 +212,25 @@ void gameloop() {
 	  insidetruck = 1;
 	  player.y = ground;
   }
+  // jump to exit truck
   if (insidetruck && pressed(Button::DPAD_UP)) {
 	  insidetruck = 0;
+	  trailerhookup = 0;
 	  player.y -= 20;
 	  truckx = screenx + 140;
   }
   if (insidetruck) costume = truck;
   else screen.sprite(truck,Vec2(truckx - screenx,ground));
-  
-  screen.sprite(trailer,Vec2(trailerx - screenx,ground));
+ 
+  if (!trailerhookup && insidetruck && collide(player, Vec2(trailerx - screenx - 50,ground)) ) {
+	  trailerhookup = 1;
+  } 
+  if (trailerhookup && insidetruck) {
+  	if (dir == LEFT) trailerx = screenx + 205;
+  	if (dir == RIGHT) trailerx = screenx + 115;
+  }
+  if (trailerhookup && dir == RIGHT) screen.sprite(trailer,Vec2(trailerx - screenx,ground),SpriteTransform::HORIZONTAL);
+  else screen.sprite(trailer,Vec2(trailerx - screenx,ground));
 
   // draw player or vehicle
   colorsprites(white);
