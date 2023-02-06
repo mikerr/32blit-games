@@ -11,7 +11,7 @@ Surface *backdrop;
 
 int screenbottom,dir,fire;
 int fuelled,fuelgrabbed,gem;
-int delay,rocketsmade;
+int lives,delay,rocketsmade;
 int playerdied, takeoff = -10;
 
 Point player,fuelpos,gempos;
@@ -119,6 +119,22 @@ void splat ( int n ) {
 }
 void beep () { channels[6].trigger_attack();}
 
+void reset_game() {
+
+  lives = 3; 
+  rocketsmade = 1;
+  player = Point(screen.bounds.w / 2, screen.bounds.h - 50);
+  fuelpos = Point(RND(screen.bounds.w),10);
+  gempos = Point(RND(screen.bounds.w),10);
+  gem = RND(5);
+
+  for (int n=0;n<NUMALIENS;n++) { newalien(n); }
+
+  rocketpos[2] = Point (platforms[0].x + 20 ,20);
+  rocketpos[1] = Point (platforms[1].x + 20 ,20);
+  for (int n=0;n<3;n++) { rocketgrabbed[n] = 0; }
+
+}
 void init() {
   set_screen_mode(ScreenMode::hires);
   screenbottom = screen.bounds.h - 35;
@@ -129,13 +145,6 @@ void init() {
   //make black transparent
   screen.sprites->palette[0] = Pen(0,0,0,0); 
 
-  rocketsmade = 1;
-  player = Point(screen.bounds.w / 2, screen.bounds.h - 50);
-  fuelpos = Point(RND(screen.bounds.w),10);
-  gempos = Point(RND(screen.bounds.w),10);
-  gem = RND(5);
-  for (int n=0;n<NUMALIENS;n++) { newalien(n); }
-  for (int n=0;n<3;n++) { rocketgrabbed[n] = 0; }
 
   //explosion noise
   channels[2].waveforms   = Waveform::NOISE;
@@ -157,14 +166,13 @@ void init() {
 	  plat.x = plat.x  / (320.0f / screen.bounds.w);
 	  plat.y = plat.y  / (240.0f / screen.bounds.h);
 	  plat.z = plat.z  / (320.0f / screen.bounds.w);
-  }
-  rocketpos[2] = Point (platforms[0].x + 20 ,20);
-  rocketpos[1] = Point (platforms[1].x + 20 ,20);
+  	  }
+  reset_game();
 }
+
 
 void gameloop() {
   Rect costume;
-
   playerdied = 0;
   player += speed;
   speed.x *= 0.3f;
@@ -220,6 +228,7 @@ void gameloop() {
   	beep();
 	gempos = Point(RND(screen.bounds.w),10); 
 	gem = RND(5); 
+	lives++;
 	}
   // Fuel pod
   if (rocketsmade == 3) {
@@ -243,15 +252,6 @@ void gameloop() {
   	else screen.sprite(costume,pos); 
   }
 
-  Rect truck = Rect(7,10,6,3);
-  Rect trailer = Rect(7,13,6,3);
-  static int truckx = 50;
-  if (truckx > - 90){ 
-      screen.sprite(truck,Vec2(truckx,210));
-      screen.sprite(trailer,Vec2(truckx + 44,210));
-      truckx -=2;
-  }
-
   // player
   if (playerdied) {
                 if (fuelgrabbed) { 
@@ -264,17 +264,19 @@ void gameloop() {
 			}
   		screen.sprite(explode[0],player);
                 player += Vec2( RND(10) - 10, -10);
-		delay = 50;
+		delay = 10;
+		lives--;
 		}
+  screen.pen = white;
+  screen.text(std::to_string(lives),minimal_font,Vec2(100,10));
+  if (lives < 0) reset_game();
 }
 
 void render(uint32_t time) {
-
   // copy background
   screen.stretch_blit(backdrop,Rect(0,0,256,192),Rect(0,0,screen.bounds.w,screen.bounds.h));
   gameloop();
 }
-
 
 void read_buttons() {
 fire = 0;
@@ -295,7 +297,7 @@ if (!delay) {
 	read_buttons();
 	} else {
   	player.x += (150 - player.x) / 20;
-  	delay--;
+  	if (speed.y == 0) delay--;
 	}
   //aliens
 if (time % 4 <2) {

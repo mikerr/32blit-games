@@ -10,11 +10,11 @@ using namespace blit;
 Surface *backdrop;
 
 int screenbottom,dir,fire;
-int fuelled,fuelgrabbed,gem;
+int fuelled,fuelgrabbed;
 int delay,rocketsmade;
 int playerdied, takeoff = -10;
 
-Point player,fuelpos,gempos;
+Point player,fuelpos;
 Vec2 speed;
 
 #define NUMALIENS 4
@@ -29,13 +29,12 @@ Rect explode[] = { Rect(8,0,4,3), Rect(8,3,4,2), Rect(8,5,4,2) };
 Rect meteor [] = { Rect(0,6,2,2), Rect(2,6,2,2) };
 Rect jetmanwalk [] = { Rect(0,0,2,3), Rect(2,0,2,3), Rect(4,0,2,3), Rect(6,0,2,3) };
 Rect jetmanfly []  = { Rect(0,3,2,3), Rect(2,3,2,3) };
-Rect gems [] = { Rect(30,0,2,2), Rect(30,2,2,2), Rect(30,7,2,2), Rect(30,4,2,2), Rect(30,10,2,2)};
 Rect fuel = Rect(0,8,3,2);
 
 int insidetruck;
 
 // platform format: x y length
-Vec3 platforms[] = { Vec3 (0,233,320)}; 
+Vec3 platforms[] = { Vec3 (0,45,320), Vec3 (0,228,320)}; 
 
 // ZX spectrum colors
 Pen black = Pen(0,0,0);
@@ -123,9 +122,7 @@ void init() {
   screen.sprites->palette[0] = Pen(0,0,0,0); 
 
   player = Point(screen.bounds.w / 2, screen.bounds.h - 50);
-  fuelpos = Point(RND(screen.bounds.w),10);
-  gempos = Point(RND(screen.bounds.w),10);
-  gem = RND(5);
+  fuelpos = Point(RND(screen.bounds.w),80);
   for (int n=0;n<NUMALIENS;n++) { newalien(n); }
 
   //explosion noise
@@ -153,65 +150,81 @@ void init() {
 
 void gameloop() {
   Rect costume;
+  static float screenx = 0;
+  static int truckx = 50;
+  static int trailerx = 500;
+  static float time = 170;
+  static float flytime = 170;
+  int ground = 200;
 
   playerdied = 0;
-  player += speed;
-  speed.x *= 0.3f;
-  speed.y *= 0.8f;
+  screenx += speed.x / 4;
+  player.y += speed.y;
+  speed *= 0.9f;
   speed.y += 1.5f; // gravity
 
   Rect truck = Rect(7,10,6,3);
   Rect trailer = Rect(7,13,6,3);
-  static int truckx = 50;
+ 
+  screen.pen = magenta;
+  static int terrain[400];
+  if (!terrain[0])
+  	for (int x=0;x<400;x++) 
+		terrain[x] = 15 + rand() % 4;
+  for (int x=0;x<320;x++) {
+	  int offset = 10 - int(screenx) % 10;
+	  screen.line(Vec2(x,ground + 40),Vec2(x,ground + 40 - terrain[320 - x + offset]));
+  }
+  // guages
+  screen.pen = black;
+  screen.rectangle(Rect(90 + flytime,20, 170-flytime, 11));
+  screen.rectangle(Rect(90 + time,38, 170-time, 11));
+  screen.pen = yellow;
 
-  // wraparound edge of screen
-  if (player.x > screen.bounds.w) player.x = 0; 
-  if (player.x < 0 ) player.x = screen.bounds.w; 
+  // direction indicator to truck location
+  if (truckx < screenx) screen.circle(Vec2(35,38),3);
+  if (truckx > screenx) screen.circle(Vec2(55,38),3);
 
-  // bounce down from top of screen
-  if (player.y < 15) { 
-	player.y = 18; 
-	speed.y = 3; }
+  if (time > 0) time -= 0.05f;
+
+  // flying uses energy, recovers on ground 
+  if (ground - player.y > 1) flytime -= 0.3f;
+  if (ground - player.y < 1) flytime += 0.1f;
+  if (flytime > 170) flytime = 170;
+  if (flytime < 0) speed.y = 8;
 
   for (Vec3 plat : platforms) 
 	playerhitplatform(plat);
 
-  if ( speed.y == 0 ) costume = jetmanwalk [(player.x * 4) % 3]; 
+  //bounce from top of screen
+  if (player.y < 45) player.y = 50;
+
+  // walk on ground
+  int px = (int) screenx;
+  if ( player.y > 180 ) costume = jetmanwalk [( px * 4) % 3]; 
   else costume = jetmanfly [RND(2)]; 
 
-  if (collide(Vec2(truckx,210),player)) {
+  // enter / exit truck
+  if (collide(Vec2(truckx - screenx,ground),player)) {
 	  insidetruck = 1;
-	  player.y = 210;
+	  player.y = ground;
   }
   if (insidetruck && pressed(Button::DPAD_UP)) {
 	  insidetruck = 0;
-	  player.y = 190;
+	  player.y -= 20;
+	  truckx = screenx + 140;
   }
-  if (insidetruck) {
-	  truckx = player.x;
-  	  costume = truck;
-  } else {
-      screen.sprite(truck,Vec2(truckx,210));
-      //screen.sprite(trailer,Vec2(truckx + 44,210));
-  }
+  if (insidetruck) costume = truck;
+  else screen.sprite(truck,Vec2(truckx - screenx,ground));
+  
+  screen.sprite(trailer,Vec2(trailerx - screenx,ground));
 
   // draw player or vehicle
   colorsprites(white);
   if (dir == LEFT)  screen.sprite(costume,player);
   if (dir == RIGHT) screen.sprite(costume,player,SpriteTransform::HORIZONTAL);
-  if (fire == 1) laser(); 
+  if (fire == 1 && !insidetruck) laser(); 
 
-  // Gems
-  colorsprites(colors[gem+3]);
-  if (gem == 0) colorsprites(colors[RND(6)]); // sparkle diamond
-  if (gem == 2) colorsprites(colors[RND(2)]); // flash isotope 
-  screen.sprite(gems[gem],gempos);
-  if (!hitplatform(gempos)) gempos.y++;
-  if (collide(gempos,player)) { 
-  	beep();
-	gempos = Point(RND(screen.bounds.w),10); 
-	gem = RND(5); 
-	}
   // Fuel pod
     colorsprites(magenta);
     screen.sprite(fuel,fuelpos);
