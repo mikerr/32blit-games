@@ -148,9 +148,10 @@ void init() {
   }
 }
 
+
+float screenx = 0;
 void gameloop() {
   Rect costume;
-  static float screenx = 0;
   static int truckx = 50;
   static int trailerx = 500;
   static float time = 170;
@@ -227,7 +228,7 @@ void gameloop() {
 
   // Fuel pod
     colorsprites(magenta);
-    screen.sprite(fuel,fuelpos);
+    screen.sprite(fuel,Vec2(fuelpos.x - screenx, fuelpos.y));
   // Aliens
   for (int n=0; n < NUMALIENS; n++) {
   	costume = meteor[RND(2)];
@@ -299,9 +300,9 @@ if (time % 4 <2) {
 		fuelpos = Point(RND(screen.bounds.w),10);
 		}
 	}
-    if (fuelgrabbed) fuelpos = player + Point(0,20);  
+    if (fuelgrabbed) fuelpos =  player + Point(screenx,20);  
     else {
-	    if (collide(fuelpos,player) && !insidetruck) {
+	    if (collide(Vec2(fuelpos.x - screenx ,fuelpos.y),player) && !insidetruck) {
   		    beep();
 		    fuelgrabbed = 1; 
     	    }
