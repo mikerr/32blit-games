@@ -18,19 +18,18 @@ Point player,fuelpos;
 Vec2 speed;
 
 #define NUMALIENS 4
-Vec2 alienpos[NUMALIENS], aliendir[NUMALIENS];
-Pen aliencolor[NUMALIENS];
+struct alien_t { Vec2 pos; Vec2 dir; Pen color; };
+alien_t alien[NUMALIENS];
 
-struct alien { Vec2 pos; Vec2 dir; Pen color; };
-alien aliens[NUMALIENS];
-
-//costumes
+//sprite costumes
 Rect explode[] = { Rect(8,0,4,3), Rect(8,3,4,2), Rect(8,5,4,2) };
 Rect meteor [] = { Rect(0,6,2,2), Rect(2,6,2,2) };
 Rect jetmanwalk [] = { Rect(0,0,2,3), Rect(2,0,2,3), Rect(4,0,2,3), Rect(6,0,2,3) };
 Rect jetmanfly []  = { Rect(0,3,2,3), Rect(2,3,2,3) };
 Rect fuel = Rect(0,8,3,2);
-
+Rect truck = Rect(7,10,6,3);
+Rect trailer = Rect(7,13,6,3);
+ 
 int insidetruck;
 
 // platform format: x y length
@@ -92,13 +91,13 @@ Vec3 laser;
 }
 
 void newalien (int n) {
-  aliencolor[n] = colors[1 + RND(6)] ;
-  alienpos[n] = Vec2(screen.bounds.w, RND(screen.bounds.h));
-  aliendir[n] = Vec2(-1, 0.1f + (RND(5) / 5.0f ));
+  alien[n].color = colors[1 + RND(6)] ;
+  alien[n].pos = Vec2(screen.bounds.w, RND(screen.bounds.h));
+  alien[n].dir = Vec2(-1, 0.1f + (RND(5) / 5.0f ));
 
   if ( RND(2) ) { // opposite side of screen
-  	alienpos[n].x = 0;
-  	aliendir[n].x *= -1;
+  	alien[n].pos.x = 0;
+  	alien[n].dir.x *= -1;
   	}
 }
 
@@ -106,7 +105,7 @@ void colorsprites(Pen color) { screen.sprites->palette[1] = color; }
 
 void splat ( int n ) {
   channels[2].trigger_attack();
-  screen.sprite(explode[0],alienpos[n]);
+  screen.sprite(explode[0],alien[n].pos);
   newalien(n);
 }
 void beep () { channels[6].trigger_attack();}
@@ -149,7 +148,7 @@ void init() {
 }
 
 
-float screenx = 0;
+Vec2 screenpos;;
 void gameloop() {
   Rect costume;
   static int truckx = 50;
@@ -160,21 +159,18 @@ void gameloop() {
   int ground = 200;
 
   playerdied = 0;
-  screenx += speed.x / 4;
+  screenpos.x += speed.x / 4;
   player.y += speed.y;
   speed *= 0.9f;
   speed.y += 1.5f; // gravity
 
-  Rect truck = Rect(7,10,6,3);
-  Rect trailer = Rect(7,13,6,3);
- 
   screen.pen = magenta;
   static int terrain[400];
   if (!terrain[0])
   	for (int x=0;x<400;x++) 
 		terrain[x] = 15 + rand() % 4;
   for (int x=0;x<320;x++) {
-	  int offset = 10 - int(screenx) % 10;
+	  int offset = 10 - int(screenpos.x) % 10;
 	  screen.line(Vec2(x,ground + 40),Vec2(x,ground + 40 - terrain[320 - x + offset]));
   }
   // guages
@@ -184,8 +180,8 @@ void gameloop() {
   screen.pen = yellow;
 
   // direction indicator to truck location
-  if (truckx < screenx) screen.circle(Vec2(35,38),3);
-  if (truckx > screenx) screen.circle(Vec2(55,38),3);
+  if (truckx < screenpos.x) screen.circle(Vec2(35,38),3);
+  if (truckx > screenpos.x) screen.circle(Vec2(55,38),3);
 
   if (time > 0) time -= 0.05f;
 
@@ -203,12 +199,12 @@ void gameloop() {
   if (player.y > ground + 20) player.y = ground;
 
   // walk on ground
-  int px = (int) screenx;
+  int px = (int) screenpos.x;
   if ( player.y > 180 ) costume = jetmanwalk [( px * 4) % 3]; 
   else costume = jetmanfly [RND(2)]; 
 
   // enter / exit truck
-  if (collide(Vec2(truckx - screenx,ground),player)) {
+  if (collide(Vec2(truckx - screenpos.x,ground),player)) {
 	  insidetruck = 1;
 	  player.y = ground;
   }
@@ -217,20 +213,20 @@ void gameloop() {
 	  insidetruck = 0;
 	  trailerhookup = 0;
 	  player.y -= 20;
-	  truckx = screenx + 140;
+	  truckx = screenpos.x + 140;
   }
   if (insidetruck) costume = truck;
-  else screen.sprite(truck,Vec2(truckx - screenx,ground));
+  else screen.sprite(truck,Vec2(truckx - screenpos.x,ground));
  
-  if (!trailerhookup && insidetruck && collide(player, Vec2(trailerx - screenx - 50,ground)) ) {
+  if (!trailerhookup && insidetruck && collide(player, Vec2(trailerx - screenpos.x - 50,ground)) ) {
 	  trailerhookup = 1;
   } 
   if (trailerhookup && insidetruck) {
-  	if (dir == LEFT) trailerx = screenx + 205;
-  	if (dir == RIGHT) trailerx = screenx + 115;
+  	if (dir == LEFT) trailerx = screenpos.x + 205;
+  	if (dir == RIGHT) trailerx = screenpos.x + 115;
   }
-  if (trailerhookup && dir == RIGHT) screen.sprite(trailer,Vec2(trailerx - screenx,ground),SpriteTransform::HORIZONTAL);
-  else screen.sprite(trailer,Vec2(trailerx - screenx,ground));
+  if (trailerhookup && dir == RIGHT) screen.sprite(trailer,Vec2(trailerx - screenpos.x,ground),SpriteTransform::HORIZONTAL);
+  else screen.sprite(trailer,Vec2(trailerx - screenpos.x,ground));
 
   // draw player or vehicle
   colorsprites(white);
@@ -240,12 +236,12 @@ void gameloop() {
 
   // Fuel pod
     colorsprites(magenta);
-    screen.sprite(fuel,Vec2(fuelpos.x - screenx, fuelpos.y));
+    screen.sprite(fuel,Vec2(fuelpos.x - screenpos.x, fuelpos.y));
   // Aliens
   for (int n=0; n < NUMALIENS; n++) {
   	costume = meteor[RND(2)];
-  	colorsprites(aliencolor[n]);
-	Point pos = alienpos[n];
+  	colorsprites(alien[n].color);
+	Point pos = alien[n].pos;
   	if (pos.x < 0 || pos.x > screen.bounds.w )  { newalien(n);}
 
   	if (hitplatform(pos)) { splat(n); }
@@ -255,7 +251,7 @@ void gameloop() {
 		splat(n); 
 		playerdied = 1;
 		}
-  	if (aliendir[n].x < 0) screen.sprite(costume,pos,SpriteTransform::HORIZONTAL); 
+  	if (alien[n].dir.x < 0) screen.sprite(costume,pos,SpriteTransform::HORIZONTAL); 
   	else screen.sprite(costume,pos); 
   }
 
@@ -298,26 +294,11 @@ if (!delay) {
   	delay--;
 	}
   //aliens
-if (time % 4 <2) {
-  for (int n=0; n < NUMALIENS; n++) {
-  	alienpos[n] += aliendir[n];
-  }
+  for (int n=0; n < NUMALIENS; n++) 
+  	alien[n].pos += alien[n].dir;
   //fuelpods
     if (!hitplatform(fuelpos)) fuelpos.y++;
-    if (pressed(Button::B)) {
-	fuelgrabbed = 0; 
-  	if (fuelpos.y > screenbottom) {
-  		beep();
-		fuelled++;
-		fuelpos = Point(RND(screen.bounds.w),10);
-		}
-	}
-    if (fuelgrabbed) fuelpos =  player + Point(screenx,20);  
-    else {
-	    if (collide(Vec2(fuelpos.x - screenx ,fuelpos.y),player) && !insidetruck) {
-  		    beep();
-		    fuelgrabbed = 1; 
-    	    }
-         }
-  }
+    if (fuelgrabbed) fuelpos =  player + Point(screenpos.x,20);  
+    else if (collide(Vec2(fuelpos.x - screenpos.x ,fuelpos.y),player) && !insidetruck) fuelgrabbed = 1; 
+    if (pressed(Button::B)) fuelgrabbed = 0; 
 }
