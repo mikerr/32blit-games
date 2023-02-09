@@ -9,29 +9,27 @@ using namespace blit;
 
 Surface *backdrop;
 
-int screenbottom,dir,fire;
-int fuelled,fuelgrabbed;
-int delay,rocketsmade;
-int playerdied, takeoff = -10;
+int screenbottom;
+int delay;
+int dir,fire,playerdied;
 
-Point player,fuelpos;
+Point player;
 Vec2 speed;
 
+int terrain[400];
+
 #define NUMALIENS 4
-struct alien_t { Vec2 pos; Vec2 dir; Pen color; };
-alien_t alien[NUMALIENS];
+struct sprite_t { Rect sprite; Vec2 pos; Vec2 dir ; Pen color; int attached; };
+sprite_t alien[NUMALIENS];
+sprite_t truck,trailer,fuel;
 
 //sprite costumes
 Rect explode[] = { Rect(8,0,4,3), Rect(8,3,4,2), Rect(8,5,4,2) };
 Rect meteor [] = { Rect(0,6,2,2), Rect(2,6,2,2) };
 Rect jetmanwalk [] = { Rect(0,0,2,3), Rect(2,0,2,3), Rect(4,0,2,3), Rect(6,0,2,3) };
 Rect jetmanfly []  = { Rect(0,3,2,3), Rect(2,3,2,3) };
-Rect fuel = Rect(0,8,3,2);
-Rect truck = Rect(7,10,6,3);
-Rect trailer = Rect(7,13,6,3);
- 
-int insidetruck;
 
+ 
 // platform format: x y length
 Vec3 platforms[] = { Vec3 (0,45,320), Vec3 (0,228,320)}; 
 
@@ -110,20 +108,7 @@ void splat ( int n ) {
 }
 void beep () { channels[6].trigger_attack();}
 
-void init() {
-  set_screen_mode(ScreenMode::hires);
-  screenbottom = screen.bounds.h - 35;
-
-  backdrop = Surface::load(level);
-  screen.sprites = Surface::load(jetman);
-
-  //make black transparent
-  screen.sprites->palette[0] = Pen(0,0,0,0); 
-
-  player = Point(screen.bounds.w / 2, screen.bounds.h - 50);
-  fuelpos = Point(RND(screen.bounds.w),80);
-  for (int n=0;n<NUMALIENS;n++) { newalien(n); }
-
+void init_sound() {
   //explosion noise
   channels[2].waveforms   = Waveform::NOISE;
   channels[2].attack_ms   = 3;
@@ -138,22 +123,44 @@ void init() {
   channels[6].decay_ms = 5;
   channels[6].sustain = 0;
   channels[6].release_ms = 5;
+}
 
+void init() {
+  init_sound();
+  set_screen_mode(ScreenMode::hires);
+  screenbottom = screen.bounds.h - 35;
+
+  backdrop = Surface::load(level);
+  screen.sprites = Surface::load(jetman);
+
+  //make black transparent
+  screen.sprites->palette[0] = Pen(0,0,0,0); 
+
+  fuel.sprite = Rect(0,8,3,2);
+  truck.sprite = Rect(7,10,6,3);
+  trailer.sprite = Rect(7,13,6,3);
+
+  player = Point(screen.bounds.w / 2, screen.bounds.h - 50);
+  fuel.pos = Vec2(RND(screen.bounds.w),80);
+  truck.pos.x = 50;
+  trailer.pos.x = 500;
+
+  for (int n=0;n<NUMALIENS;n++) { newalien(n); }
   //scale to different screen sizes
   for (Vec3 &plat : platforms) {
 	  plat.x = plat.x  / (320.0f / screen.bounds.w);
 	  plat.y = plat.y  / (240.0f / screen.bounds.h);
 	  plat.z = plat.z  / (320.0f / screen.bounds.w);
   }
+  // make landscape terrain
+  for (int x=0;x<400;x++) 
+		terrain[x] = 15 + rand() % 4;
 }
 
 
 Vec2 screenpos;;
 void gameloop() {
   Rect costume;
-  static int truckx = 50;
-  static int trailerx = 500;
-  static int trailerhookup; 
   static float time = 170;
   static float flytime = 170;
   int ground = 200;
@@ -165,10 +172,6 @@ void gameloop() {
   speed.y += 1.5f; // gravity
 
   screen.pen = magenta;
-  static int terrain[400];
-  if (!terrain[0])
-  	for (int x=0;x<400;x++) 
-		terrain[x] = 15 + rand() % 4;
   for (int x=0;x<320;x++) {
 	  int offset = 10 - int(screenpos.x) % 10;
 	  screen.line(Vec2(x,ground + 40),Vec2(x,ground + 40 - terrain[320 - x + offset]));
@@ -180,8 +183,8 @@ void gameloop() {
   screen.pen = yellow;
 
   // direction indicator to truck location
-  if (truckx < screenpos.x) screen.circle(Vec2(35,38),3);
-  if (truckx > screenpos.x) screen.circle(Vec2(55,38),3);
+  if (truck.pos.x < screenpos.x) screen.circle(Vec2(35,38),3);
+  if (truck.pos.x > screenpos.x) screen.circle(Vec2(55,38),3);
 
   if (time > 0) time -= 0.05f;
 
@@ -204,39 +207,39 @@ void gameloop() {
   else costume = jetmanfly [RND(2)]; 
 
   // enter / exit truck
-  if (collide(Vec2(truckx - screenpos.x,ground),player)) {
-	  insidetruck = 1;
+  if (collide(Vec2(truck.pos.x - screenpos.x,ground),player)) {
+	  truck.attached = 1;
 	  player.y = ground;
   }
   // jump to exit truck
-  if (insidetruck && pressed(Button::DPAD_UP)) {
-	  insidetruck = 0;
-	  trailerhookup = 0;
+  if (truck.attached && pressed(Button::DPAD_UP)) {
+	  truck.attached = 0;
+	  trailer.attached = 0;
 	  player.y -= 20;
-	  truckx = screenpos.x + 140;
+	  truck.pos.x = screenpos.x + 140;
   }
-  if (insidetruck) costume = truck;
-  else screen.sprite(truck,Vec2(truckx - screenpos.x,ground));
+  if (truck.attached) costume = truck.sprite;
+  else screen.sprite(truck.sprite,Vec2(truck.pos.x - screenpos.x,ground));
  
-  if (!trailerhookup && insidetruck && collide(player, Vec2(trailerx - screenpos.x - 50,ground)) ) {
-	  trailerhookup = 1;
+  if (!trailer.attached && truck.attached && collide(player, Vec2(trailer.pos.x - screenpos.x - 50,ground)) ) {
+	  trailer.attached = 1;
   } 
-  if (trailerhookup && insidetruck) {
-  	if (dir == LEFT) trailerx = screenpos.x + 205;
-  	if (dir == RIGHT) trailerx = screenpos.x + 115;
+  if (trailer.attached && truck.attached) {
+  	if (dir == LEFT) trailer.pos.x = screenpos.x + 205;
+  	if (dir == RIGHT) trailer.pos.x = screenpos.x + 115;
   }
-  if (trailerhookup && dir == RIGHT) screen.sprite(trailer,Vec2(trailerx - screenpos.x,ground),SpriteTransform::HORIZONTAL);
-  else screen.sprite(trailer,Vec2(trailerx - screenpos.x,ground));
+  if (trailer.attached && dir == RIGHT) screen.sprite(trailer.sprite,Vec2(trailer.pos.x - screenpos.x,ground),SpriteTransform::HORIZONTAL);
+  else screen.sprite(trailer.sprite,Vec2(trailer.pos.x - screenpos.x,ground));
 
   // draw player or vehicle
   colorsprites(white);
   if (dir == LEFT)  screen.sprite(costume,player);
   if (dir == RIGHT) screen.sprite(costume,player,SpriteTransform::HORIZONTAL);
-  if (fire == 1 && !insidetruck) laser(); 
+  if (fire == 1 && !truck.attached) laser(); 
 
   // Fuel pod
     colorsprites(magenta);
-    screen.sprite(fuel,Vec2(fuelpos.x - screenpos.x, fuelpos.y));
+    screen.sprite(fuel.sprite,Vec2(fuel.pos.x - screenpos.x, fuel.pos.y));
   // Aliens
   for (int n=0; n < NUMALIENS; n++) {
   	costume = meteor[RND(2)];
@@ -247,7 +250,7 @@ void gameloop() {
   	if (hitplatform(pos)) { splat(n); }
   	if (fire && hitlaser(pos)) { splat(n); }
 	//immune from aliens inside truck
-  	if (collide (pos, player) && !insidetruck) {
+  	if (collide (pos, player) && !truck.attached) {
 		splat(n); 
 		playerdied = 1;
 		}
@@ -257,9 +260,9 @@ void gameloop() {
 
   // player
   if (playerdied) {
-                if (fuelgrabbed) { 
-			fuelgrabbed = 0;
-                	fuelpos.y -= 30;}
+                if (fuel.attached) { 
+			fuel.attached = 0;
+                	fuel.pos.y -= 30;}
   		screen.sprite(explode[0],player);
                 player += Vec2( RND(10) - 10, -10);
 		delay = 50;
@@ -297,8 +300,8 @@ if (!delay) {
   for (int n=0; n < NUMALIENS; n++) 
   	alien[n].pos += alien[n].dir;
   //fuelpods
-    if (!hitplatform(fuelpos)) fuelpos.y++;
-    if (fuelgrabbed) fuelpos =  player + Point(screenpos.x,20);  
-    else if (collide(Vec2(fuelpos.x - screenpos.x ,fuelpos.y),player) && !insidetruck) fuelgrabbed = 1; 
-    if (pressed(Button::B)) fuelgrabbed = 0; 
+    if (!hitplatform(fuel.pos)) fuel.pos.y++;
+    if (fuel.attached) fuel.pos = (Vec2) player + Vec2(screenpos.x,20);  
+    else if (collide(Vec2(fuel.pos.x - screenpos.x ,fuel.pos.y),player) && !truck.attached) fuel.attached = 1; 
+    if (pressed(Button::B)) fuel.attached = 0; 
 }
