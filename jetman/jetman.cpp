@@ -9,27 +9,28 @@ using namespace blit;
 
 Surface *backdrop;
 
-int screenbottom;
 int delay;
 int dir,fire,playerdied;
+int ground = 200;
 
-Point player;
-Vec2 speed;
+float missiletime = 170;
+float flytime = 170;
+
+Vec2 screenpos;
 
 int terrain[400];
 
 #define NUMALIENS 4
-struct sprite_t { Rect sprite; Vec2 pos; Vec2 dir ; Pen color; int attached; };
-sprite_t alien[NUMALIENS];
-sprite_t truck,trailer,fuel;
+struct sprite_t { Rect sprite; Vec2 pos; Vec2 dir ; Pen color; int attached; int driving; int flip;};
+sprite_t alien[NUMALIENS],truck,trailer,fuel,player;
 
 //sprite costumes
+Rect costume;
 Rect explode[] = { Rect(8,0,4,3), Rect(8,3,4,2), Rect(8,5,4,2) };
 Rect meteor [] = { Rect(0,6,2,2), Rect(2,6,2,2) };
 Rect jetmanwalk [] = { Rect(0,0,2,3), Rect(2,0,2,3), Rect(4,0,2,3), Rect(6,0,2,3) };
 Rect jetmanfly []  = { Rect(0,3,2,3), Rect(2,3,2,3) };
 
- 
 // platform format: x y length
 Vec3 platforms[] = { Vec3 (0,45,320), Vec3 (0,228,320)}; 
 
@@ -50,7 +51,7 @@ Point offset;
   for (int x=10; x < 200; x++) {
         if ( dir == LEFT)  offset = Vec2(5-x, 10); 
         if ( dir == RIGHT) offset = Vec2(10+x,10); 
-        if (RND(200) > x) screen.pixel(player + offset);
+        if (RND(200) > x) screen.pixel(player.pos + offset);
         }  
 }
 
@@ -60,17 +61,17 @@ int collide (Point a, Point b) {
 }
 
 void playerhitplatform (Vec3 platform){
-  if ((player.x > platform.x) && (player.x < platform.z)) {
+  if ((player.pos.x > platform.x) && (player.pos.x < platform.z)) {
     int ypos = platform.y;
 
     // if hitting underside, bounce down
-    if ((speed.y < 0) && (abs(player.y - ypos)) < 3) { 
-	player.y = ypos + 3; speed.y = 6;}
+    if ((player.dir.y < 0) && (abs(player.pos.y - ypos)) < 3) { 
+	player.pos.y = ypos + 3; player.dir.y = 6;}
 
     // if on top, land
     ypos -= 25;
-    if ((speed.y > 0) && (abs(player.y - ypos)) < 5) { 
-	player.y = ypos - 1; speed.y = 0;}
+    if ((player.dir.y > 0) && (abs(player.pos.y - ypos)) < 5) { 
+	player.pos.y = ypos - 1; player.dir.y = 0;}
   }
 }
 
@@ -82,8 +83,8 @@ int hitplatform(Point pos){
 
 int hitlaser(Point pos){
 Vec3 laser;
-   if (dir == LEFT) laser = Vec3 (player.x - 200, player.y, player.x);
-   if (dir == RIGHT) laser = Vec3 (player.x, player.y, player.x + 200);
+   if (dir == LEFT) laser = Vec3 (player.pos.x - 200, player.pos.y, player.pos.x);
+   if (dir == RIGHT) laser = Vec3 (player.pos.x, player.pos.y, player.pos.x + 200);
    if ((pos.x > laser.x) && (pos.x < laser.z) && abs(laser.y - pos.y) < 2) return 1;
    return 0;
 }
@@ -106,6 +107,7 @@ void splat ( int n ) {
   screen.sprite(explode[0],alien[n].pos);
   newalien(n);
 }
+
 void beep () { channels[6].trigger_attack();}
 
 void init_sound() {
@@ -128,7 +130,6 @@ void init_sound() {
 void init() {
   init_sound();
   set_screen_mode(ScreenMode::hires);
-  screenbottom = screen.bounds.h - 35;
 
   backdrop = Surface::load(level);
   screen.sprites = Surface::load(jetman);
@@ -140,10 +141,11 @@ void init() {
   truck.sprite = Rect(7,10,6,3);
   trailer.sprite = Rect(7,13,6,3);
 
-  player = Point(screen.bounds.w / 2, screen.bounds.h - 50);
+  player.pos = Vec2(screen.bounds.w / 2, screen.bounds.h - 50);
   fuel.pos = Vec2(RND(screen.bounds.w),80);
-  truck.pos.x = 50;
-  trailer.pos.x = 500;
+  truck.pos = Vec2(50,ground);
+  trailer.pos = Vec2(500,ground);
+  screenpos = Vec2(0,ground);
 
   for (int n=0;n<NUMALIENS;n++) { newalien(n); }
   //scale to different screen sizes
@@ -154,23 +156,13 @@ void init() {
   }
   // make landscape terrain
   for (int x=0;x<400;x++) 
-		terrain[x] = 15 + rand() % 4;
+	terrain[x] = 15 + rand() % 4;
 }
 
-
-Vec2 screenpos;;
-void gameloop() {
-  Rect costume;
-  static float time = 170;
-  static float flytime = 170;
-  int ground = 200;
-
-  playerdied = 0;
-  screenpos.x += speed.x / 4;
-  player.y += speed.y;
-  speed *= 0.9f;
-  speed.y += 1.5f; // gravity
-
+void render(uint32_t time) {
+  // copy background
+  screen.stretch_blit(backdrop,Rect(0,0,256,192),Rect(0,0,screen.bounds.w,screen.bounds.h));
+  //terrain
   screen.pen = magenta;
   for (int x=0;x<320;x++) {
 	  int offset = 10 - int(screenpos.x) % 10;
@@ -179,129 +171,118 @@ void gameloop() {
   // guages
   screen.pen = black;
   screen.rectangle(Rect(90 + flytime,20, 170-flytime, 11));
-  screen.rectangle(Rect(90 + time,38, 170-time, 11));
-  screen.pen = yellow;
+  screen.rectangle(Rect(90 + missiletime,38, 170-missiletime, 11));
 
   // direction indicator to truck location
-  if (truck.pos.x < screenpos.x) screen.circle(Vec2(35,38),3);
+  screen.pen = yellow;
+  if (truck.pos.x < screenpos.x) screen.circle(Vec2(30,38),3);
   if (truck.pos.x > screenpos.x) screen.circle(Vec2(55,38),3);
 
-  if (time > 0) time -= 0.05f;
+  screen.sprite(truck.sprite,Vec2(truck.pos.x - screenpos.x,ground),truck.flip);
+  screen.sprite(trailer.sprite,Vec2(trailer.pos.x - screenpos.x,ground),trailer.flip);
+
+  // draw player 
+  colorsprites(white);
+  if (!truck.driving) screen.sprite(costume,player.pos,dir);
+
+  // lasers
+  if (fire == 1 && !truck.driving) laser(); 
+
+  // Fuel pod
+    colorsprites(magenta);
+    screen.sprite(fuel.sprite,Vec2(fuel.pos.x - screenpos.x, fuel.pos.y));
+
+  // Aliens
+  for (int n=0; n < NUMALIENS; n++) {
+  	costume = meteor[RND(2)];
+  	colorsprites(alien[n].color);
+	int flip = alien[n].dir.x < 0;
+  	screen.sprite(costume,alien[n].pos,flip);
+  }
+}
+
+void read_buttons() {
+Vec2 move = joystick;
+
+ if (pressed(Button::DPAD_LEFT) || move.x < 0) {
+	player.dir.x--;
+	dir = LEFT; }
+ if (pressed(Button::DPAD_RIGHT) || move.x > 0) {
+	player.dir.x++;
+	dir = RIGHT; }
+ if (pressed(Button::DPAD_UP) || pressed(Button::A) || move.y < 0) 
+	 player.dir.y = -1.5f;
+ if (pressed(Button::B) || pressed(Button::Y)) fire = 1;
+ else fire = 0;
+}
+
+void update(uint32_t time) {
+
+  playerdied = 0;
+  screenpos.x += player.dir.x / 6;
+  player.pos.y += player.dir.y;
+  player.dir *= 0.9f;
+  player.dir.y += 0.5f; // gravity
+
+  read_buttons();
+  if (missiletime > 0) missiletime -= 0.05f;
 
   // flying uses energy, recovers on ground 
-  if (ground - player.y > 1) flytime -= 0.3f;
-  if (ground - player.y < 1) flytime += 0.1f;
+  if (player.pos.y < ground) flytime -= 0.1f;
+  if (player.pos.y > ground) flytime += 0.1f;
   if (flytime > 170) flytime = 170;
-  if (flytime < 0) speed.y = 8;
+  if (flytime < 0) player.dir.y = 8;
 
   for (Vec3 plat : platforms) 
 	playerhitplatform(plat);
 
   //bounce from top of screen
-  if (player.y < 45) player.y = 50;
-  if (player.y > ground + 20) player.y = ground;
-
+  if (player.pos.y < 45) player.pos.y -= player.dir.y;
+  if (player.pos.y > ground + 10) player.pos.y = ground; 
+  
   // walk on ground
   int px = (int) screenpos.x;
-  if ( player.y > 180 ) costume = jetmanwalk [( px * 4) % 3]; 
+  if (player.dir.y  == 0 ) costume = jetmanwalk [( px * 4) % 3]; 
   else costume = jetmanfly [RND(2)]; 
 
   // enter / exit truck
-  if (collide(Vec2(truck.pos.x - screenpos.x,ground),player)) {
-	  truck.attached = 1;
-	  player.y = ground;
+  if (collide(Vec2(truck.pos.x - screenpos.x,ground),player.pos)) {
+	  truck.driving = 1;
+	  player.pos.y = ground;
   }
   // jump to exit truck
-  if (truck.attached && pressed(Button::DPAD_UP)) {
-	  truck.attached = 0;
-	  trailer.attached = 0;
-	  player.y -= 20;
+  if (truck.driving) {
 	  truck.pos.x = screenpos.x + 140;
+	  truck.flip = dir;
+  	  if (player.pos.y < ground - 10) 
+	  	truck.driving = trailer.attached = 0;
   }
-  if (truck.attached) costume = truck.sprite;
-  else screen.sprite(truck.sprite,Vec2(truck.pos.x - screenpos.x,ground));
- 
-  if (!trailer.attached && truck.attached && collide(player, Vec2(trailer.pos.x - screenpos.x - 50,ground)) ) {
+  if (!trailer.attached && truck.driving && collide(player.pos, Vec2(trailer.pos.x - screenpos.x - 50,ground))) 
 	  trailer.attached = 1;
-  } 
-  if (trailer.attached && truck.attached) {
-  	if (dir == LEFT) trailer.pos.x = screenpos.x + 205;
-  	if (dir == RIGHT) trailer.pos.x = screenpos.x + 115;
+  if (trailer.attached) {
+	  	trailer.flip = dir;
+  		if (dir == LEFT) trailer.pos.x = screenpos.x + 185;
+  		if (dir == RIGHT) trailer.pos.x = screenpos.x + 95;
   }
-  if (trailer.attached && dir == RIGHT) screen.sprite(trailer.sprite,Vec2(trailer.pos.x - screenpos.x,ground),SpriteTransform::HORIZONTAL);
-  else screen.sprite(trailer.sprite,Vec2(trailer.pos.x - screenpos.x,ground));
-
-  // draw player or vehicle
-  colorsprites(white);
-  if (dir == LEFT)  screen.sprite(costume,player);
-  if (dir == RIGHT) screen.sprite(costume,player,SpriteTransform::HORIZONTAL);
-  if (fire == 1 && !truck.attached) laser(); 
-
-  // Fuel pod
-    colorsprites(magenta);
-    screen.sprite(fuel.sprite,Vec2(fuel.pos.x - screenpos.x, fuel.pos.y));
-  // Aliens
+  //aliens
   for (int n=0; n < NUMALIENS; n++) {
-  	costume = meteor[RND(2)];
-  	colorsprites(alien[n].color);
+  	alien[n].pos += alien[n].dir;
 	Point pos = alien[n].pos;
-  	if (pos.x < 0 || pos.x > screen.bounds.w )  { newalien(n);}
-
+  	if (pos.x < 0 || pos.x > screen.bounds.w )   newalien(n);
   	if (hitplatform(pos)) { splat(n); }
   	if (fire && hitlaser(pos)) { splat(n); }
-	//immune from aliens inside truck
-  	if (collide (pos, player) && !truck.attached) {
+	//immune from aliens driving truck
+	if (truck.driving) continue;
+  	if (collide (pos, player.pos)) {
 		splat(n); 
 		playerdied = 1;
 		}
-  	if (alien[n].dir.x < 0) screen.sprite(costume,pos,SpriteTransform::HORIZONTAL); 
-  	else screen.sprite(costume,pos); 
   }
+  if (playerdied) flytime = 0;
 
-  // player
-  if (playerdied) {
-                if (fuel.attached) { 
-			fuel.attached = 0;
-                	fuel.pos.y -= 30;}
-  		screen.sprite(explode[0],player);
-                player += Vec2( RND(10) - 10, -10);
-		delay = 50;
-		}
-}
-
-void render(uint32_t time) {
-  // copy background
-  screen.stretch_blit(backdrop,Rect(0,0,256,192),Rect(0,0,screen.bounds.w,screen.bounds.h));
-  gameloop();
-}
-
-void read_buttons() {
-fire = 0;
-Vec2 move = joystick;
-
- if (pressed(Button::DPAD_LEFT) || move.x < 0) {
-	speed.x--;
-	dir = LEFT; }
- if (pressed(Button::DPAD_RIGHT) || move.x > 0) {
-	speed.x++;
-	dir = RIGHT; }
- if (pressed(Button::DPAD_UP) || pressed(Button::A) || move.y < 0) speed.y--;
- if (pressed(Button::B) || pressed(Button::Y)) fire = 1;
-}
-
-void update(uint32_t time) {
-if (!delay) {
-	read_buttons();
-	} else {
-  	player.x += (150 - player.x) / 20;
-  	delay--;
-	}
-  //aliens
-  for (int n=0; n < NUMALIENS; n++) 
-  	alien[n].pos += alien[n].dir;
   //fuelpods
     if (!hitplatform(fuel.pos)) fuel.pos.y++;
-    if (fuel.attached) fuel.pos = (Vec2) player + Vec2(screenpos.x,20);  
-    else if (collide(Vec2(fuel.pos.x - screenpos.x ,fuel.pos.y),player) && !truck.attached) fuel.attached = 1; 
+    if (collide(Vec2(fuel.pos.x - screenpos.x ,fuel.pos.y),player.pos) && !truck.driving) fuel.attached = 1; 
+    if (fuel.attached) fuel.pos = (Vec2) player.pos + Vec2(screenpos.x,20);  
     if (pressed(Button::B)) fuel.attached = 0; 
 }
