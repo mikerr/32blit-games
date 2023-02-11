@@ -16,7 +16,7 @@ float missiletime,flytime;
 
 Vec2 screenpos;
 
-int terrain[400];
+uint8_t terrain[1000];
 
 #define NUMALIENS 4
 struct sprite_t { Rect sprite; Vec2 pos; Vec2 speed; Pen color; int attached; int driving; int dir;};
@@ -159,18 +159,21 @@ void init() {
 	  plat.z = plat.z  / (320.0f / screen.bounds.w);
   }
   // make landscape terrain
-  for (int x=0;x<400;x++) 
+  for (int x=0;x<1000;x++) 
 	terrain[x] = 15 + rand() % 4;
 }
 
 void render(uint32_t time) {
   // copy background
   screen.stretch_blit(backdrop,Rect(0,0,256,192),Rect(0,0,screen.bounds.w,screen.bounds.h));
+
   //terrain
   screen.pen = magenta;
   for (int x=0;x<320;x++) {
-	  int offset = 10 - int(screenpos.x) % 10;
-	  screen.line(Vec2(x,ground + 40),Vec2(x,ground + 40 - terrain[320 - x + offset]));
+	  int offset = (int)screenpos.x % 320;
+	  Vec2 groundlevel = Vec2(x,ground + 40);
+	  Vec2 rockheight = groundlevel - Vec2(0,terrain[320 + x + offset]);
+	  screen.line(groundlevel,rockheight);
   }
   // guages
   screen.pen = black;
@@ -186,10 +189,10 @@ void render(uint32_t time) {
   if (truck.pos.x < screenpos.x) screen.circle(Vec2(30,38),3);
   if (truck.pos.x > screenpos.x) screen.circle(Vec2(55,38),3);
 
-  // direction indicator to truck location
+  // direction indicator to base location
   screen.pen = yellow;
-  if (truck.pos.x < screenpos.x) screen.circle(Vec2(30,38),3);
-  if (truck.pos.x > screenpos.x) screen.circle(Vec2(55,38),3);
+  if (alienbase.pos.x < screenpos.x) screen.circle(Vec2(270,38),3);
+  if (alienbase.pos.x > screenpos.x) screen.circle(Vec2(295,38),3);
 
   // truck and trailer
   screen.sprite(truck.sprite,truck.pos - screenpos,truck.dir);
@@ -242,10 +245,13 @@ Vec2 move = joystick;
 void update(uint32_t time) {
 
   playerdied = 0;
-  screenpos.x += player.speed.x / 4;
+  screenpos.x += player.speed.x / 5;
   player.pos.y += player.speed.y;
-  player.speed *= 0.9f;
+  player.speed *= 0.95f;
   player.speed.y += 0.5f; // gravity
+
+  if (player.pos.y >  ground)  // slow down on ground
+	  if (abs(player.speed.x) > 6)  player.speed.x *= 0.9f;
 
   read_buttons();
   if (missiletime > 0) missiletime -= 0.05f;
@@ -316,7 +322,7 @@ void update(uint32_t time) {
    // drop a bomb on missle to stop it
    if (!fuel.attached && collide(missile.pos + Vec2(30,0),fuel.pos)) missile.pos.x = 0;
 
-  //fuelpods
+   //fuelpods
     if (!hitplatform(fuel.pos)) fuel.pos.y++;
     if (collide(Vec2(fuel.pos.x - screenpos.x ,fuel.pos.y),player.pos) && !truck.driving) fuel.attached = 1; 
     if (fuel.attached) fuel.pos = player.pos + Vec2(screenpos.x,20);  
