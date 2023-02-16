@@ -3,3 +3,7 @@ assets.hpp:
     name: jetman
   level.png:
     name: level
+  jetman2.png:
+    name: jetman22
+  jetman3.png:
+    name: jetman3
