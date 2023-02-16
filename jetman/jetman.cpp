@@ -9,14 +9,10 @@ using namespace blit;
 
 Surface *backdrop;
 
-int delay,dir,fire,playerdied;
-int ground = 200;
-
+int delay,dir,fire,playerdied,ground = 200;
 float missiletime,flytime;
-
-Vec2 screenpos;
-
 uint8_t terrain[1000];
+Vec2 screenpos;
 
 #define NUMALIENS 20
 struct sprite_t { Rect sprite; Vec2 pos; Vec2 speed; Pen color; int attached; int driving; int dir; int explode;};
@@ -28,9 +24,6 @@ Rect explode[] = { Rect(8,0,4,3), Rect(8,3,4,2), Rect(8,5,4,2) };
 Rect meteor [] = { Rect(0,13,3,2), Rect(0,13,3,2) };
 Rect jetmanwalk [] = { Rect(0,0,2,3), Rect(2,0,2,3), Rect(4,0,2,3), Rect(6,0,2,3) };
 Rect jetmanfly []  = { Rect(0,3,2,3), Rect(2,3,2,3) };
-
-// platform format: x y length
-Vec3 platforms[] = { Vec3 (0,45,320), Vec3 (0,228,320)}; 
 
 // ZX spectrum colors
 Pen black = Pen(0,0,0);
@@ -58,12 +51,6 @@ int collide (Point a, Point b) {
    return 0;
 }
 
-int hitplatform(Point pos){
-  for (Vec3 plat : platforms) 
-  	if ((pos.x > plat.x) && (pos.x < plat.z) && abs(plat.y - pos.y) < 20) return 1;
-  return 0;
-}
-
 int hitlaser(Point pos){
 Vec3 laser;
    if (dir == LEFT) laser = Vec3 (player.pos.x - 200, player.pos.y, player.pos.x);
@@ -76,15 +63,9 @@ void newalien (int n) {
   alien[n].color = colors[1 + RND(6)] ;
   alien[n].pos = Vec2(RND(1000),50 + RND(100));
   alien[n].speed = Vec2(-1, 1 );
-
-  if ( RND(2) ) { // opposite side of screen
-  	alien[n].pos.x = 0;
-  	alien[n].speed.x *= -1;
-  	}
+  if ( RND(2) ) alien[n].speed.x *= -1;
   alien[n].explode = 0;
 }
-
-void colorsprites(Pen color) { screen.sprites->palette[1] = color; } 
 
 void splat ( int n ) {
   channels[2].trigger_attack();
@@ -185,7 +166,6 @@ void render(uint32_t time) {
   else costume = jetmanfly [RND(2)]; 
 
   // draw player 
-  colorsprites(white);
   if (!truck.driving) screen.sprite(costume,player.pos,dir);
 
   // lasers
@@ -197,12 +177,13 @@ void render(uint32_t time) {
   
   // Aliens
   for (int n=0; n < NUMALIENS; n++) {
-  	//colorsprites(alien[n].color);
 	int dir = alien[n].speed.x < 0;
 	costume = meteor[RND(2)];
 	if (alien[n].explode > 0) costume = explode[RND(3)];
   	screen.sprite(costume,alien[n].pos - screenpos,dir);
   }
+  screen.pen = white;
+  screen.text(std::to_string(screenpos.x),minimal_font,Rect(0,150,150,180));
 }
 
 void read_buttons() {
@@ -227,6 +208,9 @@ void update(uint32_t time) {
   player.pos.y += player.speed.y;
   player.speed *= 0.95f;
   player.speed.y += 0.5f; // gravity
+
+  if (screenpos.x >  1500)  screenpos.x = -1500;
+  if (screenpos.x < -1500)  screenpos.x = 1500;
 
   if (player.pos.y >  ground)  // slow down on ground
 	  if (abs(player.speed.x) > 6)  player.speed.x *= 0.9f;
