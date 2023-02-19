@@ -172,8 +172,10 @@ void render(uint32_t time) {
   if (fire == 1 && !truck.driving) laser(); 
 
   sprite_t *objects[] = { &fuelpod, &bomb, &bricks, &truck, &trailer, &alienbase, &basecannon, &basecannon2, &missile };
-  for ( auto obj : objects) 
-  	screen.sprite(obj->sprite,obj->pos - screenpos, obj->dir);
+  for ( auto obj : objects) {
+	if (obj->explode) screen.sprite(explode[RND(3)],obj->pos - screenpos, obj->dir);
+	else screen.sprite(obj->sprite,obj->pos - screenpos, obj->dir);
+  }
   
   // Aliens
   for (int n=0; n < NUMALIENS; n++) {
@@ -182,8 +184,6 @@ void render(uint32_t time) {
 	if (alien[n].explode > 0) costume = explode[RND(3)];
   	screen.sprite(costume,alien[n].pos - screenpos,dir);
   }
-  screen.pen = white;
-  screen.text(std::to_string(screenpos.x),minimal_font,Rect(0,150,150,180));
 }
 
 void read_buttons() {
@@ -245,7 +245,11 @@ void update(uint32_t time) {
 	  	trailer.dir = dir;
   		if (dir == LEFT) trailer.pos.x = screenpos.x + 185;
   		if (dir == RIGHT) trailer.pos.x = screenpos.x + 95;
-  }
+  		}
+  //bounce off cannons
+  if (collide(truck.pos, basecannon.pos - Vec2(30,0))) player.speed.x *= -1;
+  if (collide(truck.pos, basecannon2.pos + Vec2(0,0))) player.speed.x *= -1;
+
   //aliens
   for (int n=0; n < NUMALIENS; n++) {
   	alien[n].pos += alien[n].speed;
@@ -280,6 +284,8 @@ void update(uint32_t time) {
    // drop a bomb on missle to stop it
    if (!bomb.attached && collide(missile.pos + Vec2(30,0),bomb.pos)) missile.pos.x = 0;
 
+   if (!bomb.attached && bomb.pos.y < ground - 40) bomb.explode = 10;
+
    // pickup & drop objects
     sprite_t *objects[] = { &fuelpod, &bomb, &bricks };
     for ( auto obj : objects) {
@@ -287,11 +293,13 @@ void update(uint32_t time) {
     	if (player.pos.y != ground && !truck.driving) 
 		if (collide(Vec2(obj->pos.x - screenpos.x ,obj->pos.y),player.pos)) 
 			obj->attached = 1; 
-    	if (obj->attached) obj->pos = player.pos + Vec2(screenpos.x,20);  
-    	if (obj->attached && player.pos.y == ground) {
-		obj->attached = 0;
-		obj->pos.y -= 10;
-	}
-    	if (pressed(Button::B)) obj->attached = 0; 
+    	if (obj->attached) {
+		obj->pos = player.pos + Vec2(screenpos.x,20);  
+    		if (player.pos.y == ground) {
+			obj->attached = 0;
+			obj->pos.y -= 10;
+			}
+    		if (pressed(Button::A)) obj->attached = 0; 
+		}
 	}
 }
