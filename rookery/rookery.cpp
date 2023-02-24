@@ -14,6 +14,24 @@ typedef struct pieceobj {
 } piece;
 std::vector <pieceobj> pieces;
 
+#include "SimpleChess.h"
+Game g;
+void randomMove(Game &g) {
+	// get all pieces that are allowed to move
+	std::vector<Piece*> moveable_pieces;
+	pieceColor player = g.currentPlayer();
+	for (unsigned i=0; i < 8; ++i) {
+		for (unsigned j=0; j < 8; ++j) {
+			Piece* p = g.getPiece(i, j);
+			if (p->color == player && !p->legalMoves.empty())
+				moveable_pieces.push_back(p);
+		}
+	}
+	// pick one and make a random legal move with it
+	Piece* p = moveable_pieces.at( rand() % moveable_pieces.size());
+	g.move(p->legalMoves.at( rand () % p->legalMoves.size()) );
+}
+
 // grid coords to screen
 Vec2 grid2screen(int a, int b){
     float size = (BOARDSIZE / 8)  + 0.5f;
@@ -50,6 +68,7 @@ void set_boardline(std::string boardline, int y) {
 	    char p = boardline[x];
 	    piece.pos = Vec2(x,y);
 	    piece.pic = getimage(p);
+	    piece.selected = 0;
     	    pieces.push_back(piece);
     }
 }
@@ -67,10 +86,13 @@ void init() {
     allpieces = Surface::load(pieces1);
 
     // setup board
+    /*
     set_boardline ( "RNBKQBNR",0);
     set_boardline ( "PPPPPPPP",1);
     set_boardline ( "pppppppp",6);
     set_boardline ( "rnbkqbnr",7);
+    */
+
 }
 
 void render(uint32_t time) {
@@ -97,12 +119,52 @@ void render(uint32_t time) {
 			  
     screen.pen = Pen(255,255,255);
     screenrect (a,b,c,d);
+
+    for (int x=0;x<8;x++)
+	    for (int y=0;y<8;y++) {
+		    Piece p = g.getPiece(y,x);
+		    Rect pic = Rect(0,0,10,10);
+		    if (p.name == pieceName::PAWN && p.color == pieceColor::WHITE) pic = getimage('P');
+		    if (p.name == pieceName::PAWN && p.color == pieceColor::BLACK) pic = getimage('p');
+
+		    if (p.name == pieceName::ROOK && p.color == pieceColor::WHITE) pic = getimage('R');
+		    if (p.name == pieceName::ROOK && p.color == pieceColor::BLACK) pic = getimage('r');
+
+		    if (p.name == pieceName::KNIGHT && p.color == pieceColor::WHITE) pic = getimage('N');
+		    if (p.name == pieceName::KNIGHT && p.color == pieceColor::BLACK) pic = getimage('n');
+
+		    if (p.name == pieceName::BISHOP && p.color == pieceColor::WHITE) pic = getimage('B');
+		    if (p.name == pieceName::BISHOP && p.color == pieceColor::BLACK) pic = getimage('b');
+
+		    if (p.name == pieceName::KING && p.color == pieceColor::WHITE) pic = getimage('K');
+		    if (p.name == pieceName::KING && p.color == pieceColor::BLACK) pic = getimage('k');
+
+		    if (p.name == pieceName::QUEEN && p.color == pieceColor::WHITE) pic = getimage('Q');
+		    if (p.name == pieceName::QUEEN && p.color == pieceColor::BLACK) pic = getimage('q');
+
+		    Vec2 screenpos = grid2screen(x,y);
+		    screen.stretch_blit(allpieces, pic, Rect(screenpos.x,screenpos.y,22,28));
+	    }
+    switch(g.state) {
+		case gameState::DRAW: 
+			screen.text("Game is a DRAW",minimal_font,Vec2(100,100)); break;
+		case gameState::WON_WHITE: 
+			screen.text("WHITE won !",minimal_font,Vec2(100,100)); break;
+		case gameState::WON_BLACK: 
+			screen.text("BLACK won !",minimal_font,Vec2(100,100)); break;
+		default: break;
+	}
 }
 
-void update(uint32_t time) {
-static uint32_t lasttime;
 
-     if ( time - lasttime > 50) {
+
+void update(uint32_t time) {
+static uint32_t lasttime,lasttime2;
+     if (time - lasttime2 > 150) {
+	     if (g.state == gameState::PLAYING) { randomMove(g); }
+	     lasttime2 = time;
+     }
+     if ( time - lasttime > 70) {
 	if (pressed(Button::DPAD_LEFT)) 
 		if ( cursor.x > 0 ) cursor.x--;
 	if (pressed(Button::DPAD_RIGHT)) 
@@ -119,7 +181,9 @@ static uint32_t lasttime;
 			else {
 				if (p.selected) p.pos = cursor;
 				p.selected = 0;
-			}
+				}
 		}
+    if (buttons.released & Button::B) 
+		for ( auto &p : pieces) p.selected = 0;
 }
 
