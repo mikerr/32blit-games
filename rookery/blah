@@ -1,0 +1,25 @@
+/ setup board
+    /*
+    set_boardline ( "RNBKQBNR",0);
+    set_boardline ( "PPPPPPPP",1);
+    set_boardline ( "pppppppp",6);
+    set_boardline ( "rnbkqbnr",7);
+    */
+
+}
+
+void render(uint32_t time) {
+
+    screen.pen = Pen(0,0,0);
+    screen.clear();
+
+    screen.stretch_blit(boardimage,Rect(0,0,boardimage->bounds.w,boardimage->bounds.h), Rect(boardpos.x,boardpos.y,BOARDSIZE,BOARDSIZE));
+
+    //draw pieces
+    for (auto piece: pieces) {
+		Vec2 screenpos,pos;
+		if (piece.selected) pos = cursor;
+		else pos = piece.pos;
+		screenpos = grid2screen(pos.x,pos.y);
+		screen.stretch_blit(allpieces, piece.pic, Rect(screenpos.x,screenpos.y,22,28));
+		}

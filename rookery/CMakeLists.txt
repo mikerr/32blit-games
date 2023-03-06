@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 project (rookery)
 find_package(32BLIT CONFIG REQUIRED $32BLIT_DIR)
-blit_executable (rookery rookery.cpp SimpleChess.cpp)
+blit_executable (rookery rookery.cpp)
 blit_assets_yaml (rookery assets.yml)
 blit_metadata (rookery metadata.yml)
