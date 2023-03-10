@@ -5,8 +5,10 @@ Each game/project is targeted to be "under 200 lines of readable code"
 
 (I'll spin off each game into its own repository they get larger)
 
-![](https://raw.githubusercontent.com/mikerr/32blit-games/master/3dcube/splash.png)
-[3dcube](https://github.com/mikerr/32blit-games/tree/master/3dcube) - 3d vector cube 
+
+
+![](/3dcube/splash.png)
+[3dcube](3dcube) - 3d vector cube 
 
 ![](https://raw.githubusercontent.com/mikerr/32blit-games/master/bitmapstuff/splash.png)
 [Bitmapstuff](https://github.com/mikerr/32blit-games/tree/master/bitmapstuff) - experiments with bitmap manipulation
