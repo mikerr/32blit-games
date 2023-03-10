@@ -6,7 +6,8 @@ Each game/project is targeted to be "under 200 lines of readable code"
 (I'll spin off each game into its own repository they get larger)
 
 
-|
+|              |    |
+:-------------------------:|:-------------------------:
 ![](/3dcube/splash.png)
 [3dcube](3dcube) - 3d vector cube 
 |
