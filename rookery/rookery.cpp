@@ -15,11 +15,17 @@ typedef struct pieceobj {
 	int selected;
 
 } pieceobj;
+
 std::vector <pieceobj> pieces;
+
+typedef struct movetype { Vec2 from; Vec2 to; } movetype;
+std::vector <movetype> moves;
+
+int turn;
 
 // grid coords to screen
 Vec2 grid2screen(int a, int b){
-    float size = (BOARDSIZE / 8)  + 0.5f;
+    float size = (BOARDSIZE / 8)  + 0.9f;
     Vec2 gridpos = Vec2(a,b);
     Vec2 screenpos = boardpos + (gridpos * size);
 
@@ -30,7 +36,7 @@ Vec2 grid2screen(int a, int b){
 Rect getimage (char p) {
     Rect img = Rect(0,0,20,20);
 
-    if (p == 'R') img = Rect(21,76,18,28);
+    if (p == 'R') img = Rect(22,76,18,28);
     if (p == 'r') img = Rect(21,22,18,28);
     if (p == 'N') img = Rect(40,70,18,40);
     if (p == 'n') img = Rect(40,14,18,40);
@@ -85,20 +91,145 @@ void help_screen() {
 	   screen.text("Y: swap sides",minimal_font,Vec2(10,140));
 }
 
-void init() {
+int vacant(Vec2 pos) {
+    for (auto piece: pieces) 
+	    if (piece.pos == pos) return false;
+    return true;
+}
 
-    set_screen_mode(ScreenMode::hires);
+int onboard(Vec2 pos) { return (pos.x >= 0 & pos.y >= 0 && pos.x < 8 && pos.y < 8); }
 
-    boardimage = Surface::load(board1);
-    allpieces = Surface::load(pieces1);
+int takeenemy(Vec2 from, Vec2 dest) {
+	int myside, destside;
+	destside = -1;
+	for (auto piece : pieces) {
+		if (piece.pos == from) myside = isupper(piece.type);
+		if (piece.pos == dest) destside = isupper(piece.type);
+	}
+	if (destside != -1 && destside != myside) return true;
+	else return false;
 
+}
+
+void addmove (Vec2 from,Vec2 to) {
+	Vec2 dest = from + to ;
+   if (onboard(dest) && (takeenemy(from,dest) || vacant(dest)))
+	    moves.push_back({from,dest});
+}
+void pawnaddmove (Vec2 from,Vec2 to) {
+	Vec2 dest = from + to ;
+   if (onboard(dest) && vacant(dest))
+	    moves.push_back({from,dest});
+}
+
+void rookmoves(Vec2 pos) {
+	addmove (pos, Vec2(0,1));
+	addmove (pos, Vec2(0,-1));
+	addmove (pos, Vec2(1,0));
+	addmove (pos, Vec2(-1,0));
+}
+void knightmoves(Vec2 pos) {
+	addmove (pos, Vec2(1,2));
+	addmove (pos, Vec2(1,-2));
+	addmove (pos, Vec2(-1,2));
+	addmove (pos, Vec2(-1,-2));
+	addmove (pos, Vec2(2,1));
+	addmove (pos, Vec2(2,-1));
+	addmove (pos, Vec2(-2,1));
+	addmove (pos, Vec2(-2,-1));
+}
+void bishopmoves(Vec2 pos) {
+	addmove (pos, Vec2(1,1));
+	addmove (pos, Vec2(1,-1));
+	addmove (pos, Vec2(-1,1));
+	addmove (pos, Vec2(-1,-1));
+}
+
+void get_black_moves() {
+    moves.clear();
+    for (auto piece: pieces) {
+	    if (piece.type == 'P') {
+		    pawnaddmove (piece.pos, Vec2(0,1));
+		    if (piece.pos.y == 1) pawnaddmove(piece.pos,Vec2(0,-2));
+		    if (takeenemy(piece.pos,piece.pos+Vec2(1,1))) addmove(piece.pos,Vec2(1,1));
+		    if (takeenemy(piece.pos,piece.pos+Vec2(-1,1))) addmove(piece.pos,Vec2(-1,1));
+	    }
+	    if (piece.type == 'R') rookmoves(piece.pos);
+	    if (piece.type == 'N') knightmoves(piece.pos);
+	    if (piece.type == 'B') bishopmoves(piece.pos);
+	    if (piece.type == 'Q') {
+		    rookmoves(piece.pos);
+		    bishopmoves(piece.pos);
+	    }
+    }
+}
+
+void get_white_moves() {
+    moves.clear();
+    for (auto piece: pieces) {
+	    if (piece.type == 'p') {
+		    pawnaddmove (piece.pos, Vec2(0,-1));
+		    if (piece.pos.y == 6) pawnaddmove(piece.pos,Vec2(0,-2));
+		    if (takeenemy(piece.pos,piece.pos+Vec2(1,-1))) addmove(piece.pos,Vec2(1,-1));
+		    if (takeenemy(piece.pos,piece.pos+Vec2(-1,-1))) addmove(piece.pos,Vec2(-1,-1));
+	    }
+	    if (piece.type == 'r') rookmoves(piece.pos);
+	    if (piece.type == 'n') knightmoves(piece.pos);
+	    if (piece.type == 'b') bishopmoves(piece.pos);
+	    if (piece.type == 'q') {
+		    rookmoves(piece.pos);
+		    bishopmoves(piece.pos);
+	    }
+    }
+}
+
+void do_move(){
+    movetype takemove,move;
+    int taking=0;
+    for (auto move: moves) {
+	//favour taking a piece if possible
+    		if (takeenemy(move.from,move.to)) {
+			takemove = move;
+			taking = true;
+			break;
+		}
+    }
+    if (taking) {
+	    	// remove enemy piece
+	    	int num = 0;
+    	    	for (auto &piece: pieces) {
+	    		if (piece.pos == takemove.to) break;
+			num++;
+    			}
+	    	pieces.erase(pieces.begin()+num);
+		move = takemove;
+	    	}
+    else  //else pick a random move
+    		move = moves[rand() % moves.size()];
+
+    //move the piece
+    for (auto &piece: pieces) 
+	  if (piece.pos == move.from) piece.pos = move.to;
+    turn = !turn;
+}
+
+void reset_game() {
+    pieces.clear();
     // setup board
     set_boardline ( "RNBKQBNR",0);
     set_boardline ( "PPPPPPPP",1);
     set_boardline ( "pppppppp",6);
     set_boardline ( "rnbkqbnr",7);
-
+    
     cursor = Vec2(4,6);
+}
+void init() {
+    set_screen_mode(ScreenMode::hires);
+
+    boardimage = Surface::load(board1);
+    allpieces = Surface::load(pieces1);
+
+    reset_game();
 }
 
 void render(uint32_t time) {
@@ -120,14 +251,27 @@ static uint32_t start;
 
    draw_cursor(cursor);
 
-   if (time - start < 3000) help_screen();
+   if (time - start < 2000) help_screen();
 }
 
 void update(uint32_t time) {
 static uint32_t lasttime,lasttime2;
 
-     if (time - lasttime2 > 150) {
+     if (time - lasttime2 > 2000){
 	     lasttime2 = time;
+	     if (turn == 1) {
+		     get_black_moves();
+		     int num = moves.size();
+		     if (!num) reset_game();
+		     else do_move();
+	     } else {
+		     get_white_moves();
+		     int num = moves.size();
+		     if (!num) reset_game();
+		     //else do_move();
+	}
+	     int num = pieces.size();
+	     if (num < 3) reset_game();
      }
 
     if (time - lasttime > 70) {
@@ -141,22 +285,39 @@ static uint32_t lasttime,lasttime2;
     // start/finish move ... pickup drop piece
     if (buttons.released & Button::A) {
 		for ( auto &p : pieces) 
-			if (p.pos == cursor) p.selected = 1;
-			else {
-				//drop - move the piece
-				if (p.selected ) p.pos = cursor;
+			//only pickup white pieces
+			if (p.pos == cursor && !isupper(p.type)) p.selected = 1;
+			else { //drop - move the piece
+				if (p.selected ) { 
+					// check its a valid move
+					get_white_moves();
+				        for (auto move : moves) {
+						if (move.from == p.pos && move.to == cursor) {
+	    						// remove enemy piece
+	    						int num = 0;
+    	    						for (auto piece: pieces) {
+	    							if (piece.pos == cursor) break;
+								num++;
+    								}
+							p.pos = cursor;
+							p.selected = 0;
+	    						if (num < pieces.size()) pieces.erase(pieces.begin()+num);
+							turn = !turn;
+							return;
+						}
+					}
 				p.selected = 0;
 				}
 		}
+    }
     //cancel move
     if (buttons.released & Button::B) 
 		for ( auto &p : pieces) p.selected = 0;
 
     //flip board round
     if (buttons.released & Button::Y) {
-    		for (auto &p: pieces) {
+    		for (auto &p: pieces)
 			p.pos = Vec2(7,7) - p.pos;
-		}
     }
     //change board image
     if (buttons.released & Button::X) {
@@ -169,4 +330,3 @@ static uint32_t lasttime,lasttime2;
 		else boardimage = Surface::load(board1);
     }
 }
-
