@@ -4,9 +4,8 @@ using namespace blit;
 
 #define BOARDSIZE 220
 Surface *boardimage, *allpieces;
-Vec2 boardpos, cursor;
-int bstyle;
-float zoom; 
+Vec2 boardpos, cursor,compcursor;
+int bstyle,turn;
 
 typedef struct pieceobj {
 	Rect pic;
@@ -15,13 +14,10 @@ typedef struct pieceobj {
 	int selected;
 
 } pieceobj;
-
 std::vector <pieceobj> pieces;
 
 typedef struct movetype { Vec2 from; Vec2 to; } movetype;
 std::vector <movetype> moves;
-
-int turn;
 
 // grid coords to screen
 Vec2 grid2screen(int a, int b){
@@ -66,9 +62,7 @@ void set_boardline(std::string boardline, int y) {
 }
 
 // draw unfilled rectangle
-void screenrect (Point a, Point b, Point c, Point d) {
-    screen.line(a,b); screen.line(b,c); screen.line(c,d); screen.line(d,a);
-}
+void screenrect (Point a, Point b, Point c, Point d) { screen.line(a,b); screen.line(b,c); screen.line(c,d); screen.line(d,a); }
 
 void draw_cursor(Vec2 cursor) {
     // draw border round selected square
@@ -78,7 +72,6 @@ void draw_cursor(Vec2 cursor) {
     Vec2 c = grid2screen(cursor.x+1,cursor.y+1);
     Vec2 d = grid2screen(cursor.x,cursor.y+1);
 			  
-    screen.pen = Pen(255,255,255);
     screenrect (a,b,c,d);
 }
 
@@ -108,13 +101,15 @@ int takeenemy(Vec2 from, Vec2 dest) {
 	}
 	if (destside != -1 && destside != myside) return true;
 	else return false;
-
 }
 
-void addmove (Vec2 from,Vec2 to) {
+int addmove (Vec2 from,Vec2 to) {
 	Vec2 dest = from + to ;
-   if (onboard(dest) && (takeenemy(from,dest) || vacant(dest)))
+   if (onboard(dest) && (takeenemy(from,dest) || vacant(dest))) {
 	    moves.push_back({from,dest});
+   	    return true;
+	    }
+   else return (false);
 }
 void pawnaddmove (Vec2 from,Vec2 to) {
 	Vec2 dest = from + to ;
@@ -122,12 +117,6 @@ void pawnaddmove (Vec2 from,Vec2 to) {
 	    moves.push_back({from,dest});
 }
 
-void rookmoves(Vec2 pos) {
-	addmove (pos, Vec2(0,1));
-	addmove (pos, Vec2(0,-1));
-	addmove (pos, Vec2(1,0));
-	addmove (pos, Vec2(-1,0));
-}
 void knightmoves(Vec2 pos) {
 	addmove (pos, Vec2(1,2));
 	addmove (pos, Vec2(1,-2));
@@ -138,11 +127,18 @@ void knightmoves(Vec2 pos) {
 	addmove (pos, Vec2(-2,1));
 	addmove (pos, Vec2(-2,-1));
 }
+
+void rookmoves(Vec2 pos) {
+	for (int n=1; n < 8 && addmove(pos,Vec2( 0, n)); n++);	// right
+	for (int n=1; n < 8 && addmove(pos,Vec2( 0,-n)); n++);	// left
+	for (int n=1; n < 8 && addmove(pos,Vec2( n, 0)); n++);	// up
+	for (int n=1; n < 8 && addmove(pos,Vec2(-n, 0)); n++);	// down
+}
 void bishopmoves(Vec2 pos) {
-	addmove (pos, Vec2(1,1));
-	addmove (pos, Vec2(1,-1));
-	addmove (pos, Vec2(-1,1));
-	addmove (pos, Vec2(-1,-1));
+	for (int n=1; n < 8 && addmove(pos,Vec2( n,  n)); n++);	// up-right
+	for (int n=1; n < 8 && addmove(pos,Vec2( n, -n)); n++);	// up-left
+	for (int n=1; n < 8 && addmove(pos,Vec2( -n, n)); n++); //down-right
+	for (int n=1; n < 8 && addmove(pos,Vec2( -n,-n)); n++); //down-left
 }
 
 void get_black_moves() {
@@ -204,12 +200,13 @@ void do_move(){
 	    	pieces.erase(pieces.begin()+num);
 		move = takemove;
 	    	}
-    else  //else pick a random move
+    else  //else just pick any random valid move
     		move = moves[rand() % moves.size()];
 
     //move the piece
     for (auto &piece: pieces) 
 	  if (piece.pos == move.from) piece.pos = move.to;
+    compcursor = move.to;
     turn = !turn;
 }
 
@@ -249,7 +246,10 @@ static uint32_t start;
 		screen.stretch_blit(allpieces, piece.pic, Rect(screenpos.x,screenpos.y,22,28));
 		}
 
+   screen.pen = Pen(255,255,255);
    draw_cursor(cursor);
+   screen.pen = Pen(200,200,200);
+   draw_cursor(compcursor);
 
    if (time - start < 2000) help_screen();
 }
