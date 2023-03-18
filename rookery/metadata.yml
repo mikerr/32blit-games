@@ -1,10 +1,10 @@
 title: Rookery
-description: Chess
+description: Chess 
 author: mikered
 splash:
   file: splash.png
 icon:
   file: icon.png
-version: v0.0.3
+version: v0.0.4
 category: game
 url: https://github.com/mikerr/32blit-games/

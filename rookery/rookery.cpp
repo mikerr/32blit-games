@@ -34,15 +34,15 @@ Rect getimage (char p) {
 
     if (p == 'R') img = Rect(22,76,18,28);
     if (p == 'r') img = Rect(21,22,18,28);
-    if (p == 'N') img = Rect(40,70,18,40);
+    if (p == 'N') img = Rect(40,65,18,40);
     if (p == 'n') img = Rect(40,14,18,40);
-    if (p == 'B') img = Rect(62,70,18,40);
+    if (p == 'B') img = Rect(62,62,18,40);
     if (p == 'b') img = Rect(62,14,18,40);
     if (p == 'K') img = Rect(103,57,20,50);
     if (p == 'k') img = Rect(103,0,20,50);
     if (p == 'Q') img = Rect(81,67,18,40);
     if (p == 'q') img = Rect(81,9,18,40);
-    if (p == 'P') img = Rect(4,81,17,28);
+    if (p == 'P') img = Rect(4,75,17,28);
     if (p == 'p') img = Rect(3,27,17,28);
 
     return(img);
@@ -75,13 +75,20 @@ void draw_cursor(Vec2 cursor) {
     screenrect (a,b,c,d);
 }
 
+void message (std::string text,Vec2 pos) {
+           screen.pen = Pen(0,0,0);
+	   screen.rectangle(Rect(pos.x - 5,pos.y,text.size() * 6,10));
+           screen.pen = Pen(255,255,255);
+	   screen.text(text,minimal_font,pos);
+}
+
 void help_screen() {
-   	   screen.pen = Pen(255,255,255);
-	   screen.text("Controls",minimal_font,Vec2(10,60));
-	   screen.text("A: move piece",minimal_font,Vec2(10,80));
-	   screen.text("B: cancel move",minimal_font,Vec2(10,100));
-	   screen.text("X: change board style",minimal_font,Vec2(10,120));
-	   screen.text("Y: swap sides",minimal_font,Vec2(10,140));
+	   screen.pen = Pen(255,255,255);
+	   screen.text("Controls",minimal_font,Vec2(50,60));
+	   screen.text("A: move piece",minimal_font,Vec2(50,80));
+	   screen.text("B: auto move",minimal_font,Vec2(50,100));
+	   screen.text("X: change board style",minimal_font,Vec2(50,120));
+	   screen.text("Y: show text board",minimal_font,Vec2(50,140));
 }
 
 int vacant(Vec2 pos) {
@@ -139,6 +146,17 @@ void bishopmoves(Vec2 pos) {
 	for (int n=1; n < 8 && addmove(pos,Vec2( n, -n)); n++);	// up-left
 	for (int n=1; n < 8 && addmove(pos,Vec2( -n, n)); n++); //down-right
 	for (int n=1; n < 8 && addmove(pos,Vec2( -n,-n)); n++); //down-left
+}
+
+int inCheck(char king) { 
+	// get King position
+	Vec2 kingpos;
+	for (auto piece : pieces) 
+		if (piece.type == king) kingpos = piece.pos;
+	// if any valid moves would "take" the king you're in check
+	for (auto move : moves) 
+		if (move.to == kingpos) return true;
+	return false;
 }
 
 void get_black_moves() {
@@ -243,31 +261,34 @@ static uint32_t start;
 		if (piece.selected) pos = cursor;
 		else pos = piece.pos;
 		screenpos = grid2screen(pos.x,pos.y);
-		screen.stretch_blit(allpieces, piece.pic, Rect(screenpos.x,screenpos.y,22,28));
+		if (pressed(Button::Y)) {
+			std::string s(1,piece.type);
+			screen.text(s,minimal_font,screenpos + Vec2(10,10));
+		}
+		else screen.stretch_blit(allpieces, piece.pic, Rect(screenpos.x,screenpos.y,22,28));
 		}
 
    screen.pen = Pen(255,255,255);
    draw_cursor(cursor);
-   screen.pen = Pen(200,200,200);
-   draw_cursor(compcursor);
 
+   if ((inCheck('k')) || inCheck('K')) message("CHECK!",Vec2(100,100));
    if (time - start < 2000) help_screen();
 }
 
 void update(uint32_t time) {
 static uint32_t lasttime,lasttime2;
 
-     if (time - lasttime2 > 2000){
+     if (time - lasttime2 > 20){
 	     lasttime2 = time;
 	     if (turn == 1) {
 		     get_black_moves();
 		     int num = moves.size();
-		     if (!num) reset_game();
+		     if (!num) reset_game(); //white wins
 		     else do_move();
 	     } else {
 		     get_white_moves();
 		     int num = moves.size();
-		     if (!num) reset_game();
+		     if (!num) reset_game(); //black wins
 		     //else do_move();
 	}
 	     int num = pieces.size();
@@ -275,10 +296,10 @@ static uint32_t lasttime,lasttime2;
      }
 
     if (time - lasttime > 70) {
-	if (pressed(Button::DPAD_LEFT) &&  cursor.x > 0 ) cursor.x--;
+	if (pressed(Button::DPAD_LEFT)  && cursor.x > 0) cursor.x--;
 	if (pressed(Button::DPAD_RIGHT) && cursor.x < 7) cursor.x++;
-	if (pressed(Button::DPAD_UP) && cursor.y > 0 ) cursor.y--;
-	if (pressed(Button::DPAD_DOWN) && cursor.y < 7) cursor.y++;
+	if (pressed(Button::DPAD_UP)    && cursor.y > 0) cursor.y--;
+	if (pressed(Button::DPAD_DOWN)  && cursor.y < 7) cursor.y++;
 	lasttime = time;
 	}
 
@@ -310,15 +331,10 @@ static uint32_t lasttime,lasttime2;
 				}
 		}
     }
-    //cancel move
+    //auto move
     if (buttons.released & Button::B) 
-		for ( auto &p : pieces) p.selected = 0;
+		do_move();
 
-    //flip board round
-    if (buttons.released & Button::Y) {
-    		for (auto &p: pieces)
-			p.pos = Vec2(7,7) - p.pos;
-    }
     //change board image
     if (buttons.released & Button::X) {
 	    	bstyle = !bstyle;
