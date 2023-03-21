@@ -75,7 +75,7 @@ void draw_cursor(Vec2 cursor) {
     screenrect (a,b,c,d);
 }
 
-void message (std::string text,Vec2 pos) {
+void show_text (std::string text,Vec2 pos) {
            screen.pen = Pen(0,0,0);
 	   screen.rectangle(Rect(pos.x - 5,pos.y,text.size() * 6,10));
            screen.pen = Pen(255,255,255);
@@ -91,17 +91,19 @@ void help_screen() {
 	   screen.text("Y: show text board",minimal_font,Vec2(50,140));
 }
 
-int vacant(Vec2 pos) {
+// Chess functions
+
+bool vacant(Vec2 pos) {
     for (auto piece: pieces) 
 	    if (piece.pos == pos) return false;
     return true;
 }
 
-int onboard(Vec2 pos) { return (pos.x >= 0 & pos.y >= 0 && pos.x < 8 && pos.y < 8); }
+bool onboard(Vec2 pos) { return (pos.x >= 0 & pos.y >= 0 && pos.x < 8 && pos.y < 8); }
 
-int takeenemy(Vec2 from, Vec2 dest) {
-	int myside, destside;
-	destside = -1;
+bool takeenemy(Vec2 from, Vec2 dest) {
+	// check if move is taking an enemy piece
+	int myside, destside = -1;
 	for (auto piece : pieces) {
 		if (piece.pos == from) myside = isupper(piece.type);
 		if (piece.pos == dest) destside = isupper(piece.type);
@@ -110,16 +112,20 @@ int takeenemy(Vec2 from, Vec2 dest) {
 	else return false;
 }
 
-int addmove (Vec2 from,Vec2 to) {
-	Vec2 dest = from + to ;
-   if (onboard(dest) && (takeenemy(from,dest) || vacant(dest))) {
+bool addmove (Vec2 from,Vec2 to) {
+Vec2 dest = from + to ;
+   if (onboard(dest) && vacant(dest)) {
 	    moves.push_back({from,dest});
    	    return true;
 	    }
-   else return (false);
+   if (takeenemy(from,dest)){
+	    moves.push_back({from,dest});
+   	    return false;
+   }
+   return false;
 }
 void pawnaddmove (Vec2 from,Vec2 to) {
-	Vec2 dest = from + to ;
+Vec2 dest = from + to ;
    if (onboard(dest) && vacant(dest))
 	    moves.push_back({from,dest});
 }
@@ -148,12 +154,27 @@ void bishopmoves(Vec2 pos) {
 	for (int n=1; n < 8 && addmove(pos,Vec2( -n,-n)); n++); //down-left
 }
 
-int inCheck(char king) { 
+bool valid_move(Vec2 from, Vec2 to) {
+    for (auto move : moves) 
+		if (move.from == from && move.to == to)  return true;
+    return false;
+}
+void remove_piece(Vec2 p){
+	// find & remove enemy piece
+	 int num = 0;
+    	 for (auto &piece: pieces) {
+	    	if (piece.pos == p) break;
+		num++;
+		}
+	pieces.erase(pieces.begin()+num);
+}
+
+bool inCheck(char king) { 
 	// get King position
 	Vec2 kingpos;
 	for (auto piece : pieces) 
 		if (piece.type == king) kingpos = piece.pos;
-	// if any valid moves would "take" the king you're in check
+	// if any valid moves would take the king, then you're in check
 	for (auto move : moves) 
 		if (move.to == kingpos) return true;
 	return false;
@@ -199,27 +220,15 @@ void get_white_moves() {
 
 void do_move(){
     movetype takemove,move;
-    int taking=0;
-    for (auto move: moves) {
+    for (auto m: moves) 
 	//favour taking a piece if possible
-    		if (takeenemy(move.from,move.to)) {
-			takemove = move;
-			taking = true;
-			break;
-		}
-    }
-    if (taking) {
-	    	// remove enemy piece
-	    	int num = 0;
-    	    	for (auto &piece: pieces) {
-	    		if (piece.pos == takemove.to) break;
-			num++;
-    			}
-	    	pieces.erase(pieces.begin()+num);
-		move = takemove;
-	    	}
-    else  //else just pick any random valid move
-    		move = moves[rand() % moves.size()];
+    		if (takeenemy(m.from,m.to)) { 
+			move = m; 
+			remove_piece(m.to);
+			break; 
+		} else 
+    			//or just pick any random valid move
+    			move = moves[rand() % moves.size()];
 
     //move the piece
     for (auto &piece: pieces) 
@@ -234,10 +243,11 @@ void reset_game() {
     set_boardline ( "RNBKQBNR",0);
     set_boardline ( "PPPPPPPP",1);
     set_boardline ( "pppppppp",6);
-    set_boardline ( "rnbkqbnr",7);
+    set_boardline ( "rnbqkbnr",7);
     
     cursor = Vec2(4,6);
 }
+
 void init() {
     set_screen_mode(ScreenMode::hires);
 
@@ -249,6 +259,7 @@ void init() {
 
 void render(uint32_t time) {
 static uint32_t start;	
+std::string message;
 
     screen.pen = Pen(0,0,0);
     screen.clear();
@@ -271,29 +282,22 @@ static uint32_t start;
    screen.pen = Pen(255,255,255);
    draw_cursor(cursor);
 
-   if ((inCheck('k')) || inCheck('K')) message("CHECK!",Vec2(100,100));
+   if (inCheck('K')) message = "Black is in check"; 
+   if (inCheck('k')) message = "White is in check"; 
+   show_text(message,Vec2(100,100));
    if (time - start < 2000) help_screen();
 }
 
-void update(uint32_t time) {
-static uint32_t lasttime,lasttime2;
 
-     if (time - lasttime2 > 20){
-	     lasttime2 = time;
-	     if (turn == 1) {
-		     get_black_moves();
-		     int num = moves.size();
-		     if (!num) reset_game(); //white wins
-		     else do_move();
-	     } else {
-		     get_white_moves();
-		     int num = moves.size();
-		     if (!num) reset_game(); //black wins
-		     //else do_move();
-	}
-	     int num = pieces.size();
-	     if (num < 3) reset_game();
-     }
+void update(uint32_t time) {
+static uint32_t lasttime;
+    if (turn == 1) {
+			get_black_moves();
+			int num = moves.size();
+			if (!num) reset_game(); //white wins
+			else do_move();
+	        } else 
+			get_white_moves();
 
     if (time - lasttime > 70) {
 	if (pressed(Button::DPAD_LEFT)  && cursor.x > 0) cursor.x--;
@@ -311,29 +315,22 @@ static uint32_t lasttime,lasttime2;
 			else { //drop - move the piece
 				if (p.selected ) { 
 					// check its a valid move
-					get_white_moves();
-				        for (auto move : moves) {
-						if (move.from == p.pos && move.to == cursor) {
-	    						// remove enemy piece
-	    						int num = 0;
-    	    						for (auto piece: pieces) {
-	    							if (piece.pos == cursor) break;
-								num++;
-    								}
+				        if (valid_move(p.pos,cursor)) {
+							//check for take 
+    							int taking = takeenemy(p.pos,cursor);
+							// do move
 							p.pos = cursor;
 							p.selected = 0;
-	    						if (num < pieces.size()) pieces.erase(pieces.begin()+num);
+	    						if (taking) remove_piece(cursor);
 							turn = !turn;
 							return;
-						}
 					}
 				p.selected = 0;
 				}
 		}
     }
     //auto move
-    if (buttons.released & Button::B) 
-		do_move();
+    if (buttons.released & Button::B) { do_move(); }
 
     //change board image
     if (buttons.released & Button::X) {
