@@ -4,26 +4,27 @@ using namespace blit;
 
 #define BOARDSIZE 220
 Surface *boardimage, *allpieces;
-Vec2 boardpos, cursor,compcursor;
+Point boardpos, cursor;
 int bstyle,turn;
 
 typedef struct pieceobj {
 	Rect pic;
-	Vec2 pos;
+	Point pos;
 	char type;
 	int selected;
 
 } pieceobj;
 std::vector <pieceobj> pieces;
 
-typedef struct movetype { Vec2 from; Vec2 to; } movetype;
-std::vector <movetype> moves;
+typedef struct move_t { Point from; Point to; } move_t;
+std::vector <move_t> moves;
+move_t lastmove;
 
 // grid coords to screen
-Vec2 grid2screen(int a, int b){
+Point grid2screen(int a, int b){
     float size = (BOARDSIZE / 8)  + 0.9f;
-    Vec2 gridpos = Vec2(a,b);
-    Vec2 screenpos = boardpos + (gridpos * size);
+    Point gridpos = Point(a,b);
+    Point screenpos = boardpos + (gridpos * size);
 
     return (screenpos);
 }
@@ -53,7 +54,7 @@ void set_boardline(std::string boardline, int y) {
     pieceobj piece;
     for (int x=0;x < 8; x++){
 	    char p = boardline[x];
-	    piece.pos = Vec2(x,y);
+	    piece.pos = Point(x,y);
 	    piece.type = p;
 	    piece.pic = getimage(p);
 	    piece.selected = 0;
@@ -64,18 +65,18 @@ void set_boardline(std::string boardline, int y) {
 // draw unfilled rectangle
 void screenrect (Point a, Point b, Point c, Point d) { screen.line(a,b); screen.line(b,c); screen.line(c,d); screen.line(d,a); }
 
-void draw_cursor(Vec2 cursor) {
+void draw_cursor(Point cursor) {
     // draw border round selected square
     
-    Vec2 a = grid2screen(cursor.x,cursor.y);
-    Vec2 b = grid2screen(cursor.x+1,cursor.y);
-    Vec2 c = grid2screen(cursor.x+1,cursor.y+1);
-    Vec2 d = grid2screen(cursor.x,cursor.y+1);
+    Point a = grid2screen(cursor.x,cursor.y);
+    Point b = grid2screen(cursor.x+1,cursor.y);
+    Point c = grid2screen(cursor.x+1,cursor.y+1);
+    Point d = grid2screen(cursor.x,cursor.y+1);
 			  
     screenrect (a,b,c,d);
 }
 
-void show_text (std::string text,Vec2 pos) {
+void show_text (std::string text,Point pos) {
            screen.pen = Pen(0,0,0);
 	   screen.rectangle(Rect(pos.x - 5,pos.y,text.size() * 6,10));
            screen.pen = Pen(255,255,255);
@@ -84,26 +85,26 @@ void show_text (std::string text,Vec2 pos) {
 
 void help_screen() {
 	   screen.pen = Pen(255,255,255);
-	   screen.text("Controls",minimal_font,Vec2(50,60));
-	   screen.text("A: move piece",minimal_font,Vec2(50,80));
-	   screen.text("B: auto move",minimal_font,Vec2(50,100));
-	   screen.text("X: change board style",minimal_font,Vec2(50,120));
-	   screen.text("Y: show text board",minimal_font,Vec2(50,140));
+	   screen.text("Controls",minimal_font,Point(50,60));
+	   screen.text("A: move piece",minimal_font,Point(50,80));
+	   screen.text("X: change board style",minimal_font,Point(50,120));
+	   screen.text("Y: show text board",minimal_font,Point(50,140));
 }
 
 // Chess functions
 
-bool vacant(Vec2 pos) {
+bool vacant(Point pos) {
     for (auto piece: pieces) 
 	    if (piece.pos == pos) return false;
     return true;
 }
 
-bool onboard(Vec2 pos) { return (pos.x >= 0 & pos.y >= 0 && pos.x < 8 && pos.y < 8); }
+bool onboard(Point pos) { return (pos.x >= 0 && pos.y >= 0 && pos.x < 8 && pos.y < 8); }
 
-bool takeenemy(Vec2 from, Vec2 dest) {
+bool takeenemy(Point from, Point dest) {
 	// check if move is taking an enemy piece
-	int myside, destside = -1;
+	int myside = 0;
+	int destside = -1;
 	for (auto piece : pieces) {
 		if (piece.pos == from) myside = isupper(piece.type);
 		if (piece.pos == dest) destside = isupper(piece.type);
@@ -112,8 +113,14 @@ bool takeenemy(Vec2 from, Vec2 dest) {
 	else return false;
 }
 
-bool addmove (Vec2 from,Vec2 to) {
-Vec2 dest = from + to ;
+void pawnaddmove (Point from,Point to) {
+Point dest = from + to ;
+   if (onboard(dest) && vacant(dest))
+	    moves.push_back({from,dest});
+}
+
+bool addmove (Point from,Point to) {
+Point dest = from + to ;
    if (onboard(dest) && vacant(dest)) {
 	    moves.push_back({from,dest});
    	    return true;
@@ -124,42 +131,47 @@ Vec2 dest = from + to ;
    }
    return false;
 }
-void pawnaddmove (Vec2 from,Vec2 to) {
-Vec2 dest = from + to ;
-   if (onboard(dest) && vacant(dest))
-	    moves.push_back({from,dest});
+
+void kingmoves(Point pos) {
+	addmove (pos, Point(1,0));
+	addmove (pos, Point(1,1));
+	addmove (pos, Point(1,-1));
+	addmove (pos, Point(0,1));
+	addmove (pos, Point(-1,1));
+	addmove (pos, Point(-1,0));
+	addmove (pos, Point(-1,-1));
+	addmove (pos, Point(0,-1));
+}
+void knightmoves(Point pos) {
+	addmove (pos, Point(1,2));
+	addmove (pos, Point(1,-2));
+	addmove (pos, Point(-1,2));
+	addmove (pos, Point(-1,-2));
+	addmove (pos, Point(2,1));
+	addmove (pos, Point(2,-1));
+	addmove (pos, Point(-2,1));
+	addmove (pos, Point(-2,-1));
 }
 
-void knightmoves(Vec2 pos) {
-	addmove (pos, Vec2(1,2));
-	addmove (pos, Vec2(1,-2));
-	addmove (pos, Vec2(-1,2));
-	addmove (pos, Vec2(-1,-2));
-	addmove (pos, Vec2(2,1));
-	addmove (pos, Vec2(2,-1));
-	addmove (pos, Vec2(-2,1));
-	addmove (pos, Vec2(-2,-1));
+void rookmoves(Point pos) {
+	for (int n=1; n < 8 && addmove(pos,Point( 0, n)); n++);	// right
+	for (int n=1; n < 8 && addmove(pos,Point( 0,-n)); n++);	// left
+	for (int n=1; n < 8 && addmove(pos,Point( n, 0)); n++);	// up
+	for (int n=1; n < 8 && addmove(pos,Point(-n, 0)); n++);	// down
+}
+void bishopmoves(Point pos) {
+	for (int n=1; n < 8 && addmove(pos,Point( n,  n)); n++);	// up-right
+	for (int n=1; n < 8 && addmove(pos,Point( n, -n)); n++);	// up-left
+	for (int n=1; n < 8 && addmove(pos,Point( -n, n)); n++); //down-right
+	for (int n=1; n < 8 && addmove(pos,Point( -n,-n)); n++); //down-left
 }
 
-void rookmoves(Vec2 pos) {
-	for (int n=1; n < 8 && addmove(pos,Vec2( 0, n)); n++);	// right
-	for (int n=1; n < 8 && addmove(pos,Vec2( 0,-n)); n++);	// left
-	for (int n=1; n < 8 && addmove(pos,Vec2( n, 0)); n++);	// up
-	for (int n=1; n < 8 && addmove(pos,Vec2(-n, 0)); n++);	// down
-}
-void bishopmoves(Vec2 pos) {
-	for (int n=1; n < 8 && addmove(pos,Vec2( n,  n)); n++);	// up-right
-	for (int n=1; n < 8 && addmove(pos,Vec2( n, -n)); n++);	// up-left
-	for (int n=1; n < 8 && addmove(pos,Vec2( -n, n)); n++); //down-right
-	for (int n=1; n < 8 && addmove(pos,Vec2( -n,-n)); n++); //down-left
-}
-
-bool valid_move(Vec2 from, Vec2 to) {
+bool valid_move(Point from, Point to) {
     for (auto move : moves) 
 		if (move.from == from && move.to == to)  return true;
     return false;
 }
-void remove_piece(Vec2 p){
+void remove_piece(Point p){
 	// find & remove enemy piece
 	 int num = 0;
     	 for (auto &piece: pieces) {
@@ -171,7 +183,7 @@ void remove_piece(Vec2 p){
 
 bool inCheck(char king) { 
 	// get King position
-	Vec2 kingpos;
+	Point kingpos;
 	for (auto piece : pieces) 
 		if (piece.type == king) kingpos = piece.pos;
 	// if any valid moves would take the king, then you're in check
@@ -184,11 +196,12 @@ void get_black_moves() {
     moves.clear();
     for (auto piece: pieces) {
 	    if (piece.type == 'P') {
-		    pawnaddmove (piece.pos, Vec2(0,1));
-		    if (piece.pos.y == 1) pawnaddmove(piece.pos,Vec2(0,-2));
-		    if (takeenemy(piece.pos,piece.pos+Vec2(1,1))) addmove(piece.pos,Vec2(1,1));
-		    if (takeenemy(piece.pos,piece.pos+Vec2(-1,1))) addmove(piece.pos,Vec2(-1,1));
+		    pawnaddmove (piece.pos, Point(0,1));
+		    if (piece.pos.y == 1) pawnaddmove(piece.pos,Point(0,-2));
+		    if (takeenemy(piece.pos,piece.pos+Point(1,1))) addmove(piece.pos,Point(1,1));
+		    if (takeenemy(piece.pos,piece.pos+Point(-1,1))) addmove(piece.pos,Point(-1,1));
 	    }
+	    if (piece.type == 'K') kingmoves(piece.pos);
 	    if (piece.type == 'R') rookmoves(piece.pos);
 	    if (piece.type == 'N') knightmoves(piece.pos);
 	    if (piece.type == 'B') bishopmoves(piece.pos);
@@ -203,11 +216,12 @@ void get_white_moves() {
     moves.clear();
     for (auto piece: pieces) {
 	    if (piece.type == 'p') {
-		    pawnaddmove (piece.pos, Vec2(0,-1));
-		    if (piece.pos.y == 6) pawnaddmove(piece.pos,Vec2(0,-2));
-		    if (takeenemy(piece.pos,piece.pos+Vec2(1,-1))) addmove(piece.pos,Vec2(1,-1));
-		    if (takeenemy(piece.pos,piece.pos+Vec2(-1,-1))) addmove(piece.pos,Vec2(-1,-1));
+		    pawnaddmove (piece.pos, Point(0,-1));
+		    if (piece.pos.y == 6) pawnaddmove(piece.pos,Point(0,-2));
+		    if (takeenemy(piece.pos,piece.pos+Point(1,-1))) addmove(piece.pos,Point(1,-1));
+		    if (takeenemy(piece.pos,piece.pos+Point(-1,-1))) addmove(piece.pos,Point(-1,-1));
 	    }
+	    if (piece.type == 'k') kingmoves(piece.pos);
 	    if (piece.type == 'r') rookmoves(piece.pos);
 	    if (piece.type == 'n') knightmoves(piece.pos);
 	    if (piece.type == 'b') bishopmoves(piece.pos);
@@ -219,7 +233,7 @@ void get_white_moves() {
 }
 
 void do_move(){
-    movetype takemove,move;
+    move_t move;
     for (auto m: moves) 
 	//favour taking a piece if possible
     		if (takeenemy(m.from,m.to)) { 
@@ -229,12 +243,10 @@ void do_move(){
 		} else 
     			//or just pick any random valid move
     			move = moves[rand() % moves.size()];
-
     //move the piece
     for (auto &piece: pieces) 
 	  if (piece.pos == move.from) piece.pos = move.to;
-    compcursor = move.to;
-    turn = !turn;
+    lastmove = move;
 }
 
 void reset_game() {
@@ -245,7 +257,7 @@ void reset_game() {
     set_boardline ( "pppppppp",6);
     set_boardline ( "rnbqkbnr",7);
     
-    cursor = Vec2(4,6);
+    cursor = Point(4,6);
 }
 
 void init() {
@@ -268,13 +280,13 @@ std::string message;
 
     //draw pieces
     for (auto piece: pieces) {
-		Vec2 screenpos,pos;
+		Point screenpos,pos;
 		if (piece.selected) pos = cursor;
 		else pos = piece.pos;
 		screenpos = grid2screen(pos.x,pos.y);
 		if (pressed(Button::Y)) {
 			std::string s(1,piece.type);
-			screen.text(s,minimal_font,screenpos + Vec2(10,10));
+			screen.text(s,minimal_font,screenpos + Point(10,10));
 		}
 		else screen.stretch_blit(allpieces, piece.pic, Rect(screenpos.x,screenpos.y,22,28));
 		}
@@ -282,28 +294,47 @@ std::string message;
    screen.pen = Pen(255,255,255);
    draw_cursor(cursor);
 
-   if (inCheck('K')) message = "Black is in check"; 
-   if (inCheck('k')) message = "White is in check"; 
-   show_text(message,Vec2(100,100));
+   if (inCheck('K')) { message = "Black is in check"; } 
+   if (inCheck('k')) { message = "White is in check"; }
+
+   screen.pen = Pen(200,200,0);
+   draw_cursor(lastmove.from);
+   draw_cursor(lastmove.to);
+
+   screen.pen = Pen(255,255,255);
+   show_text(message,Point(100,100));
    if (time - start < 2000) help_screen();
 }
 
-
 void update(uint32_t time) {
 static uint32_t lasttime;
-    if (turn == 1) {
-			get_black_moves();
-			int num = moves.size();
-			if (!num) reset_game(); //white wins
-			else do_move();
-	        } else 
-			get_white_moves();
+int WHITE = 0;
+int BLACK = 1;
+bool incheck;
+    if (turn == BLACK) {
+	    		//am I in check ?
+			do { 
+				static int count = 0;
+				get_black_moves();
+				do_move(); 
 
-    if (time - lasttime > 70) {
-	if (pressed(Button::DPAD_LEFT)  && cursor.x > 0) cursor.x--;
-	if (pressed(Button::DPAD_RIGHT) && cursor.x < 7) cursor.x++;
-	if (pressed(Button::DPAD_UP)    && cursor.y > 0) cursor.y--;
-	if (pressed(Button::DPAD_DOWN)  && cursor.y < 7) cursor.y++;
+				get_white_moves();
+    			        incheck = inCheck('K');
+    			        if (inCheck('K'))  {
+					//undoLastmove
+					// BUG - can't undo a taken piece under check
+    					for (auto &piece: pieces) 
+						if (piece.pos == lastmove.to) piece.pos = lastmove.from;
+				}
+				if (++count > 1000) reset_game();
+    			} while (incheck);
+			turn = WHITE;
+    }
+    if (time - lasttime > 100) {
+	if ((pressed(Button::DPAD_LEFT)  || joystick.x < 0) && cursor.x > 0) cursor.x--;
+	if ((pressed(Button::DPAD_RIGHT) || joystick.x > 0) && cursor.x < 7) cursor.x++;
+	if ((pressed(Button::DPAD_UP)    || joystick.y < 0) && cursor.y > 0) cursor.y--;
+	if ((pressed(Button::DPAD_DOWN)  || joystick.y > 0) && cursor.y < 7) cursor.y++;
 	lasttime = time;
 	}
 
@@ -315,6 +346,7 @@ static uint32_t lasttime;
 			else { //drop - move the piece
 				if (p.selected ) { 
 					// check its a valid move
+					get_white_moves();
 				        if (valid_move(p.pos,cursor)) {
 							//check for take 
     							int taking = takeenemy(p.pos,cursor);
@@ -329,8 +361,6 @@ static uint32_t lasttime;
 				}
 		}
     }
-    //auto move
-    if (buttons.released & Button::B) { do_move(); }
 
     //change board image
     if (buttons.released & Button::X) {
