@@ -172,13 +172,11 @@ bool valid_move(Point from, Point to) {
     return false;
 }
 void remove_piece(Point p){
-	// find & remove enemy piece
-	 int num = 0;
-    	 for (auto &piece: pieces) {
-	    	if (piece.pos == p) break;
-		num++;
-		}
-	pieces.erase(pieces.begin()+num);
+	// find & remove piece at p
+	int num;
+    	for (num = 0; num < pieces.size(); num++)
+	    	if (pieces[num].pos == p) break;
+	pieces.erase(pieces.begin() + num);
 }
 
 bool inCheck(char king) { 
@@ -241,6 +239,7 @@ move_t pick_computer_move(){
 }
 
 void do_move(move_t move) {
+    //remove enemy piece if taking move
     for (auto piece: pieces) 
 	    if (piece.pos == move.to) {
 		    move.piecetaken = piece.type;
@@ -328,24 +327,27 @@ move_t lastmove;
 void update(uint32_t time) {
 static uint32_t lasttime;
 static int bstyle,turn;
-
 int WHITE = 0;
 int BLACK = 1;
-
-    if (turn == BLACK) {
+    if (turn == BLACK) { 
+	    		status = "";
 			bool incheck;
 			int count = 0;
-	    		//am I in check ?
 			do { 
 				get_black_moves();
 				do_move(pick_computer_move());
 
+				//is black in check ?
 				get_white_moves();
     			        incheck = inCheck('K');
     			        if (incheck) undo_last_move();
+				// checkmate if no more moves
 				if (++count > 500) { status = "checkmate"; break; }
     			} while (incheck);
 			turn = WHITE;
+				// is white in check ?
+				get_black_moves();
+	    			if ( inCheck('k')) { status = "CHECK "; }
     			}
     if (time - lasttime > 100) {
 	if ((pressed(Button::DPAD_LEFT)  || joystick.x < 0) && cursor.x > 0) cursor.x--;
@@ -371,9 +373,13 @@ int BLACK = 1;
 					// check its a valid move
 					get_white_moves();
 				        if (valid_move(move.from,move.to)) {
-							// do move
 							do_move(move);
-							turn = BLACK;
+							//is white in check ?
+							get_black_moves();
+	    						if ( inCheck('k'))  
+								undo_last_move();
+							else
+								turn = BLACK;
 							return;
 							}
 					}
