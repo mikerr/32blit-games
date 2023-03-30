@@ -6,19 +6,23 @@ using namespace blit;
 Surface *boardimage, *allpieces;
 Point boardpos, cursor;
 int bstyle,turn;
+char lasttakenpiece;
+std::string status;
 
-typedef struct pieceobj {
+typedef struct piece_t {
 	Rect pic;
 	Point pos;
 	char type;
 	int selected;
 
-} pieceobj;
-std::vector <pieceobj> pieces;
+} piece_t;
+
+std::vector <piece_t> pieces;
 
 typedef struct move_t { Point from; Point to; } move_t;
-std::vector <move_t> moves;
+std::vector <move_t> moves, movehistory;
 move_t lastmove;
+
 
 // grid coords to screen
 Point grid2screen(int a, int b){
@@ -51,7 +55,7 @@ Rect getimage (char p) {
 
 // place pieces according to a line of notation 
 void set_boardline(std::string boardline, int y) {
-    pieceobj piece;
+    piece_t piece;
     for (int x=0;x < 8; x++){
 	    char p = boardline[x];
 	    piece.pos = Point(x,y);
@@ -87,6 +91,7 @@ void help_screen() {
 	   screen.pen = Pen(255,255,255);
 	   screen.text("Controls",minimal_font,Point(50,60));
 	   screen.text("A: move piece",minimal_font,Point(50,80));
+	   screen.text("B: undo last move",minimal_font,Point(50,100));
 	   screen.text("X: change board style",minimal_font,Point(50,120));
 	   screen.text("Y: show text board",minimal_font,Point(50,140));
 }
@@ -175,7 +180,10 @@ void remove_piece(Point p){
 	// find & remove enemy piece
 	 int num = 0;
     	 for (auto &piece: pieces) {
-	    	if (piece.pos == p) break;
+	    	if (piece.pos == p) {
+			lasttakenpiece = piece.type;
+			break;
+		}
 		num++;
 		}
 	pieces.erase(pieces.begin()+num);
@@ -197,7 +205,7 @@ void get_black_moves() {
     for (auto piece: pieces) {
 	    if (piece.type == 'P') {
 		    pawnaddmove (piece.pos, Point(0,1));
-		    if (piece.pos.y == 1) pawnaddmove(piece.pos,Point(0,-2));
+		    if (piece.pos.y == 1 && vacant(piece.pos + Point(0,1))) pawnaddmove(piece.pos,Point(0,2));
 		    if (takeenemy(piece.pos,piece.pos+Point(1,1))) addmove(piece.pos,Point(1,1));
 		    if (takeenemy(piece.pos,piece.pos+Point(-1,1))) addmove(piece.pos,Point(-1,1));
 	    }
@@ -234,15 +242,17 @@ void get_white_moves() {
 
 void do_move(){
     move_t move;
-    for (auto m: moves) 
+    lasttakenpiece = 0;
+    for (auto m: moves)  {
 	//favour taking a piece if possible
-    		if (takeenemy(m.from,m.to)) { 
+    		if (takeenemy(m.from,m.to) && (rand() % 10 > 2)) { 
 			move = m; 
 			remove_piece(m.to);
 			break; 
 		} else 
     			//or just pick any random valid move
     			move = moves[rand() % moves.size()];
+    }
     //move the piece
     for (auto &piece: pieces) 
 	  if (piece.pos == move.from) piece.pos = move.to;
@@ -260,6 +270,12 @@ void reset_game() {
     cursor = Point(4,6);
 }
 
+char *move_notation(move_t move) {
+	char notation[4];
+	sprintf((char *)&notation,"%c%d%c%d",'a' + move.from.x, 8 - move.from.y,'a'+ move.to.x, 8 - move.to.y);
+	return (notation);
+}
+
 void init() {
     set_screen_mode(ScreenMode::hires);
 
@@ -271,7 +287,6 @@ void init() {
 
 void render(uint32_t time) {
 static uint32_t start;	
-std::string message;
 
     screen.pen = Pen(0,0,0);
     screen.clear();
@@ -284,25 +299,25 @@ std::string message;
 		if (piece.selected) pos = cursor;
 		else pos = piece.pos;
 		screenpos = grid2screen(pos.x,pos.y);
-		if (pressed(Button::Y)) {
-			std::string s(1,piece.type);
-			screen.text(s,minimal_font,screenpos + Point(10,10));
-		}
-		else screen.stretch_blit(allpieces, piece.pic, Rect(screenpos.x,screenpos.y,22,28));
+		screen.stretch_blit(allpieces, piece.pic, Rect(screenpos.x,screenpos.y,22,28));
 		}
 
    screen.pen = Pen(255,255,255);
-   draw_cursor(cursor);
 
-   if (inCheck('K')) { message = "Black is in check"; } 
-   if (inCheck('k')) { message = "White is in check"; }
+   //draw labels
+   for (int i=0; i < 8;i++) {
+	   show_text(std::string(1,'a' + i),grid2screen(i,8));
+	   show_text(std::to_string(i+1),grid2screen(0,7-i));
+   }
+
+   draw_cursor(cursor);
 
    screen.pen = Pen(200,200,0);
    draw_cursor(lastmove.from);
    draw_cursor(lastmove.to);
 
    screen.pen = Pen(255,255,255);
-   show_text(message,Point(100,100));
+   show_text(status,Point(100,100));
    if (time - start < 2000) help_screen();
 }
 
@@ -310,26 +325,41 @@ void update(uint32_t time) {
 static uint32_t lasttime;
 int WHITE = 0;
 int BLACK = 1;
-bool incheck;
+
     if (turn == BLACK) {
+			bool incheck;
+			int count = 0;
 	    		//am I in check ?
 			do { 
-				static int count = 0;
 				get_black_moves();
 				do_move(); 
 
 				get_white_moves();
     			        incheck = inCheck('K');
-    			        if (inCheck('K'))  {
+    			        if (incheck) {
 					//undoLastmove
-					// BUG - can't undo a taken piece under check
-    					for (auto &piece: pieces) 
+    					for (auto &piece: pieces)  {
 						if (piece.pos == lastmove.to) piece.pos = lastmove.from;
+					}
+					if (lasttakenpiece!= 0) {
+						piece_t piece;
+						piece.type = lasttakenpiece;
+						piece.pos = lastmove.to;
+	    					piece.pic = getimage(piece.type);
+						pieces.push_back(piece);
+						lasttakenpiece= 0;
+					}
 				}
-				if (++count > 1000) reset_game();
+				if (++count > 500) {
+					status = "checkmate";
+					break;
+				}
+				//printf("%d\n",count);
     			} while (incheck);
+
+			movehistory.push_back(lastmove);
 			turn = WHITE;
-    }
+    			}
     if (time - lasttime > 100) {
 	if ((pressed(Button::DPAD_LEFT)  || joystick.x < 0) && cursor.x > 0) cursor.x--;
 	if ((pressed(Button::DPAD_RIGHT) || joystick.x > 0) && cursor.x < 7) cursor.x++;
@@ -340,7 +370,12 @@ bool incheck;
 
     // start/finish move ... pickup drop piece
     if (buttons.released & Button::A) {
-		for ( auto &p : pieces) 
+		for ( auto &p : pieces)  {
+			if (p.pos == cursor && p.selected) {
+				//if start and end are same, drop the piece
+				p.selected = 0;
+				break;
+			}
 			//only pickup white pieces
 			if (p.pos == cursor && !isupper(p.type)) p.selected = 1;
 			else { //drop - move the piece
@@ -348,18 +383,31 @@ bool incheck;
 					// check its a valid move
 					get_white_moves();
 				        if (valid_move(p.pos,cursor)) {
+							move_t move = {p.pos,cursor};
+							movehistory.push_back(move);
 							//check for take 
-    							int taking = takeenemy(p.pos,cursor);
+    							int taking = takeenemy(move.from,move.to);
+							
 							// do move
-							p.pos = cursor;
+							p.pos = move.to;
 							p.selected = 0;
-	    						if (taking) remove_piece(cursor);
-							turn = !turn;
+	    						if (taking) remove_piece(move.to);
+							turn = BLACK;
 							return;
 					}
 				p.selected = 0;
 				}
 		}
+		}
+    }
+
+    if (buttons.released & Button::B) {
+		lastmove = movehistory.back(); 
+		
+		for (auto &p : pieces) 
+			if (p.pos == lastmove.to) p.pos = lastmove.from;
+
+		movehistory.pop_back(); // remove last move
     }
 
     //change board image
