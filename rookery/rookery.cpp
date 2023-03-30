@@ -19,7 +19,7 @@ typedef struct piece_t {
 
 std::vector <piece_t> pieces;
 
-typedef struct move_t { Point from; Point to; } move_t;
+typedef struct move_t { Point from; Point to; char piecetaken;} move_t;
 std::vector <move_t> moves, movehistory;
 move_t lastmove;
 
@@ -256,6 +256,7 @@ void do_move(){
     //move the piece
     for (auto &piece: pieces) 
 	  if (piece.pos == move.from) piece.pos = move.to;
+    move.piecetaken = lasttakenpiece;
     lastmove = move;
 }
 
@@ -380,18 +381,21 @@ int BLACK = 1;
 			if (p.pos == cursor && !isupper(p.type)) p.selected = 1;
 			else { //drop - move the piece
 				if (p.selected ) { 
+					move_t move = {p.pos,cursor,0};
 					// check its a valid move
 					get_white_moves();
-				        if (valid_move(p.pos,cursor)) {
-							move_t move = {p.pos,cursor};
-							movehistory.push_back(move);
+				        if (valid_move(move.from,move.to)) {
 							//check for take 
     							int taking = takeenemy(move.from,move.to);
 							
 							// do move
 							p.pos = move.to;
 							p.selected = 0;
-	    						if (taking) remove_piece(move.to);
+	    						if (taking) { 
+								remove_piece(move.to);
+								move.piecetaken = lasttakenpiece;
+							}
+							movehistory.push_back(move);
 							turn = BLACK;
 							return;
 					}
@@ -402,12 +406,21 @@ int BLACK = 1;
     }
 
     if (buttons.released & Button::B) {
+	        if (!movehistory.size()) return;
+	        // undo move
 		lastmove = movehistory.back(); 
-		
 		for (auto &p : pieces) 
 			if (p.pos == lastmove.to) p.pos = lastmove.from;
-
-		movehistory.pop_back(); // remove last move
+		// add taken piece back to board
+		if (lastmove.piecetaken != 0) {
+			piece_t p;
+			p.type = lastmove.piecetaken;
+			p.pic = getimage(lastmove.piecetaken);
+			p.pos = lastmove.to;
+			p.selected = 0;
+			pieces.push_back(p);
+		}
+		movehistory.pop_back(); 
     }
 
     //change board image
