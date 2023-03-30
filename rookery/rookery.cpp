@@ -5,8 +5,6 @@ using namespace blit;
 #define BOARDSIZE 220
 Surface *boardimage, *allpieces;
 Point boardpos, cursor;
-int bstyle,turn;
-char lasttakenpiece;
 std::string status;
 
 typedef struct piece_t {
@@ -16,13 +14,10 @@ typedef struct piece_t {
 	int selected;
 
 } piece_t;
-
 std::vector <piece_t> pieces;
 
 typedef struct move_t { Point from; Point to; char piecetaken;} move_t;
 std::vector <move_t> moves, movehistory;
-move_t lastmove;
-
 
 // grid coords to screen
 Point grid2screen(int a, int b){
@@ -165,8 +160,8 @@ void rookmoves(Point pos) {
 	for (int n=1; n < 8 && addmove(pos,Point(-n, 0)); n++);	// down
 }
 void bishopmoves(Point pos) {
-	for (int n=1; n < 8 && addmove(pos,Point( n,  n)); n++);	// up-right
-	for (int n=1; n < 8 && addmove(pos,Point( n, -n)); n++);	// up-left
+	for (int n=1; n < 8 && addmove(pos,Point( n,  n)); n++);// up-right
+	for (int n=1; n < 8 && addmove(pos,Point( n, -n)); n++);// up-left
 	for (int n=1; n < 8 && addmove(pos,Point( -n, n)); n++); //down-right
 	for (int n=1; n < 8 && addmove(pos,Point( -n,-n)); n++); //down-left
 }
@@ -180,10 +175,7 @@ void remove_piece(Point p){
 	// find & remove enemy piece
 	 int num = 0;
     	 for (auto &piece: pieces) {
-	    	if (piece.pos == p) {
-			lasttakenpiece = piece.type;
-			break;
-		}
+	    	if (piece.pos == p) break;
 		num++;
 		}
 	pieces.erase(pieces.begin()+num);
@@ -240,27 +232,29 @@ void get_white_moves() {
     }
 }
 
-void do_move(){
-    move_t move;
-    lasttakenpiece = 0;
-    for (auto m: moves)  {
-	//favour taking a piece if possible
-    		if (takeenemy(m.from,m.to) && (rand() % 10 > 2)) { 
-			move = m; 
-			remove_piece(m.to);
-			break; 
-		} else 
-    			//or just pick any random valid move
-    			move = moves[rand() % moves.size()];
-    }
+move_t pick_computer_move(){
+    //favour taking a piece if possible
+    for (auto m: moves)  
+    	    if (takeenemy(m.from,m.to) && (rand() % 10 > 2)) return (m); 
+    //or just pick any random valid move
+    return (moves[rand() % moves.size()]);
+}
+
+void do_move(move_t move) {
+    for (auto piece: pieces) 
+	    if (piece.pos == move.to) {
+		    move.piecetaken = piece.type;
+		    remove_piece(move.to);
+		    break;
+	    }
     //move the piece
     for (auto &piece: pieces) 
 	  if (piece.pos == move.from) piece.pos = move.to;
-    move.piecetaken = lasttakenpiece;
-    lastmove = move;
+    movehistory.push_back(move);
 }
 
 void undo_last_move() {
+move_t lastmove;
 	        // undo move
 	        if (!movehistory.size()) return;
 		lastmove = movehistory.back(); 
@@ -288,29 +282,21 @@ void reset_game() {
     cursor = Point(4,6);
 }
 
-char *move_notation(move_t move) {
-	char notation[4];
-	sprintf((char *)&notation,"%c%d%c%d",'a' + move.from.x, 8 - move.from.y,'a'+ move.to.x, 8 - move.to.y);
-	return (notation);
-}
-
 void init() {
     set_screen_mode(ScreenMode::hires);
-
     boardimage = Surface::load(board1);
     allpieces = Surface::load(pieces1);
-
     reset_game();
 }
 
 void render(uint32_t time) {
 static uint32_t start;	
+move_t lastmove;
 
     screen.pen = Pen(0,0,0);
     screen.clear();
 
     screen.stretch_blit(boardimage,Rect(0,0,boardimage->bounds.w,boardimage->bounds.h), Rect(boardpos.x,boardpos.y,BOARDSIZE,BOARDSIZE));
-
     //draw pieces
     for (auto piece: pieces) {
 		Point screenpos,pos;
@@ -321,19 +307,19 @@ static uint32_t start;
 		}
 
    screen.pen = Pen(255,255,255);
-
    //draw labels
    for (int i=0; i < 8;i++) {
 	   show_text(std::string(1,'a' + i),grid2screen(i,8));
 	   show_text(std::to_string(i+1),grid2screen(0,7-i));
    }
-
+   // player cursor
    draw_cursor(cursor);
-
+   // show computer's last move
+   if (movehistory.size()) lastmove = movehistory.back(); 
    screen.pen = Pen(200,200,0);
    draw_cursor(lastmove.from);
    draw_cursor(lastmove.to);
-
+   // on screen messages
    screen.pen = Pen(255,255,255);
    show_text(status,Point(100,100));
    if (time - start < 2000) help_screen();
@@ -341,6 +327,8 @@ static uint32_t start;
 
 void update(uint32_t time) {
 static uint32_t lasttime;
+static int bstyle,turn;
+
 int WHITE = 0;
 int BLACK = 1;
 
@@ -350,16 +338,12 @@ int BLACK = 1;
 	    		//am I in check ?
 			do { 
 				get_black_moves();
-				do_move(); 
-				movehistory.push_back(lastmove);
+				do_move(pick_computer_move());
 
 				get_white_moves();
     			        incheck = inCheck('K');
     			        if (incheck) undo_last_move();
-				if (++count > 500) {
-					status = "checkmate";
-					break;
-				}
+				if (++count > 500) { status = "checkmate"; break; }
     			} while (incheck);
 			turn = WHITE;
     			}
@@ -382,26 +366,17 @@ int BLACK = 1;
 			if (p.pos == cursor && !isupper(p.type)) p.selected = 1;
 			else { //drop - move the piece
 				if (p.selected ) { 
+					p.selected = 0;
 					move_t move = {p.pos,cursor,0};
 					// check its a valid move
 					get_white_moves();
 				        if (valid_move(move.from,move.to)) {
-							//check for take 
-    							int taking = takeenemy(move.from,move.to);
-							
 							// do move
-							p.pos = move.to;
-							p.selected = 0;
-	    						if (taking) { 
-								remove_piece(move.to);
-								move.piecetaken = lasttakenpiece;
-							}
-							movehistory.push_back(move);
+							do_move(move);
 							turn = BLACK;
 							return;
+							}
 					}
-				p.selected = 0;
-				}
 			}
 		}
     }
