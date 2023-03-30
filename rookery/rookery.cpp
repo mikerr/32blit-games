@@ -260,6 +260,23 @@ void do_move(){
     lastmove = move;
 }
 
+void undo_last_move() {
+	        // undo move
+	        if (!movehistory.size()) return;
+		lastmove = movehistory.back(); 
+		for (auto &p : pieces) 
+			if (p.pos == lastmove.to) p.pos = lastmove.from;
+		// add taken piece back to board
+		if (lastmove.piecetaken != 0) {
+			piece_t p;
+			p.type = lastmove.piecetaken;
+			p.pic = getimage(lastmove.piecetaken);
+			p.pos = lastmove.to;
+			p.selected = 0;
+			pieces.push_back(p);
+		}
+		movehistory.pop_back(); 
+}
 void reset_game() {
     pieces.clear();
     // setup board
@@ -334,31 +351,16 @@ int BLACK = 1;
 			do { 
 				get_black_moves();
 				do_move(); 
+				movehistory.push_back(lastmove);
 
 				get_white_moves();
     			        incheck = inCheck('K');
-    			        if (incheck) {
-					//undoLastmove
-    					for (auto &piece: pieces)  {
-						if (piece.pos == lastmove.to) piece.pos = lastmove.from;
-					}
-					if (lasttakenpiece!= 0) {
-						piece_t piece;
-						piece.type = lasttakenpiece;
-						piece.pos = lastmove.to;
-	    					piece.pic = getimage(piece.type);
-						pieces.push_back(piece);
-						lasttakenpiece= 0;
-					}
-				}
+    			        if (incheck) undo_last_move();
 				if (++count > 500) {
 					status = "checkmate";
 					break;
 				}
-				//printf("%d\n",count);
     			} while (incheck);
-
-			movehistory.push_back(lastmove);
 			turn = WHITE;
     			}
     if (time - lasttime > 100) {
@@ -368,7 +370,6 @@ int BLACK = 1;
 	if ((pressed(Button::DPAD_DOWN)  || joystick.y > 0) && cursor.y < 7) cursor.y++;
 	lasttime = time;
 	}
-
     // start/finish move ... pickup drop piece
     if (buttons.released & Button::A) {
 		for ( auto &p : pieces)  {
@@ -401,28 +402,10 @@ int BLACK = 1;
 					}
 				p.selected = 0;
 				}
-		}
+			}
 		}
     }
-
-    if (buttons.released & Button::B) {
-	        if (!movehistory.size()) return;
-	        // undo move
-		lastmove = movehistory.back(); 
-		for (auto &p : pieces) 
-			if (p.pos == lastmove.to) p.pos = lastmove.from;
-		// add taken piece back to board
-		if (lastmove.piecetaken != 0) {
-			piece_t p;
-			p.type = lastmove.piecetaken;
-			p.pic = getimage(lastmove.piecetaken);
-			p.pos = lastmove.to;
-			p.selected = 0;
-			pieces.push_back(p);
-		}
-		movehistory.pop_back(); 
-    }
-
+    if (buttons.released & Button::B) undo_last_move(); 
     //change board image
     if (buttons.released & Button::X) {
 	    	bstyle = !bstyle;
