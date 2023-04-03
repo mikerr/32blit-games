@@ -1,7 +1,10 @@
 assets.hpp:
   board1.png:
     name: board1
+    packed: false
   board2.png:
     name: board2
+    packed: false
   pieces1.png:
     name: pieces1
+    packed: false
