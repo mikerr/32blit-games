@@ -3,8 +3,11 @@
 using namespace blit;
 
 #define BOARDSIZE 220
+#define WHITE 0
+#define BLACK 1
+
 Surface *boardimage, *allpieces;
-Point boardpos, cursor;
+Point cursor;
 std::string status;
 
 typedef struct piece_t {
@@ -22,7 +25,7 @@ std::vector <move_t> moves, movehistory;
 Point grid2screen(int a, int b){
     float size = (BOARDSIZE / 8)  + 0.9f;
     Point gridpos = Point(a,b);
-    Point screenpos = boardpos + (gridpos * size);
+    Point screenpos = gridpos * size;
 
     return (screenpos);
 }
@@ -177,17 +180,6 @@ void remove_piece(Point p){
 	pieces.erase(pieces.begin() + num);
 }
 
-bool inCheck(char king) { 
-	// get King position
-	Point kingpos;
-	for (auto piece : pieces) 
-		if (piece.type == king) kingpos = piece.pos;
-	// if any valid moves would take the king, then you're in check
-	for (auto move : moves) 
-		if (move.to == kingpos) return true;
-	return false;
-}
-
 void get_black_moves() {
     moves.clear();
     for (auto piece: pieces) {
@@ -228,10 +220,32 @@ void get_white_moves() {
     }
 }
 
-move_t pick_computer_move(){
+bool inCheck(int side) { 
+	char king;
+	Point kingpos;
+
+	if (side == BLACK) { 
+		king = 'K'; 
+		get_white_moves();
+	} else {
+		king = 'k'; 
+		get_black_moves();
+	}
+	// get King position
+	for (auto piece : pieces) 
+		if (piece.type == king) kingpos = piece.pos;
+	// if any valid moves would take the king, then you're in check
+	for (auto move : moves) 
+		if (move.to == kingpos) return true;
+	return false;
+}
+
+move_t pick_computer_move(int side){
+    if (side == WHITE) get_white_moves();
+    else get_black_moves();
+
     //favour taking a piece if possible
-    for (auto m: moves)  
-    	    if (takeenemy(m.from,m.to) && (rand() % 10 > 1)) return (m); 
+    for (auto m: moves)  { if (takeenemy(m.from,m.to) && (rand() % 10 > 3)) return (m); }
     //or just pick any random valid move
     return (moves[rand() % moves.size()]);
 }
@@ -272,10 +286,24 @@ move_t lastmove;
 		}
 		movehistory.pop_back(); 
 }
+
+int do_computer_move(int side) {
+int count = 0;
+     while (1) {
+	    	move_t move = pick_computer_move(side);
+	    	do_move(move);
+    		if (inCheck(side)) undo_last_move();
+		else break;
+		// checkmate if no more moves
+		if (++count > 500) { status = "checkmate"; break; }
+		}
+	    	return !side;
+}
+
 void reset_game() {
     pieces.clear();
     // setup board
-    set_boardline ( "RNBKQBNR",0);
+    set_boardline ( "RNBQKBNR",0);
     set_boardline ( "PPPPPPPP",1);
     set_boardline ( "pppppppp",6);
     set_boardline ( "rnbqkbnr",7);
@@ -296,7 +324,7 @@ move_t lastmove;
     screen.pen = Pen(0,0,0);
     screen.clear();
 
-    screen.stretch_blit(boardimage,Rect(0,0,boardimage->bounds.w,boardimage->bounds.h), Rect(boardpos.x,boardpos.y,BOARDSIZE,BOARDSIZE));
+    screen.stretch_blit(boardimage,Rect(0,0,boardimage->bounds.w,boardimage->bounds.h), Rect(0,0,BOARDSIZE,BOARDSIZE));
     //draw chess pieces
     for (auto piece: pieces) {
 		Point screenpos,pos;
@@ -328,28 +356,13 @@ move_t lastmove;
 void update(uint32_t time) {
 static uint32_t lasttime;
 static int bstyle,turn;
-int WHITE = 0;
-int BLACK = 1;
-    if (turn == BLACK) { 
-	    		status = "";
-			bool incheck;
-			int count = 0;
-			do { 
-				get_black_moves();
-				do_move(pick_computer_move());
-				//is black in check ?
-				get_white_moves();
-    			        incheck = inCheck('K');
-    			        if (incheck) undo_last_move();
-				// checkmate if no more moves
-				if (++count > 500) { status = "checkmate"; break; }
-    			} while (incheck);
-
-			turn = WHITE;
-				// is white in check ?
-				get_black_moves();
-	    			if ( inCheck('k')) { status = "CHECK "; }
-    			}
+    if (turn == BLACK) {
+	    status = "";
+	    turn = do_computer_move(BLACK);
+	    if (inCheck(WHITE)) status = "CHECK!";
+    }
+    // ensure randomness
+    int  r = rand();
     if (time - lasttime > 100) {
 	if ((pressed(Button::DPAD_LEFT)  || joystick.x < 0) && cursor.x > 0) cursor.x--;
 	if ((pressed(Button::DPAD_RIGHT) || joystick.x > 0) && cursor.x < 7) cursor.x++;
@@ -376,27 +389,15 @@ int BLACK = 1;
 				        if (valid_move(move.from,move.to)) {
 							do_move(move);
 							// disallow a move if you'd (still) be in check
-							get_black_moves();
-	    						if ( inCheck('k')) undo_last_move();
+	    						if (inCheck(WHITE)) undo_last_move();
 							else turn = BLACK;
-							return;
 							}
 					}
 			}
 		}
     }
     if (buttons.released & Button::B) undo_last_move(); 
-    if (buttons.released & Button::Y && turn == WHITE) 
-    {
-	    get_white_moves();
-	    move_t move = pick_computer_move();
-	    do_move(move);
-	    cursor = move.to;
-
-	    get_black_moves();
-	    if (inCheck('k')) undo_last_move();
-	    else turn = BLACK;
-    }
+    if (buttons.released & Button::Y && turn == WHITE) turn = do_computer_move(WHITE);
     //change board image
     if (buttons.released & Button::X) {
 	    	bstyle = !bstyle;
