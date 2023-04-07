@@ -30,22 +30,22 @@ Point grid2screen(int a, int b){
     return (screenpos);
 }
 
-// Return sprite image from chess notation e.g. N = black knight image
+// Return sprite image from chess notation 
 Rect getimage (char p) {
     Rect img = Rect(0,0,20,20);
 
     if (p == 'R') img = Rect(22,76,18,28);
     if (p == 'r') img = Rect(21,22,18,28);
-    if (p == 'N') img = Rect(40,65,18,40);
-    if (p == 'n') img = Rect(40,14,18,40);
-    if (p == 'B') img = Rect(62,62,18,40);
-    if (p == 'b') img = Rect(62,14,18,40);
-    if (p == 'K') img = Rect(103,57,20,50);
-    if (p == 'k') img = Rect(103,0,20,50);
-    if (p == 'Q') img = Rect(81,67,18,40);
-    if (p == 'q') img = Rect(81,9,18,40);
-    if (p == 'P') img = Rect(4,75,17,28);
-    if (p == 'p') img = Rect(3,27,17,28);
+    if (p == 'N') img = Rect(40,65,20,40);
+    if (p == 'n') img = Rect(40,14,20,40);
+    if (p == 'B') img = Rect(61,68,19,40);
+    if (p == 'b') img = Rect(61,14,19,40);
+    if (p == 'K') img = Rect(103,57,24,50);
+    if (p == 'k') img = Rect(103,0,24,50);
+    if (p == 'Q') img = Rect(81,67,22,40);
+    if (p == 'q') img = Rect(81,9,22,40);
+    if (p == 'P') img = Rect(3,80,18,28);
+    if (p == 'p') img = Rect(2,27,18,28);
 
     return(img);
 }
@@ -223,14 +223,9 @@ void get_white_moves() {
 bool inCheck(int side) { 
 	char king;
 	Point kingpos;
-
-	if (side == BLACK) { 
-		king = 'K'; 
-		get_white_moves();
-	} else {
-		king = 'k'; 
-		get_black_moves();
-	}
+	//get opposing side moves 
+	if (side == BLACK) { king = 'K'; get_white_moves(); } 
+	else 		   { king = 'k'; get_black_moves(); }
 	// get King position
 	for (auto piece : pieces) 
 		if (piece.type == king) kingpos = piece.pos;
@@ -257,12 +252,12 @@ void do_move(move_t move) {
 		    move.piecetaken = piece.type;
 		    remove_piece(move.to);
 		    break;
-	    }
+	    	    }
     //move the piece
     for (auto &piece: pieces) 
 	  if (piece.pos == move.from) {
 		  piece.pos = move.to;
-		  //pawn promotion
+		  //pawn promotion if pawn has reached other side
 		  if (piece.type == 'P' && piece.pos.y == 7) piece.type = 'Q';
 		  if (piece.type == 'p' && piece.pos.y == 0) piece.type = 'q';
 	  }
@@ -270,10 +265,9 @@ void do_move(move_t move) {
 }
 
 void undo_last_move() {
-move_t lastmove;
-	        // undo move
 	        if (!movehistory.size()) return;
-		lastmove = movehistory.back(); 
+		move_t lastmove = movehistory.back(); 
+		//update piece positions
 		for (auto &p : pieces) 
 			if (p.pos == lastmove.to) p.pos = lastmove.from;
 		// add taken piece back to board
@@ -289,15 +283,13 @@ move_t lastmove;
 
 int do_computer_move(int side) {
 int count = 0;
-     while (1) {
-	    	move_t move = pick_computer_move(side);
-	    	do_move(move);
-    		if (inCheck(side)) undo_last_move();
-		else break;
+    while (1) {
+	    	do_move(pick_computer_move(side));
+    		if (inCheck(side)) undo_last_move(); else break;
 		// checkmate if no more moves
 		if (++count > 500) { status = "checkmate"; break; }
 		}
-	    	return !side;
+    return !side;
 }
 
 void reset_game() {
@@ -331,7 +323,7 @@ move_t lastmove;
 		if (piece.selected) pos = cursor;
 		else pos = piece.pos;
 		screenpos = grid2screen(pos.x,pos.y);
-		screen.stretch_blit(allpieces, getimage(piece.type), Rect(screenpos.x,screenpos.y,22,28));
+		screen.stretch_blit(allpieces, getimage(piece.type), Rect(screenpos.x,screenpos.y,24,28));
 		}
 
    screen.pen = Pen(255,255,255);
