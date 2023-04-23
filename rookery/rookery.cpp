@@ -2,7 +2,7 @@
 #include "assets.hpp"
 using namespace blit;
 
-#define BOARDSIZE 220
+#define BOARDSIZE 240
 #define WHITE 0
 #define BLACK 1
 
@@ -19,11 +19,11 @@ typedef struct piece_t {
 std::vector <piece_t> pieces;
 
 typedef struct move_t { Point from; Point to; char piecetaken;} move_t;
-std::vector <move_t> moves, movehistory;
+std::vector <move_t> moves,movehistory;
 
 // grid coords to screen
 Point grid2screen(int a, int b){
-    float size = (BOARDSIZE / 8)  + 0.9f;
+    float size = (BOARDSIZE / 8);
     Point gridpos = Point(a,b);
     Point screenpos = gridpos * size;
 
@@ -89,7 +89,7 @@ void help_screen() {
 	   screen.text("A: move piece",minimal_font,Point(50,80));
 	   screen.text("B: undo last move",minimal_font,Point(50,100));
 	   screen.text("X: change board style",minimal_font,Point(50,120));
-	   screen.text("Y: show text board",minimal_font,Point(50,140));
+	   screen.text("Y: auto move",minimal_font,Point(50,140));
 }
 
 // Chess functions
@@ -174,10 +174,8 @@ bool valid_move(Point from, Point to) {
 }
 void remove_piece(Point p){
 	// find & remove piece at p
-	int num;
-    	for (num = 0; num < pieces.size(); num++)
-	    	if (pieces[num].pos == p) break;
-	pieces.erase(pieces.begin() + num);
+    	for (auto piece = pieces.begin(); piece != pieces.end(); piece++)
+	   	if (piece->pos == p) { pieces.erase(piece); break; } 
 }
 
 void get_black_moves() {
@@ -239,8 +237,9 @@ move_t pick_computer_move(int side){
     if (side == WHITE) get_white_moves();
     else get_black_moves();
 
-    //favour taking a piece if possible
-    for (auto m: moves)  { if (takeenemy(m.from,m.to) && (rand() % 10 > 3)) return (m); }
+    //favour a taking move
+    for (auto m : moves) 
+    	if (takeenemy(m.to,m.from) && rand() % 10 > 5) return (m);
     //or just pick any random valid move
     return (moves[rand() % moves.size()]);
 }
@@ -281,11 +280,19 @@ void undo_last_move() {
 		movehistory.pop_back(); 
 }
 
+void print_lastmove() {
+   		move_t lastmove = movehistory.back(); 
+	    	printf("%c%c", 'a' + lastmove.from.x, '0' + (8 -lastmove.from.y));
+	    	printf("%c%c\n", 'a' + lastmove.to.x, '0' + (8 -lastmove.to.y));
+}
+
 int do_computer_move(int side) {
 int count = 0;
     while (1) {
 	    	do_move(pick_computer_move(side));
-    		if (inCheck(side)) undo_last_move(); else break;
+
+    		if (inCheck(side)) { undo_last_move(); }
+		else break;
 		// checkmate if no more moves
 		if (++count > 500) { status = "checkmate"; break; }
 		}
@@ -299,10 +306,8 @@ void reset_game() {
     set_boardline ( "PPPPPPPP",1);
     set_boardline ( "pppppppp",6);
     set_boardline ( "rnbqkbnr",7);
-    
     cursor = Point(4,6);
 }
-
 void init() {
     set_screen_mode(ScreenMode::hires);
     boardimage = Surface::load_read_only(board1);
@@ -323,38 +328,44 @@ move_t lastmove;
 		if (piece.selected) pos = cursor;
 		else pos = piece.pos;
 		screenpos = grid2screen(pos.x,pos.y);
-		screen.stretch_blit(allpieces, getimage(piece.type), Rect(screenpos.x,screenpos.y,24,28));
+		screen.stretch_blit(allpieces, getimage(piece.type), Rect(screenpos.x+2,screenpos.y + 3,24,28));
 		}
-
-   screen.pen = Pen(255,255,255);
-   //draw labels
-   for (int i=0; i < 8;i++) {
-	   show_text(std::string(1,'a' + i),grid2screen(i,8));
-	   show_text(std::to_string(i+1),grid2screen(0,7-i));
-   }
    // show computer's last move
    if (movehistory.size()) lastmove = movehistory.back(); 
    screen.pen = Pen(200,200,0);
    draw_cursor(lastmove.from);
    draw_cursor(lastmove.to);
+
    // player cursor
    screen.pen = Pen(255,255,255);
    draw_cursor(cursor);
+   //draw labels
+   for (int i=0; i < 8;i++) {
+	   show_text(std::string(1,'a' + i),grid2screen(i,8) - Vec2(0,6));
+	   show_text(std::to_string(i+1),grid2screen(0,7-i));
+   }
    // on screen messages
    show_text(status,Point(100,100));
+   if (status == "checkmate") {
+	   std::string stats = std::to_string(movehistory.size()) + " moves";
+	   show_text(stats,Point(100,120));
+   }
    if (time - start < 2000) help_screen();
 }
 
 void update(uint32_t time) {
 static uint32_t lasttime;
 static int bstyle,turn;
+
+    //ensure randomness;
+    int r = rand();
+    if (status == "checkmate") return;
+
     if (turn == BLACK) {
 	    status = "";
 	    turn = do_computer_move(BLACK);
-	    if (inCheck(WHITE)) status = "CHECK!";
+	    if (inCheck(WHITE)) status = "White in CHECK!";
     }
-    // ensure randomness
-    int  r = rand();
     if (time - lasttime > 100) {
 	if ((pressed(Button::DPAD_LEFT)  || joystick.x < 0) && cursor.x > 0) cursor.x--;
 	if ((pressed(Button::DPAD_RIGHT) || joystick.x > 0) && cursor.x < 7) cursor.x++;
@@ -365,11 +376,8 @@ static int bstyle,turn;
     // start/finish move ... pickup drop piece
     if (buttons.released & Button::A) {
 		for ( auto &p : pieces)  {
-			if (p.pos == cursor && p.selected) {
-				//if start and end are same, drop the piece
-				p.selected = 0;
-				break;
-			}
+			//if start and end are same, drop the piece
+			if (p.pos == cursor && p.selected) { p.selected = 0; break; }
 			//only pickup white pieces
 			if (p.pos == cursor && !isupper(p.type)) p.selected = 1;
 			else { //drop - move the piece
@@ -389,7 +397,7 @@ static int bstyle,turn;
 		}
     }
     if (buttons.released & Button::B) undo_last_move(); 
-    if (buttons.released & Button::Y && turn == WHITE) turn = do_computer_move(WHITE);
+    if (buttons.released & Button::Y && turn == WHITE) turn = do_computer_move(WHITE); 
     //change board image
     if (buttons.released & Button::X) {
 	    	bstyle = !bstyle;
