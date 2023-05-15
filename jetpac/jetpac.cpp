@@ -32,7 +32,7 @@ Rect jetmanfly []  = { Rect(0,3,2,3), Rect(2,3,2,3) };
 Rect gems [] = { Rect(30,0,2,2), Rect(30,2,2,2), Rect(30,7,2,2), Rect(30,4,2,2), Rect(30,10,2,2)};
 Rect fuel = Rect(0,8,3,2);
 
-Rect rocketparts[3] = { Rect(5,11,2,2), Rect(5,9,2,3), Rect(5,6,2,3) };
+Rect rocketparts[3] = { Rect(5,11,2,2), Rect(5,8,2,3), Rect(5,6,2,3) };
 Point rocketpos[3] ;
 int rocketgrabbed[3];
 
@@ -349,8 +349,12 @@ if (time % 4 <2) {
   if (takeoff > -10) {
 	  takeoff++;
   	  if (takeoff > screen.bounds.h) {
-              fuelled = 0; takeoff = -10;
-  	      player = Point(screen.bounds.w / 2, screen.bounds.h - 30);
+              fuelled = 0; 
+	      takeoff = -10;
+	      int rx = rocketparts[0].x; // rocketsprites at 5,7,9,11
+	      if (rx == 11) rx = 5; else rx += 2;
+	      rocketparts[0].x = rocketparts[1].x = rocketparts[2].x = rx;
+  	      reset_game();
           }
   }
 }
