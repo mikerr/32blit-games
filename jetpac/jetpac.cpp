@@ -12,7 +12,7 @@ Surface *backdrop;
 int screenbottom,dir,fire;
 int fuelled,fuelgrabbed,gem;
 int lives,delay,rocketsmade;
-int playerdied, takeoff = -10;
+int playerdied, takeoff;
 
 Point player,fuelpos,gempos;
 Vec2 speed;
@@ -26,13 +26,13 @@ alien aliens[NUMALIENS];
 
 //costumes
 Rect explode[] = { Rect(8,0,4,3), Rect(8,3,4,2), Rect(8,5,4,2) };
-Rect meteor [] = { Rect(0,6,2,2), Rect(2,6,2,2) };
+Rect meteor [] = { Rect(0,6,2,2), Rect(2,6,2,2) }; // 6,8,10,12
 Rect jetmanwalk [] = { Rect(0,0,2,3), Rect(2,0,2,3), Rect(4,0,2,3), Rect(6,0,2,3) };
 Rect jetmanfly []  = { Rect(0,3,2,3), Rect(2,3,2,3) };
 Rect gems [] = { Rect(30,0,2,2), Rect(30,2,2,2), Rect(30,7,2,2), Rect(30,4,2,2), Rect(30,10,2,2)};
-Rect fuel = Rect(0,8,3,2);
+Rect fuel = Rect(30,12,2,2);
 
-Rect rocketparts[3] = { Rect(5,11,2,2), Rect(5,8,2,3), Rect(5,6,2,3) };
+Rect rocketparts[3] = { Rect(5,12,2,2), Rect(5,10,2,2), Rect(5,8,2,2) };
 Point rocketpos[3] ;
 int rocketgrabbed[3];
 
@@ -108,7 +108,7 @@ void newalien (int n) {
 void colorsprites(Pen color) { screen.sprites->palette[1] = color; } 
 
 bool indropzone ( int x ) { 
-	int zone = screen.bounds.w * 0.62;
+	int zone = screen.bounds.w * 0.64;
 	return (x > zone && x < zone + 10); 
 }
 
@@ -123,6 +123,8 @@ void reset_game() {
 
   lives = 3; 
   rocketsmade = 1;
+  fuelled = 0; 
+  takeoff = -10;
   player = Point(screen.bounds.w / 2, screen.bounds.h - 50);
   fuelpos = Point(RND(screen.bounds.w),10);
   gempos = Point(RND(screen.bounds.w),10);
@@ -144,7 +146,6 @@ void init() {
 
   //make black transparent
   screen.sprites->palette[0] = Pen(0,0,0,0); 
-
 
   //explosion noise
   channels[2].waveforms   = Waveform::NOISE;
@@ -169,7 +170,6 @@ void init() {
   	  }
   reset_game();
 }
-
 
 void gameloop() {
   Rect costume;
@@ -210,7 +210,7 @@ void gameloop() {
         if ((fuelled >= 3) && RND(2)) colorsprites(white);
         screen.sprite(rocketparts[i],pos);
         rocketpos[i] = pos;
-        pos.y -= 24;
+        pos.y -= 16;
         }
   // handle grabbing & dropping rocketparts
   for (int i=rocketsmade; i < 3 ; i++) {
@@ -268,7 +268,7 @@ void gameloop() {
 		lives--;
 		}
   screen.pen = white;
-  screen.text(std::to_string(lives),minimal_font,Vec2(100,10));
+  screen.text(std::to_string(lives+1),minimal_font,Vec2(85,0));
   if (lives < 0) reset_game();
 }
 
@@ -336,7 +336,7 @@ if (time % 4 <2) {
                         rocketpos[i].y +=20;
                         rocketgrabbed[i] = 0;}
                 }
-        if (!hitplatform(rocketpos[i] + Point(0,10)) ) {
+        if (!hitplatform(rocketpos[i])) {
                 rocketpos[i].y++;
                 // stack rocketpart on top of last one
                 if (indropzone(rocketpos[i].x) && (rocketpos[i].y > rocketpos[i-1].y - 16)) { 
@@ -349,11 +349,12 @@ if (time % 4 <2) {
   if (takeoff > -10) {
 	  takeoff++;
   	  if (takeoff > screen.bounds.h) {
-              fuelled = 0; 
-	      takeoff = -10;
+	      // change rocket type
 	      int rx = rocketparts[0].x; // rocketsprites at 5,7,9,11
 	      if (rx == 11) rx = 5; else rx += 2;
 	      rocketparts[0].x = rocketparts[1].x = rocketparts[2].x = rx;
+	      //change alien type
+  	      meteor[0].y = meteor[1].y = 6 + RND(4) * 2;
   	      reset_game();
           }
   }
