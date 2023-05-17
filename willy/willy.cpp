@@ -128,7 +128,7 @@ void setup_level(int level) {
 
 	default:
  	platforms = { Vec3(39,160,280)};
- }
+ 	}
 
   int i=0;
   for (auto m: monsters) {
@@ -136,9 +136,9 @@ void setup_level(int level) {
 	  monster[i].dir = LEFT;
   	  monster[i].costume = monstertypes[level];
 	  i++;
-  }
-  if (background) free_surface (background);
-  background = Surface::load(levels[level]);
+  	}
+  //if (background) free_surface (background);
+  background = Surface::load_read_only(levels[level]);
 
   // PICO / smaller screen support /
   for (Vec3 &plat : platforms) { plat.x -= OFFSET; plat.z -= OFFSET; }
@@ -249,8 +249,8 @@ void init() {
   set_screen_mode(ScreenMode::hires);
   if (screen.bounds.w <320) PICO = OFFSET = 38;
 
-  sprites = Surface::load(manic_sprites);
-  characters = Surface::load(character_sprites);
+  sprites = Surface::load_read_only(manic_sprites);
+  characters = Surface::load_read_only(character_sprites);
 
   lives = 3;
   level = 0;

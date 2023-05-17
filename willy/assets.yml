@@ -1,12 +1,16 @@
 assets.hpp:
   titlescreen.png:
     name: titlescreen
+    packed: false
   levels/*:
     name: "{filename}"
+    packed: false
   characters.png:
     name: character_sprites
+    packed: false
   manic_sprites.png:
     name: manic_sprites
+    packed: false
   mm_music.mp3:
     name: music
     type: raw/binary

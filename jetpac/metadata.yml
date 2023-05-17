@@ -5,6 +5,6 @@ splash:
   file: splash.png
 icon:
   file: jetman-icon.png
-version: v1.0.4
+version: v1.0.5
 category: game
 url: https://github.com/mikerr/32blit-games/
